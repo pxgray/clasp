@@ -3,6 +3,9 @@ package io.github.pxgray.clasp.data
 import android.content.ContentResolver
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.graphics.Canvas
+import android.graphics.Paint
+import android.graphics.RectF
 import android.net.Uri
 import androidx.palette.graphics.Palette
 import kotlinx.coroutines.Dispatchers
@@ -72,4 +75,19 @@ internal fun squareLogo(source: Bitmap, size: Int): Bitmap {
 internal fun pickBrandColor(bitmap: Bitmap): Int? {
     val palette = Palette.from(bitmap).generate()
     return (palette.vibrantSwatch ?: palette.darkVibrantSwatch ?: palette.mutedSwatch ?: palette.dominantSwatch)?.rgb
+}
+
+/** Scales [source] to fit inside a [size]² square with some padding, on a solid [background]. */
+internal fun fitSquare(source: Bitmap, size: Int, background: Int): Bitmap {
+    val out = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
+    val canvas = Canvas(out)
+    canvas.drawColor(background)
+    val inner = size * 0.76f
+    val scale = min(inner / source.width, inner / source.height)
+    val width = source.width * scale
+    val height = source.height * scale
+    val left = (size - width) / 2
+    val top = (size - height) / 2
+    canvas.drawBitmap(source, null, RectF(left, top, left + width, top + height), Paint(Paint.FILTER_BITMAP_FLAG))
+    return out
 }
