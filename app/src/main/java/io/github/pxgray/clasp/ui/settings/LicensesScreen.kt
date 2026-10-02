@@ -25,8 +25,12 @@ import io.github.pxgray.clasp.R
 
 private data class OpenSourceLibrary(val name: String, val license: String)
 
-/** Keep in sync with gradle/libs.versions.toml. Every dependency is Apache 2.0, whose text follows the list. */
+/**
+ * Clasp itself, then its dependencies. Keep in sync with gradle/libs.versions.toml.
+ * Every dependency is Apache 2.0, whose text follows the list.
+ */
 private val LIBRARIES = listOf(
+    OpenSourceLibrary("Clasp", "GNU General Public License v3.0 or later"),
     OpenSourceLibrary("AndroidX: Jetpack Compose, Material 3, Navigation, Room, CameraX, DataStore, Palette", "Apache License 2.0"),
     OpenSourceLibrary("Kotlin standard library", "Apache License 2.0"),
     OpenSourceLibrary("kotlinx.coroutines, kotlinx.serialization, kotlinx-datetime", "Apache License 2.0"),
