@@ -24,7 +24,6 @@ import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.LargeFlexibleTopAppBar
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarDuration
@@ -33,6 +32,7 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -53,6 +53,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import io.github.pxgray.clasp.R
 import io.github.pxgray.clasp.domain.WalletItem
+import io.github.pxgray.clasp.ui.components.ClaspMark
 import io.github.pxgray.clasp.ui.components.WalletCard
 import io.github.pxgray.clasp.ui.importpass.ImportSheet
 import io.github.pxgray.clasp.ui.importpass.ImportViewModel
@@ -133,7 +134,7 @@ fun HomeScreen(
     onAddManually: () -> Unit,
     onOpenSettings: () -> Unit,
 ) {
-    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
+    val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
     val listState = rememberLazyListState()
     val fabExpanded by remember { derivedStateOf { listState.firstVisibleItemIndex == 0 } }
     var showAddSheet by rememberSaveable { mutableStateOf(false) }
@@ -141,8 +142,10 @@ fun HomeScreen(
     Scaffold(
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
-            LargeFlexibleTopAppBar(
-                title = { Text(stringResource(R.string.app_name)) },
+            // Like Google Wallet: no title, just the app's mark and settings.
+            TopAppBar(
+                title = {},
+                navigationIcon = { ClaspMark(Modifier.padding(start = 12.dp)) },
                 actions = {
                     IconButton(onClick = onOpenSettings) {
                         Icon(Icons.Default.Settings, contentDescription = stringResource(R.string.settings_title))

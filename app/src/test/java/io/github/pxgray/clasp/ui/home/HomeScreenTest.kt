@@ -3,6 +3,7 @@ package io.github.pxgray.clasp.ui.home
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import io.github.pxgray.clasp.testing.boardingItem
@@ -43,5 +44,13 @@ class HomeScreenTest {
         show(HomeUiState(loading = false, cards = listOf(loyaltyItem())))
         compose.onNodeWithText("Costco").assertIsDisplayed()
         compose.onNodeWithText("Loyalty cards").assertDoesNotExist()
+    }
+
+    @Test
+    fun `the header is the Clasp mark and settings, without a title`() {
+        show(HomeUiState(loading = false, cards = listOf(loyaltyItem())))
+        compose.onNodeWithContentDescription("Clasp").assertIsDisplayed()
+        compose.onNodeWithContentDescription("Settings").assertIsDisplayed()
+        compose.onNodeWithText("Clasp").assertDoesNotExist()
     }
 }
