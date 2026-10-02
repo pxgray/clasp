@@ -12,5 +12,3 @@ env JAVA_HOME=/opt/android-studio/jbr ./gradlew assembleDebug        # build
 env JAVA_HOME=/opt/android-studio/jbr ./gradlew testDebugUnitTest    # tests (JVM + Robolectric)
 env JAVA_HOME=/opt/android-studio/jbr ./gradlew installDebug         # install on a connected device
 ```
-
-Design spec and plans live in `docs/superpowers/`.
