@@ -1,0 +1,125 @@
+package io.github.pxgray.clasp.screenshots
+
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onRoot
+import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.github.takahirom.roborazzi.RobolectricDeviceQualifiers
+import com.github.takahirom.roborazzi.captureRoboImage
+import io.github.pxgray.clasp.data.AppSettings
+import io.github.pxgray.clasp.domain.Barcode
+import io.github.pxgray.clasp.domain.BarcodeFormat
+import io.github.pxgray.clasp.domain.ItemDetails
+import io.github.pxgray.clasp.domain.ItemKind
+import io.github.pxgray.clasp.domain.PassField
+import io.github.pxgray.clasp.domain.PkPassStyle
+import io.github.pxgray.clasp.domain.WalletItem
+import io.github.pxgray.clasp.testing.boardingItem
+import io.github.pxgray.clasp.testing.loyaltyItem
+import io.github.pxgray.clasp.ui.detail.DetailScreen
+import io.github.pxgray.clasp.ui.edit.EditFormState
+import io.github.pxgray.clasp.ui.edit.EditScreen
+import io.github.pxgray.clasp.ui.home.HomeScreen
+import io.github.pxgray.clasp.ui.home.HomeUiState
+import io.github.pxgray.clasp.ui.scan.CameraPermission
+import io.github.pxgray.clasp.ui.scan.ScanScreen
+import io.github.pxgray.clasp.ui.settings.SettingsScreen
+import io.github.pxgray.clasp.ui.theme.ClaspTheme
+import org.junit.Rule
+import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.annotation.Config
+import org.robolectric.annotation.GraphicsMode
+import kotlin.time.Instant
+
+/**
+ * Golden images of every screen, in light and dark. Record with `./gradlew recordRoborazziDebug`,
+ * check with `./gradlew verifyRoborazziDebug`. Plain `testDebugUnitTest` runs skip the comparison.
+ */
+@RunWith(AndroidJUnit4::class)
+@GraphicsMode(GraphicsMode.Mode.NATIVE)
+@Config(qualifiers = RobolectricDeviceQualifiers.Pixel7)
+class ScreenshotTest {
+    @get:Rule val compose = createComposeRule()
+
+    private fun snap(name: String, dark: Boolean = false, content: @Composable () -> Unit) {
+        compose.setContent { ClaspTheme(darkTheme = dark, dynamicColor = false, content = content) }
+        compose.onRoot().captureRoboImage("src/test/screenshots/$name.png")
+    }
+
+    private val wallet = HomeUiState(
+        loading = false,
+        passes = listOf(boardingItem(), concert),
+        cards = listOf(
+            loyaltyItem(id = "c1", title = "Costco", cardNumber = "111222333444", brandColor = 0xFFD32F2F.toInt()),
+            loyaltyItem(id = "c2", title = "Blue Bottle Coffee", memberName = "Jane Doe", brandColor = 0xFF1565C0.toInt()),
+            loyaltyItem(id = "c3", title = "Library card", cardNumber = "29384756"),
+        ),
+    )
+
+    @Test fun homeEmpty() = snap("home_empty") { home(HomeUiState(loading = false)) }
+    @Test fun homeLight() = snap("home") { home(wallet) }
+    @Test fun homeDark() = snap("home_dark", dark = true) { home(wallet) }
+
+    @Test fun detailLoyaltyLight() = snap("detail_loyalty") { detail(wallet.cards.first()) }
+    @Test fun detailLoyaltyDark() = snap("detail_loyalty_dark", dark = true) { detail(wallet.cards.first()) }
+    @Test fun detailBoardingPass() = snap("detail_boarding_pass") { detail(boardingItem().copy(brandColor = 0xFFC62828.toInt())) }
+    @Test fun detailPass() = snap("detail_pass") { detail(concert) }
+
+    @Test fun editLoyalty() = snap("edit_loyalty") { edit(EditFormState.from(wallet.cards.first())) }
+    @Test fun editBoardingPass() = snap("edit_boarding_pass") { edit(EditFormState.from(boardingItem())) }
+
+    @Test fun scanPermission() = snap("scan_permission") {
+        ScanScreen(CameraPermission.NOT_GRANTED, onRequestPermission = {}, onOpenSettings = {}, onBarcode = {}, onClose = {})
+    }
+
+    @Test fun settingsLight() = snap("settings") { settings() }
+    @Test fun settingsDark() = snap("settings_dark", dark = true) { settings() }
+
+    @Composable
+    private fun home(state: HomeUiState) =
+        HomeScreen(state, SnackbarHostState(), onOpenItem = {}, onScan = {}, onImport = {}, onAddManually = {}, onOpenSettings = {})
+
+    @Composable
+    private fun detail(item: WalletItem) = DetailScreen(item, onBack = {}, onEdit = {}, onDelete = {})
+
+    @Composable
+    private fun edit(state: EditFormState) =
+        EditScreen(state, SnackbarHostState(), onUpdate = {}, onPickLogo = {}, onSave = {}, onCancel = {})
+
+    @Composable
+    private fun settings() = SettingsScreen(
+        settings = AppSettings(),
+        busy = false,
+        versionName = "0.1.0",
+        showDynamicColor = true,
+        snackbarHostState = SnackbarHostState(),
+        onBack = {},
+        onTheme = {},
+        onDynamicColor = {},
+        onExport = {},
+        onImport = {},
+        onLicenses = {},
+    )
+
+    private companion object {
+        val concert = WalletItem(
+            id = "concert",
+            kind = ItemKind.PASS,
+            title = "Riverside Hall",
+            subtitle = "Concert ticket",
+            barcode = Barcode("RH-2026-1122-B12", BarcodeFormat.QR, altText = "B12 · Row 4"),
+            brandColor = 0xFF6A1B9A.toInt(),
+            details = ItemDetails.Pass(
+                style = PkPassStyle.EVENT_TICKET,
+                headerFields = listOf(PassField("date", "DATE", "Nov 22, 2026, 7:30 PM")),
+                primaryFields = listOf(PassField("event", "EVENT", "The Midnight Orchestra")),
+                secondaryFields = listOf(PassField("section", "SECTION", "B"), PassField("row", "ROW", "4"), PassField("seat", "SEAT", "12")),
+                auxiliaryFields = listOf(PassField("doors", "DOORS", "6:30 PM"), PassField("price", "PRICE", "$48.00")),
+                backFields = listOf(PassField("terms", "TERMS", "No refunds or exchanges.")),
+            ),
+            createdAt = Instant.fromEpochMilliseconds(2_000),
+        )
+    }
+}

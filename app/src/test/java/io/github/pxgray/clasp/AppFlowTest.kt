@@ -22,7 +22,8 @@ class AppFlowTest {
 
     @Test
     fun `add a card, open it, delete it, undo`() {
-        compose.waitUntilAtLeastOneExists(hasText("Your wallet is empty"), 5_000)
+        // Generous: as the first Robolectric test in a fresh JVM, startup (app, Room, settings) can take seconds.
+        compose.waitUntilAtLeastOneExists(hasText("Your wallet is empty"), 20_000)
         compose.onNodeWithText("Enter manually").performClick()
 
         compose.onNodeWithTag("edit_name").performTextInput("Costco")
