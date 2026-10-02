@@ -1,11 +1,14 @@
 package io.github.pxgray.clasp.ui.navigation
 
+import android.net.Uri
 import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.SharedTransitionLayout
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.navigation.NavDestination.Companion.hasRoute
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -19,7 +22,17 @@ import io.github.pxgray.clasp.ui.scan.ScanRoute
 private const val DELETED_ITEM_KEY = "deletedItemId"
 
 @Composable
-fun ClaspNavHost(navController: NavHostController = rememberNavController()) {
+fun ClaspNavHost(
+    navController: NavHostController = rememberNavController(),
+    pendingImport: Uri? = null,
+    onPendingImportConsumed: () -> Unit = {},
+) {
+    // A pass opened from another app is previewed on the home screen, wherever the user was.
+    LaunchedEffect(pendingImport) {
+        if (pendingImport != null && navController.currentDestination?.hasRoute<Destination.Home>() == false) {
+            navController.popBackStack<Destination.Home>(inclusive = false)
+        }
+    }
     SharedTransitionLayout {
         CompositionLocalProvider(LocalSharedTransitionScope provides this) {
             NavHost(navController = navController, startDestination = Destination.Home) {
@@ -31,6 +44,8 @@ fun ClaspNavHost(navController: NavHostController = rememberNavController()) {
                         HomeRoute(
                             deletedItemId = deletedItemId,
                             onDeletedItemConsumed = { entry.savedStateHandle[DELETED_ITEM_KEY] = null },
+                            pendingImport = pendingImport,
+                            onPendingImportConsumed = onPendingImportConsumed,
                             onOpenItem = { navController.navigate(Destination.Detail(it)) },
                             onScan = { navController.navigate(Destination.Scan) },
                             onAddManually = { navController.navigate(Destination.Edit()) },

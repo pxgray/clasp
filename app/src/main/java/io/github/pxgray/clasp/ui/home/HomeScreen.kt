@@ -1,5 +1,8 @@
 package io.github.pxgray.clasp.ui.home
 
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -27,6 +30,7 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -48,15 +52,28 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import io.github.pxgray.clasp.R
 import io.github.pxgray.clasp.domain.WalletItem
 import io.github.pxgray.clasp.ui.components.WalletCard
+import io.github.pxgray.clasp.ui.importpass.ImportSheet
+import io.github.pxgray.clasp.ui.importpass.ImportViewModel
+
+/** Many apps label `.pkpass` files generically, so the picker also offers binary and zip files. */
+private val PASS_MIME_TYPES = arrayOf(
+    "application/vnd.apple.pkpass",
+    "application/vnd-com.apple.pkpass",
+    "application/octet-stream",
+    "application/zip",
+)
 
 @Composable
 fun HomeRoute(
     deletedItemId: String?,
     onDeletedItemConsumed: () -> Unit,
+    pendingImport: Uri?,
+    onPendingImportConsumed: () -> Unit,
     onOpenItem: (String) -> Unit,
     onScan: () -> Unit,
     onAddManually: () -> Unit,
     viewModel: HomeViewModel = viewModel(factory = HomeViewModel.Factory),
+    importViewModel: ImportViewModel = viewModel(factory = ImportViewModel.Factory),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -81,7 +98,25 @@ fun HomeRoute(
         }
     }
 
-    HomeScreen(state, snackbarHostState, onOpenItem, onScan, onAddManually)
+    val importState by importViewModel.state.collectAsStateWithLifecycle()
+    val pickPass = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        uri?.let(importViewModel::open)
+    }
+    LaunchedEffect(pendingImport) {
+        val uri = pendingImport ?: return@LaunchedEffect
+        importViewModel.open(uri)
+        onPendingImportConsumed()
+    }
+
+    HomeScreen(
+        state = state,
+        snackbarHostState = snackbarHostState,
+        onOpenItem = onOpenItem,
+        onScan = onScan,
+        onImport = { pickPass.launch(PASS_MIME_TYPES) },
+        onAddManually = onAddManually,
+    )
+    ImportSheet(importState, onConfirm = importViewModel::confirm, onDismiss = importViewModel::dismiss)
 }
 
 @Composable
@@ -90,6 +125,7 @@ fun HomeScreen(
     snackbarHostState: SnackbarHostState,
     onOpenItem: (String) -> Unit,
     onScan: () -> Unit,
+    onImport: () -> Unit,
     onAddManually: () -> Unit,
 ) {
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
@@ -119,7 +155,7 @@ fun HomeScreen(
     ) { padding ->
         when {
             state.loading -> Unit
-            state.isEmpty -> EmptyWallet(Modifier.padding(padding), onScan, onAddManually)
+            state.isEmpty -> EmptyWallet(Modifier.padding(padding), onScan, onImport, onAddManually)
             else -> LazyColumn(
                 state = listState,
                 contentPadding = PaddingValues(
@@ -143,6 +179,10 @@ fun HomeScreen(
             onScan = {
                 showAddSheet = false
                 onScan()
+            },
+            onImport = {
+                showAddSheet = false
+                onImport()
             },
             onAddManually = {
                 showAddSheet = false
@@ -170,7 +210,7 @@ private fun LazyListScope.section(labelRes: Int?, items: List<WalletItem>, onOpe
 }
 
 @Composable
-private fun EmptyWallet(modifier: Modifier, onScan: () -> Unit, onAddManually: () -> Unit) {
+private fun EmptyWallet(modifier: Modifier, onScan: () -> Unit, onImport: () -> Unit, onAddManually: () -> Unit) {
     Column(
         modifier = modifier.fillMaxSize().padding(32.dp),
         verticalArrangement = Arrangement.Center,
@@ -199,6 +239,10 @@ private fun EmptyWallet(modifier: Modifier, onScan: () -> Unit, onAddManually: (
             Icon(Icons.Default.Edit, contentDescription = null)
             Spacer(Modifier.width(8.dp))
             Text(stringResource(R.string.add_manually))
+        }
+        Spacer(Modifier.height(4.dp))
+        TextButton(onClick = onImport) {
+            Text(stringResource(R.string.add_import))
         }
     }
 }

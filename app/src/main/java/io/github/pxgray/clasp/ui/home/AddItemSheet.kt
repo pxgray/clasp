@@ -19,9 +19,9 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import io.github.pxgray.clasp.R
 
-/** Ways to add an item. Plan 3 adds an "Import pass" row here. */
+/** Ways to add an item. */
 @Composable
-fun AddItemSheet(onDismiss: () -> Unit, onScan: () -> Unit, onAddManually: () -> Unit) {
+fun AddItemSheet(onDismiss: () -> Unit, onScan: () -> Unit, onImport: () -> Unit, onAddManually: () -> Unit) {
     ModalBottomSheet(onDismissRequest = onDismiss) {
         Column(Modifier.navigationBarsPadding().padding(bottom = 16.dp)) {
             ListItem(
@@ -30,6 +30,13 @@ fun AddItemSheet(onDismiss: () -> Unit, onScan: () -> Unit, onAddManually: () ->
                 leadingContent = { Icon(painterResource(R.drawable.ic_scan), contentDescription = null) },
                 colors = ListItemDefaults.colors(containerColor = Color.Transparent),
                 modifier = Modifier.clickable(onClick = onScan),
+            )
+            ListItem(
+                headlineContent = { Text(stringResource(R.string.add_import)) },
+                supportingContent = { Text(stringResource(R.string.add_import_description)) },
+                leadingContent = { Icon(painterResource(R.drawable.ic_pass), contentDescription = null) },
+                colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+                modifier = Modifier.clickable(onClick = onImport),
             )
             ListItem(
                 headlineContent = { Text(stringResource(R.string.add_manually)) },

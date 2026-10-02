@@ -76,4 +76,14 @@
     <string name="scan_permission_allow">Allow camera</string>
     <string name="scan_permission_settings">Open settings</string>
     <string name="scan_unavailable">No camera is available on this device.</string>
+    <string name="action_close">Close</string>
+    <string name="add_import">Import a pass</string>
+    <string name="add_import_description">Tickets, coupons and boarding passes (.pkpass)</string>
+    <string name="import_loading">Opening pass…</string>
+    <string name="import_add">Add to wallet</string>
+    <string name="import_update">Update pass</string>
+    <string name="import_failed_title">Couldn’t open this pass</string>
+    <string name="import_error_unreadable">The file couldn’t be read.</string>
+    <string name="import_error_too_large">This file is too large to be a wallet pass.</string>
+    <string name="import_error_not_a_pass">This file isn’t a wallet pass.</string>
 </resources>
