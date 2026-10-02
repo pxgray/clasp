@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -22,7 +23,7 @@ fun PassDetails(pass: ItemDetails.Pass, modifier: Modifier = Modifier) {
         pass.primaryFields.forEach { field ->
             Column {
                 field.label?.takeIf { it.isNotBlank() }?.let {
-                    Text(it, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(it, style = MaterialTheme.typography.labelLarge, color = LocalContentColor.current.copy(alpha = 0.72f))
                 }
                 Text(field.value, style = MaterialTheme.typography.headlineMedium)
             }
@@ -31,7 +32,7 @@ fun PassDetails(pass: ItemDetails.Pass, modifier: Modifier = Modifier) {
         FieldRow(pass.auxiliaryFields)
 
         if (pass.backFields.isNotEmpty()) {
-            HorizontalDivider()
+            HorizontalDivider(color = LocalContentColor.current.copy(alpha = 0.24f))
             Text(stringResource(R.string.detail_pass_details), style = MaterialTheme.typography.titleMedium)
             pass.backFields.forEach { LabeledValue(it.label, it.value) }
         }
