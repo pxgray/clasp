@@ -9,6 +9,9 @@ import io.github.pxgray.clasp.data.PassImporter
 import io.github.pxgray.clasp.data.PkPassImporter
 import io.github.pxgray.clasp.data.RoomWalletRepository
 import io.github.pxgray.clasp.data.SettingsRepository
+import io.github.pxgray.clasp.data.backup.AndroidDocumentStreams
+import io.github.pxgray.clasp.data.backup.DocumentStreams
+import io.github.pxgray.clasp.data.backup.WalletBackup
 import io.github.pxgray.clasp.data.WalletRepository
 import io.github.pxgray.clasp.data.db.ClaspDatabase
 import kotlin.time.Clock
@@ -22,4 +25,6 @@ class AppContainer(context: Context) {
     val logoImporter: LogoImporter = AndroidLogoImporter(context.contentResolver, itemFiles, clock)
     val passImporter: PassImporter = PkPassImporter(context.contentResolver, itemFiles, clock)
     val importInbox = ImportInbox()
+    val walletBackup = WalletBackup(repository, itemFiles)
+    val documents: DocumentStreams = AndroidDocumentStreams(context.contentResolver)
 }

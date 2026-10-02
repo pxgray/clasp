@@ -71,4 +71,11 @@ class RoomWalletRepositoryTest {
         assertNull(repository.observeItem("c").first())
         assertFalse(files.resolve("items/c").exists())
     }
+
+    @Test
+    fun `upsertAll adds and replaces in one go`() = runTest {
+        repository.upsert(loyaltyItem(id = "a", title = "Old"))
+        repository.upsertAll(listOf(loyaltyItem(id = "a", title = "New"), loyaltyItem(id = "b")))
+        assertEquals(mapOf("a" to "New", "b" to "Costco"), repository.observeItems().first().associate { it.id to it.title })
+    }
 }

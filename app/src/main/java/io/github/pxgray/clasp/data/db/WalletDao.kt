@@ -16,6 +16,9 @@ interface WalletDao {
     @Upsert
     suspend fun upsert(item: WalletItemEntity)
 
+    @Upsert
+    suspend fun upsertAll(items: List<WalletItemEntity>)
+
     @Query("DELETE FROM wallet_items WHERE id = :id")
     suspend fun delete(id: String)
 

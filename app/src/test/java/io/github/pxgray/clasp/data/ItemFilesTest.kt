@@ -42,4 +42,13 @@ class ItemFilesTest {
         files.deleteAll("abc")
         assertFalse(files.resolve("items/abc").exists())
     }
+
+    @Test
+    fun `listFiles returns an item's files as relative paths`() {
+        val files = ItemFiles(tmp.root)
+        files.write("items/abc/logo-1.png", byteArrayOf(1))
+        files.write("items/abc/strip.png", byteArrayOf(2))
+        assertEquals(setOf("items/abc/logo-1.png", "items/abc/strip.png"), files.listFiles("abc").toSet())
+        assertEquals(emptyList<String>(), files.listFiles("missing"))
+    }
 }

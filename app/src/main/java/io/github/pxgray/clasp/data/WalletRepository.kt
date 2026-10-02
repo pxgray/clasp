@@ -9,6 +9,9 @@ interface WalletRepository {
     fun observeItem(id: String): Flow<WalletItem?>
     suspend fun upsert(item: WalletItem)
 
+    /** Adds or replaces all [items] in a single transaction. */
+    suspend fun upsertAll(items: List<WalletItem>)
+
     /** Removes the item and all of its files. */
     suspend fun delete(id: String)
     suspend fun markUsed(id: String, at: Instant)

@@ -19,6 +19,11 @@ class FakeWalletRepository(initial: List<WalletItem> = emptyList()) : WalletRepo
     override suspend fun upsert(item: WalletItem) =
         items.update { list -> list.filterNot { it.id == item.id } + item }
 
+    override suspend fun upsertAll(items: List<WalletItem>) {
+        val ids = items.map { it.id }.toSet()
+        this.items.update { list -> list.filterNot { it.id in ids } + items }
+    }
+
     override suspend fun delete(id: String) = items.update { list -> list.filterNot { it.id == id } }
 
     override suspend fun markUsed(id: String, at: Instant) {

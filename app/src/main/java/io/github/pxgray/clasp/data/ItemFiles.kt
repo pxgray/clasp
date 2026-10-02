@@ -30,6 +30,10 @@ class ItemFiles(private val filesDir: File) {
         itemDir(itemId).deleteRecursively()
     }
 
+    /** Relative paths of every file stored for [itemId]. */
+    fun listFiles(itemId: String): List<String> =
+        itemDir(itemId).listFiles { file -> file.isFile }.orEmpty().map { "$ITEMS_DIR/$itemId/${it.name}" }
+
     private fun itemDir(itemId: String) = File(filesDir, "$ITEMS_DIR/$itemId")
 
     private companion object {

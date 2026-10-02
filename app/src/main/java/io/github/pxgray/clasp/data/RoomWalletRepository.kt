@@ -25,6 +25,8 @@ class RoomWalletRepository(
 
     override suspend fun upsert(item: WalletItem) = dao.upsert(item.toEntity())
 
+    override suspend fun upsertAll(items: List<WalletItem>) = dao.upsertAll(items.map { it.toEntity() })
+
     override suspend fun delete(id: String) {
         dao.delete(id)
         withContext(ioDispatcher) { files.deleteAll(id) }
