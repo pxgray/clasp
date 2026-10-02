@@ -33,4 +33,12 @@
     <string name="home_deleted">Card deleted</string>
     <string name="add_manually">Enter manually</string>
     <string name="add_manually_description">Type in a card number</string>
+    <string name="action_back">Back</string>
+    <string name="action_more">More options</string>
+    <string name="action_edit">Edit</string>
+    <string name="action_delete">Delete</string>
+    <string name="detail_barcode_unrenderable">This code can’t be shown as a barcode</string>
+    <string name="detail_card_number">Card number</string>
+    <string name="detail_member_name">Member</string>
+    <string name="detail_notes">Notes</string>
 </resources>
