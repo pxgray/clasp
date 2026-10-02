@@ -1,3 +1,27 @@
 <resources>
     <string name="app_name">Clasp</string>
+    <string name="action_save">Save</string>
+    <string name="action_cancel">Cancel</string>
+    <string name="action_ok">OK</string>
+    <string name="edit_title_new">Add card</string>
+    <string name="edit_title_existing">Edit card</string>
+    <string name="edit_name">Name</string>
+    <string name="edit_name_placeholder">Card name</string>
+    <string name="edit_name_error">Give the card a name</string>
+    <string name="edit_card_number">Card number</string>
+    <string name="edit_card_number_missing">Enter the card number</string>
+    <string name="edit_card_number_not_encodable">This number can’t be shown as %1$s</string>
+    <string name="edit_barcode_format">Barcode type</string>
+    <string name="edit_member_name">Member name (optional)</string>
+    <string name="edit_notes">Notes (optional)</string>
+    <string name="edit_logo_choose">Choose logo</string>
+    <string name="edit_logo_change">Change logo</string>
+    <string name="edit_logo_remove">Remove logo</string>
+    <string name="edit_logo_failed">Couldn’t read that image</string>
+    <string name="edit_color">Card color</string>
+    <string name="edit_color_auto">Theme color</string>
+    <string name="edit_color_custom">Custom color</string>
+    <string name="edit_color_hue">Hue</string>
+    <string name="edit_color_saturation">Saturation</string>
+    <string name="edit_color_brightness">Brightness</string>
 </resources>

@@ -1,0 +1,198 @@
+package io.github.pxgray.clasp.ui.edit
+
+import androidx.activity.compose.BackHandler
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.TopAppBar
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
+import io.github.pxgray.clasp.R
+import io.github.pxgray.clasp.ui.components.WalletCard
+import kotlinx.coroutines.launch
+
+@Composable
+fun EditRoute(
+    onDone: () -> Unit,
+    viewModel: EditViewModel = viewModel(factory = EditViewModel.Factory),
+) {
+    val state by viewModel.state.collectAsStateWithLifecycle()
+    val snackbarHostState = remember { SnackbarHostState() }
+    val logoFailed = stringResource(R.string.edit_logo_failed)
+    val pickLogo = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
+        uri?.let(viewModel::onLogoPicked)
+    }
+
+    LaunchedEffect(viewModel) {
+        viewModel.events.collect { event ->
+            when (event) {
+                is EditEvent.Saved, EditEvent.Closed -> onDone()
+                EditEvent.LogoFailed -> launch { snackbarHostState.showSnackbar(logoFailed) }
+            }
+        }
+    }
+    BackHandler(onBack = viewModel::cancel)
+
+    EditScreen(
+        state = state,
+        snackbarHostState = snackbarHostState,
+        onUpdate = viewModel::update,
+        onPickLogo = { pickLogo.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) },
+        onSave = viewModel::save,
+        onCancel = viewModel::cancel,
+    )
+}
+
+@Composable
+fun EditScreen(
+    state: EditFormState?,
+    snackbarHostState: SnackbarHostState,
+    onUpdate: ((EditFormState) -> EditFormState) -> Unit,
+    onPickLogo: () -> Unit,
+    onSave: () -> Unit,
+    onCancel: () -> Unit,
+) {
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = {
+                    Text(stringResource(if (state?.isNew != false) R.string.edit_title_new else R.string.edit_title_existing))
+                },
+                navigationIcon = {
+                    IconButton(onClick = onCancel) {
+                        Icon(Icons.Default.Close, contentDescription = stringResource(R.string.action_cancel))
+                    }
+                },
+                actions = {
+                    TextButton(onClick = onSave, enabled = state != null) { Text(stringResource(R.string.action_save)) }
+                },
+            )
+        },
+        snackbarHost = { SnackbarHost(snackbarHostState) },
+    ) { padding ->
+        if (state == null) return@Scaffold
+        Column(
+            modifier = Modifier
+                .padding(padding)
+                .imePadding()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 16.dp, vertical = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            val placeholder = stringResource(R.string.edit_name_placeholder)
+            WalletCard(
+                item = state.toWalletItem().let { if (it.title.isEmpty()) it.copy(title = placeholder) else it },
+                onClick = null,
+                sharedKey = null,
+            )
+
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                FilledTonalButton(onClick = onPickLogo) {
+                    Text(stringResource(if (state.logoPath == null) R.string.edit_logo_choose else R.string.edit_logo_change))
+                }
+                if (state.logoPath != null) {
+                    TextButton(onClick = { onUpdate { it.copy(logoPath = null) } }) {
+                        Text(stringResource(R.string.edit_logo_remove))
+                    }
+                }
+            }
+
+            val titleError = state.showErrors && state.titleError
+            val titleSupport: (@Composable () -> Unit)? =
+                if (titleError) { { Text(stringResource(R.string.edit_name_error)) } } else null
+            OutlinedTextField(
+                value = state.title,
+                onValueChange = { value -> onUpdate { it.copy(title = value) } },
+                label = { Text(stringResource(R.string.edit_name)) },
+                isError = titleError,
+                supportingText = titleSupport,
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words, imeAction = ImeAction.Next),
+                modifier = Modifier.fillMaxWidth().testTag("edit_name"),
+            )
+
+            val numberError = state.cardNumberError?.takeIf {
+                state.showErrors || it == CardNumberError.NOT_ENCODABLE
+            }
+            val numberErrorText = when (numberError) {
+                CardNumberError.MISSING -> stringResource(R.string.edit_card_number_missing)
+                CardNumberError.NOT_ENCODABLE ->
+                    stringResource(R.string.edit_card_number_not_encodable, state.format.displayName)
+                null -> null
+            }
+            val numberSupport: (@Composable () -> Unit)? = numberErrorText?.let { text -> { Text(text) } }
+            OutlinedTextField(
+                value = state.cardNumber,
+                onValueChange = { value -> onUpdate { it.copy(cardNumber = value) } },
+                label = { Text(stringResource(R.string.edit_card_number)) },
+                isError = numberError != null,
+                supportingText = numberSupport,
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Characters, imeAction = ImeAction.Next),
+                modifier = Modifier.fillMaxWidth().testTag("edit_number"),
+            )
+
+            BarcodeFormatField(
+                selected = state.format,
+                onSelect = { format -> onUpdate { it.copy(format = format) } },
+                modifier = Modifier.fillMaxWidth(),
+            )
+
+            OutlinedTextField(
+                value = state.memberName,
+                onValueChange = { value -> onUpdate { it.copy(memberName = value) } },
+                label = { Text(stringResource(R.string.edit_member_name)) },
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words, imeAction = ImeAction.Next),
+                modifier = Modifier.fillMaxWidth(),
+            )
+
+            OutlinedTextField(
+                value = state.notes,
+                onValueChange = { value -> onUpdate { it.copy(notes = value) } },
+                label = { Text(stringResource(R.string.edit_notes)) },
+                minLines = 3,
+                keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
+                modifier = Modifier.fillMaxWidth(),
+            )
+
+            Text(stringResource(R.string.edit_color), style = MaterialTheme.typography.titleSmall)
+            BrandColorPicker(
+                selected = state.brandColor,
+                onSelect = { color -> onUpdate { it.copy(brandColor = color) } },
+            )
+        }
+    }
+}
