@@ -18,10 +18,12 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.LargeFlexibleTopAppBar
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -72,6 +74,7 @@ fun HomeRoute(
     onOpenItem: (String) -> Unit,
     onScan: () -> Unit,
     onAddManually: () -> Unit,
+    onOpenSettings: () -> Unit,
     viewModel: HomeViewModel = viewModel(factory = HomeViewModel.Factory),
     importViewModel: ImportViewModel = viewModel(factory = ImportViewModel.Factory),
 ) {
@@ -115,6 +118,7 @@ fun HomeRoute(
         onScan = onScan,
         onImport = { pickPass.launch(PASS_MIME_TYPES) },
         onAddManually = onAddManually,
+        onOpenSettings = onOpenSettings,
     )
     ImportSheet(importState, onConfirm = importViewModel::confirm, onDismiss = importViewModel::dismiss)
 }
@@ -127,6 +131,7 @@ fun HomeScreen(
     onScan: () -> Unit,
     onImport: () -> Unit,
     onAddManually: () -> Unit,
+    onOpenSettings: () -> Unit,
 ) {
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     val listState = rememberLazyListState()
@@ -138,6 +143,11 @@ fun HomeScreen(
         topBar = {
             LargeFlexibleTopAppBar(
                 title = { Text(stringResource(R.string.app_name)) },
+                actions = {
+                    IconButton(onClick = onOpenSettings) {
+                        Icon(Icons.Default.Settings, contentDescription = stringResource(R.string.settings_title))
+                    }
+                },
                 scrollBehavior = scrollBehavior,
             )
         },

@@ -7,6 +7,10 @@ sealed interface Destination {
 
     @Serializable data object Scan : Destination
 
+    @Serializable data object Settings : Destination
+
+    @Serializable data object Licenses : Destination
+
     @Serializable data class Detail(val id: String) : Destination
 
     /**

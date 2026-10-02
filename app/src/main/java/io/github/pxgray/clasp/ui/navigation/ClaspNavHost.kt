@@ -17,6 +17,8 @@ import io.github.pxgray.clasp.ui.detail.DetailRoute
 import io.github.pxgray.clasp.ui.edit.EditRoute
 import io.github.pxgray.clasp.ui.home.HomeRoute
 import io.github.pxgray.clasp.ui.scan.ScanRoute
+import io.github.pxgray.clasp.ui.settings.LicensesScreen
+import io.github.pxgray.clasp.ui.settings.SettingsRoute
 
 /** Detail hands a deleted id back to Home, which owns the undo snackbar. */
 private const val DELETED_ITEM_KEY = "deletedItemId"
@@ -49,6 +51,7 @@ fun ClaspNavHost(
                             onOpenItem = { navController.navigate(Destination.Detail(it)) },
                             onScan = { navController.navigate(Destination.Scan) },
                             onAddManually = { navController.navigate(Destination.Edit()) },
+                            onOpenSettings = { navController.navigate(Destination.Settings) },
                         )
                     }
                 }
@@ -64,6 +67,15 @@ fun ClaspNavHost(
                         },
                         onClose = { navController.popBackStack() },
                     )
+                }
+                composable<Destination.Settings> {
+                    SettingsRoute(
+                        onBack = { navController.popBackStack() },
+                        onLicenses = { navController.navigate(Destination.Licenses) },
+                    )
+                }
+                composable<Destination.Licenses> {
+                    LicensesScreen(onBack = { navController.popBackStack() })
                 }
                 composable<Destination.Detail> {
                     WithVisibilityScope(this) {
