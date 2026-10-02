@@ -109,6 +109,7 @@ fun DetailScreen(
                         size = 72.dp,
                         modifier = Modifier.sharedLogo(item.id),
                         invertMonogram = true,
+                        logoOutline = onBrand.copy(alpha = 0.6f),
                     )
                     Spacer(Modifier.width(16.dp))
                     Column {

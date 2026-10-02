@@ -4,6 +4,7 @@ import android.graphics.BitmapFactory
 import android.util.LruCache
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
@@ -22,6 +23,7 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -31,7 +33,8 @@ private val logoCache = LruCache<String, ImageBitmap>(64)
 
 /**
  * The hero tile on every card: the brand logo, or a monogram on the brand color.
- * [invertMonogram] swaps the monogram's colors, for tiles sitting on a brand-colored background.
+ * [invertMonogram] swaps the monogram's colors and [logoOutline] rings a logo image, for tiles sitting on a
+ * brand-colored background, where a logo drawn on the brand color would otherwise blend in.
  */
 @Composable
 fun LogoTile(
@@ -41,6 +44,7 @@ fun LogoTile(
     size: Dp,
     modifier: Modifier = Modifier,
     invertMonogram: Boolean = false,
+    logoOutline: Color? = null,
 ) {
     val shape = RoundedCornerShape(size * 0.3f)
     val logo = rememberLogo(logoPath)
@@ -51,7 +55,12 @@ fun LogoTile(
         invertMonogram -> onBrand
         else -> brand
     }
-    Box(modifier.size(size).clip(shape).background(background), contentAlignment = Alignment.Center) {
+    val tileModifier = modifier
+        .size(size)
+        .clip(shape)
+        .background(background)
+        .let { if (logo != null && logoOutline != null) it.border(2.dp, logoOutline, shape) else it }
+    Box(tileModifier, contentAlignment = Alignment.Center) {
         if (logo != null) {
             Image(logo, contentDescription = null, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
         } else {

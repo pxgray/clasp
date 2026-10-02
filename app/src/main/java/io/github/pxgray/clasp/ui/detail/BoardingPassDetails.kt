@@ -20,6 +20,7 @@ import androidx.compose.ui.unit.dp
 import io.github.pxgray.clasp.R
 import io.github.pxgray.clasp.domain.Connection
 import io.github.pxgray.clasp.domain.ItemDetails
+import io.github.pxgray.clasp.domain.PassField
 import io.github.pxgray.clasp.ui.format.formatMedium
 import io.github.pxgray.clasp.ui.format.formatShort
 
@@ -49,6 +50,7 @@ fun BoardingPassDetails(pass: ItemDetails.BoardingPass, modifier: Modifier = Mod
             pass.departureTime?.let { LabeledValue(stringResource(R.string.detail_departs), it.formatShort()) }
             pass.seat?.let { LabeledValue(stringResource(R.string.detail_seat), it) }
             pass.sequence?.let { LabeledValue(stringResource(R.string.detail_sequence), it) }
+            pass.extraFields.forEach { LabeledValue(it.displayLabel(), it.value) }
         }
 
         LabeledValue(stringResource(R.string.detail_passenger), pass.passenger)
@@ -60,9 +62,14 @@ fun BoardingPassDetails(pass: ItemDetails.BoardingPass, modifier: Modifier = Mod
                 pass.connections.forEach { ConnectionRow(it) }
             }
         }
-
-        pass.extraFields.forEach { LabeledValue(it.label ?: it.key, it.value) }
     }
+}
+
+/** Pass labels are often ALL CAPS ("GATE"); show them in the same sentence case as Clasp's own labels. */
+private fun PassField.displayLabel(): String {
+    val text = label ?: return key
+    val shouting = text.any { it.isLetter() } && text == text.uppercase()
+    return if (shouting) text.lowercase().replaceFirstChar { it.titlecase() } else text
 }
 
 @Composable
