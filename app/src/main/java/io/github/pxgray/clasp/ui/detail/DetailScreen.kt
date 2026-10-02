@@ -49,6 +49,7 @@ import io.github.pxgray.clasp.R
 import io.github.pxgray.clasp.domain.ItemDetails
 import io.github.pxgray.clasp.domain.ItemKind
 import io.github.pxgray.clasp.domain.WalletItem
+import io.github.pxgray.clasp.domain.monogram
 import io.github.pxgray.clasp.domain.secondaryLine
 import io.github.pxgray.clasp.ui.components.LogoTile
 import io.github.pxgray.clasp.ui.components.contentColorOn
@@ -101,7 +102,7 @@ fun DetailScreen(
                 DetailTopBar(item, onBrand, onBack, onEdit, onDelete)
                 Row(Modifier.padding(horizontal = 24.dp), verticalAlignment = Alignment.CenterVertically) {
                     LogoTile(
-                        title = item.title,
+                        monogram = item.monogram(),
                         brandColor = item.brandColor,
                         logoPath = item.logoPath,
                         size = 72.dp,

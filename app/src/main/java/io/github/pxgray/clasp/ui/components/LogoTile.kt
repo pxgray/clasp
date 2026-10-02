@@ -35,7 +35,7 @@ private val logoCache = LruCache<String, ImageBitmap>(64)
  */
 @Composable
 fun LogoTile(
-    title: String,
+    monogram: String,
     brandColor: Int?,
     logoPath: String?,
     size: Dp,
@@ -56,19 +56,13 @@ fun LogoTile(
             Image(logo, contentDescription = null, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
         } else {
             Text(
-                text = monogram(title),
+                text = monogram,
                 color = if (invertMonogram) brand else onBrand,
-                fontSize = (size.value * 0.42f).sp,
+                fontSize = (size.value * if (monogram.length > 1) 0.32f else 0.42f).sp,
                 fontWeight = FontWeight.SemiBold,
             )
         }
     }
-}
-
-private fun monogram(title: String): String {
-    val trimmed = title.trim()
-    if (trimmed.isEmpty()) return "?"
-    return String(Character.toChars(trimmed.codePointAt(0))).uppercase()
 }
 
 @Composable

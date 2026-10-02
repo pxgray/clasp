@@ -17,6 +17,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import io.github.pxgray.clasp.domain.WalletItem
+import io.github.pxgray.clasp.domain.monogram
 import io.github.pxgray.clasp.domain.secondaryLine
 import io.github.pxgray.clasp.ui.navigation.sharedCardBounds
 import io.github.pxgray.clasp.ui.navigation.sharedLogo
@@ -57,7 +58,7 @@ private fun WalletCardContent(item: WalletItem, sharedKey: String?) {
         verticalAlignment = Alignment.CenterVertically,
     ) {
         LogoTile(
-            title = item.title,
+            monogram = item.monogram(),
             brandColor = item.brandColor,
             logoPath = item.logoPath,
             size = 64.dp,

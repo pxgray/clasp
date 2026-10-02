@@ -5,7 +5,8 @@ import io.github.pxgray.clasp.domain.BarcodeFormat
 import io.github.pxgray.clasp.domain.ItemDetails
 import io.github.pxgray.clasp.domain.ItemKind
 import io.github.pxgray.clasp.domain.WalletItem
-import kotlinx.datetime.LocalDateTime
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.LocalTime
 import kotlin.time.Instant
 
 fun loyaltyItem(
@@ -44,7 +45,8 @@ fun boardingItem(
         flightNumber = "1234",
         from = "SFO",
         to = "JFK",
-        departure = LocalDateTime(2026, 10, 14, 7, 5),
+        departureDate = LocalDate(2026, 10, 14),
+        departureTime = LocalTime(7, 5),
     ),
     createdAt = createdAt,
     lastUsedAt = lastUsedAt,

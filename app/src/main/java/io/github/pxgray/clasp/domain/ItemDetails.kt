@@ -1,6 +1,7 @@
 package io.github.pxgray.clasp.domain
 
-import kotlinx.datetime.LocalDateTime
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.LocalTime
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
@@ -24,9 +25,13 @@ sealed interface ItemDetails {
         val flightNumber: String,
         val from: String,
         val to: String,
-        val departure: LocalDateTime? = null,
+        /** BCBP barcodes carry only the day; the time is optional (user-entered or from a pkpass). */
+        val departureDate: LocalDate? = null,
+        val departureTime: LocalTime? = null,
         val seat: String? = null,
         val sequence: String? = null,
+        /** Later legs of a multi-leg pass that shares this barcode. */
+        val connections: List<Connection> = emptyList(),
         val extraFields: List<PassField> = emptyList(),
     ) : ItemDetails
 
@@ -44,6 +49,16 @@ sealed interface ItemDetails {
 
 @Serializable
 data class PassField(val key: String, val label: String? = null, val value: String)
+
+@Serializable
+data class Connection(
+    val airline: String,
+    val flightNumber: String,
+    val from: String,
+    val to: String,
+    val date: LocalDate? = null,
+    val seat: String? = null,
+)
 
 @Serializable
 enum class PkPassStyle { EVENT_TICKET, COUPON, STORE_CARD, GENERIC }

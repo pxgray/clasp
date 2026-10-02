@@ -31,6 +31,12 @@ class CardTextTest {
     }
 
     @Test
+    fun `boarding pass without a time shows route and date`() {
+        val item = boardingItem().let { it.copy(details = (it.details as ItemDetails.BoardingPass).copy(departureTime = null)) }
+        assertEquals("SFO → JFK · Oct 14", item.secondaryLine(Locale.US))
+    }
+
+    @Test
     fun `pass shows first primary field value`() {
         val item = WalletItem(
             id = "p", kind = ItemKind.PASS, title = "Concert", subtitle = "Fallback",
