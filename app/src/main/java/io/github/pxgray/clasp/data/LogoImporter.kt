@@ -7,6 +7,8 @@ import android.graphics.Canvas
 import android.graphics.Paint
 import android.graphics.RectF
 import android.net.Uri
+import androidx.core.graphics.createBitmap
+import androidx.core.graphics.scale
 import androidx.palette.graphics.Palette
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -68,7 +70,7 @@ class AndroidLogoImporter(
 internal fun squareLogo(source: Bitmap, size: Int): Bitmap {
     val side = min(source.width, source.height)
     val cropped = Bitmap.createBitmap(source, (source.width - side) / 2, (source.height - side) / 2, side, side)
-    return Bitmap.createScaledBitmap(cropped, size, size, true)
+    return cropped.scale(size, size)
 }
 
 /** Prefers saturated colors so a logo on a white background yields its brand color, not white. */
@@ -79,7 +81,7 @@ internal fun pickBrandColor(bitmap: Bitmap): Int? {
 
 /** Scales [source] to fit inside a [size]² square with some padding, on a solid [background]. */
 internal fun fitSquare(source: Bitmap, size: Int, background: Int): Bitmap {
-    val out = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
+    val out = createBitmap(size, size)
     val canvas = Canvas(out)
     canvas.drawColor(background)
     val inner = size * 0.76f

@@ -32,6 +32,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -53,6 +54,7 @@ fun SettingsRoute(
     val settings by viewModel.settings.collectAsStateWithLifecycle()
     val busy by viewModel.busy.collectAsStateWithLifecycle()
     val context = LocalContext.current
+    val resources = LocalResources.current
     val snackbarHostState = remember { SnackbarHostState() }
     val versionName = remember { context.packageManager.getPackageInfo(context.packageName, 0).versionName.orEmpty() }
 
@@ -65,7 +67,6 @@ fun SettingsRoute(
 
     LaunchedEffect(viewModel) {
         viewModel.events.collect { event ->
-            val resources = context.resources
             val message = when (event) {
                 is SettingsEvent.Exported -> resources.getQuantityString(R.plurals.settings_exported, event.count, event.count)
                 is SettingsEvent.Imported -> resources.getQuantityString(R.plurals.settings_imported, event.count, event.count)
