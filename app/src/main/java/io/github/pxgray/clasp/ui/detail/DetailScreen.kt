@@ -208,8 +208,7 @@ private fun DetailFields(item: WalletItem, modifier: Modifier = Modifier) {
                 details.notes?.let { LabeledValue(stringResource(R.string.detail_notes), it) }
             }
             is ItemDetails.BoardingPass -> BoardingPassDetails(details)
-            // The pkpass layout arrives with Plan 3.
-            is ItemDetails.Pass -> Unit
+            is ItemDetails.Pass -> PassDetails(details)
         }
     }
 }

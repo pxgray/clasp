@@ -6,9 +6,11 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 
 @Composable
-internal fun LabeledValue(label: String, value: String) {
+internal fun LabeledValue(label: String?, value: String) {
     Column {
-        Text(label, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        if (!label.isNullOrBlank()) {
+            Text(label, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
         Text(value, style = MaterialTheme.typography.bodyLarge)
     }
 }
