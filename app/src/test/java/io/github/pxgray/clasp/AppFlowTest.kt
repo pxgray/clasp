@@ -30,7 +30,8 @@ class AppFlowTest {
         compose.onNodeWithText("Save").performClick()
 
         compose.waitUntilDoesNotExist(hasTestTag("edit_name"), 5_000)
-        compose.onNodeWithText("•••• 6789").assertExists()
+        // The wallet list reloads from the database asynchronously.
+        compose.waitUntilAtLeastOneExists(hasText("•••• 6789"), 5_000)
         compose.onNodeWithText("Costco").performClick()
 
         compose.waitUntilAtLeastOneExists(hasContentDescription("More options"), 5_000)

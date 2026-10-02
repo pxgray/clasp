@@ -37,6 +37,8 @@ class ScanFlowTest {
         compose.onNodeWithText("Save").performClick()
 
         compose.waitUntilDoesNotExist(hasText("Add boarding pass"), 5_000)
+        // The wallet list reloads from the database asynchronously.
+        compose.waitUntilAtLeastOneExists(hasText("AC 834"), 5_000)
         compose.onNodeWithText("AC 834").performClick()
 
         compose.waitUntilAtLeastOneExists(hasText("Luc Desmarais"), 5_000)
