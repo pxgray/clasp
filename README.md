@@ -15,6 +15,16 @@ env JAVA_HOME=/opt/android-studio/jbr ./gradlew verifyRoborazziDebug # compare s
 env JAVA_HOME=/opt/android-studio/jbr ./gradlew recordRoborazziDebug # re-record goldens after an intended UI change
 ```
 
+## AI usage
+
+Clasp is developed with the help of AI. Most of the code, tests and design documents were
+written by Claude (Anthropic), working in Claude Code under the direction of the maintainer,
+who made the product and design decisions and reviewed the changes. Commits with AI
+contributions carry a `Co-Authored-By: Claude` trailer.
+
+Contributions are welcome whether or not you use AI tools; all changes are held to the same
+review and testing standards.
+
 ## License
 
 Copyright (C) 2026 Patrick X. Gray
