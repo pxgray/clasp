@@ -17,7 +17,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
@@ -40,9 +40,9 @@ private val LIBRARIES = listOf(
 
 @Composable
 fun LicensesScreen(onBack: () -> Unit) {
-    val context = LocalContext.current
-    val apacheText = remember {
-        context.resources.openRawResource(R.raw.apache_license_2_0).bufferedReader().use { it.readText() }
+    val resources = LocalResources.current
+    val apacheText = remember(resources) {
+        resources.openRawResource(R.raw.apache_license_2_0).bufferedReader().use { it.readText() }
     }
     Scaffold(
         topBar = {

@@ -58,38 +58,38 @@ class ScreenshotTest {
         ),
     )
 
-    @Test fun homeEmpty() = snap("home_empty") { home(HomeUiState(loading = false)) }
-    @Test fun homeLight() = snap("home") { home(wallet) }
-    @Test fun homeDark() = snap("home_dark", dark = true) { home(wallet) }
+    @Test fun homeEmpty() = snap("home_empty") { HomeContent(HomeUiState(loading = false)) }
+    @Test fun homeLight() = snap("home") { HomeContent(wallet) }
+    @Test fun homeDark() = snap("home_dark", dark = true) { HomeContent(wallet) }
 
-    @Test fun detailLoyaltyLight() = snap("detail_loyalty") { detail(wallet.cards.first()) }
-    @Test fun detailLoyaltyDark() = snap("detail_loyalty_dark", dark = true) { detail(wallet.cards.first()) }
-    @Test fun detailBoardingPass() = snap("detail_boarding_pass") { detail(boardingItem().copy(brandColor = 0xFFC62828.toInt())) }
-    @Test fun detailPass() = snap("detail_pass") { detail(concert) }
+    @Test fun detailLoyaltyLight() = snap("detail_loyalty") { DetailContent(wallet.cards.first()) }
+    @Test fun detailLoyaltyDark() = snap("detail_loyalty_dark", dark = true) { DetailContent(wallet.cards.first()) }
+    @Test fun detailBoardingPass() = snap("detail_boarding_pass") { DetailContent(boardingItem().copy(brandColor = 0xFFC62828.toInt())) }
+    @Test fun detailPass() = snap("detail_pass") { DetailContent(concert) }
 
-    @Test fun editLoyalty() = snap("edit_loyalty") { edit(EditFormState.from(wallet.cards.first())) }
-    @Test fun editBoardingPass() = snap("edit_boarding_pass") { edit(EditFormState.from(boardingItem())) }
+    @Test fun editLoyalty() = snap("edit_loyalty") { EditContent(EditFormState.from(wallet.cards.first())) }
+    @Test fun editBoardingPass() = snap("edit_boarding_pass") { EditContent(EditFormState.from(boardingItem())) }
 
     @Test fun scanPermission() = snap("scan_permission") {
         ScanScreen(CameraPermission.NOT_GRANTED, onRequestPermission = {}, onOpenSettings = {}, onBarcode = {}, onClose = {})
     }
 
-    @Test fun settingsLight() = snap("settings") { settings() }
-    @Test fun settingsDark() = snap("settings_dark", dark = true) { settings() }
+    @Test fun settingsLight() = snap("settings") { SettingsContent() }
+    @Test fun settingsDark() = snap("settings_dark", dark = true) { SettingsContent() }
 
     @Composable
-    private fun home(state: HomeUiState) =
+    private fun HomeContent(state: HomeUiState) =
         HomeScreen(state, SnackbarHostState(), onOpenItem = {}, onScan = {}, onImport = {}, onAddManually = {}, onOpenSettings = {})
 
     @Composable
-    private fun detail(item: WalletItem) = DetailScreen(item, onBack = {}, onEdit = {}, onDelete = {})
+    private fun DetailContent(item: WalletItem) = DetailScreen(item, onBack = {}, onEdit = {}, onDelete = {})
 
     @Composable
-    private fun edit(state: EditFormState) =
+    private fun EditContent(state: EditFormState) =
         EditScreen(state, SnackbarHostState(), onUpdate = {}, onPickLogo = {}, onSave = {}, onCancel = {})
 
     @Composable
-    private fun settings() = SettingsScreen(
+    private fun SettingsContent() = SettingsScreen(
         settings = AppSettings(),
         busy = false,
         versionName = "0.1.0",

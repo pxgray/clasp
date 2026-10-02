@@ -60,7 +60,7 @@ class PkPassParser(private val locale: Locale, private val zone: ZoneId) {
     fun parse(bytes: ByteArray): PkPass? {
         val entries = readZip(bytes) ?: return null
         val root = try {
-            PassJson.parseToJsonElement(String(entries.passJson, Charsets.UTF_8).removePrefix("﻿")).jsonObject
+            PassJson.parseToJsonElement(String(entries.passJson, Charsets.UTF_8).removePrefix("\uFEFF")).jsonObject
         } catch (_: IllegalArgumentException) {
             return null
         }
@@ -239,7 +239,7 @@ internal fun decodeStrings(bytes: ByteArray): Map<String, String> {
     val text = when {
         bytes.size >= 2 && bytes[0] == 0xFF.toByte() && bytes[1] == 0xFE.toByte() -> String(bytes, 2, bytes.size - 2, Charsets.UTF_16LE)
         bytes.size >= 2 && bytes[0] == 0xFE.toByte() && bytes[1] == 0xFF.toByte() -> String(bytes, 2, bytes.size - 2, Charsets.UTF_16BE)
-        else -> String(bytes, Charsets.UTF_8).removePrefix("﻿")
+        else -> String(bytes, Charsets.UTF_8).removePrefix("\uFEFF")
     }
     fun unescape(s: String) = ESCAPE.replace(s) {
         when (val c = it.groupValues[1]) {
