@@ -56,4 +56,12 @@
     <string name="edit_required">Required</string>
     <string name="edit_airport_error">3-letter code</string>
     <string name="edit_boarding_barcode">Uses the %1$s barcode from your scan</string>
+    <string name="detail_date">Date</string>
+    <string name="detail_departs">Departs</string>
+    <string name="detail_seat">Seat</string>
+    <string name="detail_sequence">Boarding no.</string>
+    <string name="detail_passenger">Passenger</string>
+    <string name="detail_confirmation">Confirmation</string>
+    <string name="detail_connections">Connecting flights</string>
+    <string name="detail_connection_seat">Seat %1$s</string>
 </resources>

@@ -13,6 +13,7 @@ import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import io.github.pxgray.clasp.domain.Barcode
 import io.github.pxgray.clasp.domain.BarcodeFormat
+import io.github.pxgray.clasp.testing.boardingItem
 import io.github.pxgray.clasp.testing.loyaltyItem
 import io.github.pxgray.clasp.ui.theme.ClaspTheme
 import androidx.compose.runtime.getValue
@@ -112,5 +113,18 @@ class DetailScreenTest {
         compose.onNodeWithContentDescription("More options").performClick()
         compose.onNodeWithText("Delete").performClick()
         assertEquals("c", deleted)
+    }
+
+    @Test
+    fun `boarding passes hide the raw barcode text and can be edited`() {
+        compose.setContent {
+            ClaspTheme(dynamicColor = false) {
+                DetailScreen(boardingItem(), onBack = {}, onEdit = {}, onDelete = {})
+            }
+        }
+        compose.onNodeWithText("M1DOE/JANE").assertDoesNotExist()
+        compose.onNodeWithText("SFO").assertExists()
+        compose.onNodeWithContentDescription("More options").performClick()
+        compose.onNodeWithText("Edit").assertExists()
     }
 }

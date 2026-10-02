@@ -127,13 +127,17 @@ fun DetailScreen(
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
                     BarcodePanel(barcode)
-                    Spacer(Modifier.height(16.dp))
-                    Text(
-                        text = barcode.altText ?: barcode.value,
-                        style = MaterialTheme.typography.titleLarge,
-                        letterSpacing = 2.sp,
-                        textAlign = TextAlign.Center,
-                    )
+                    // Card numbers are worth reading out; a boarding pass's raw BCBP text is not.
+                    val caption = barcode.altText ?: barcode.value.takeIf { item.kind == ItemKind.LOYALTY }
+                    if (caption != null) {
+                        Spacer(Modifier.height(16.dp))
+                        Text(
+                            text = caption,
+                            style = MaterialTheme.typography.titleLarge,
+                            letterSpacing = 2.sp,
+                            textAlign = TextAlign.Center,
+                        )
+                    }
                 }
             }
 
@@ -171,7 +175,7 @@ private fun DetailTopBar(
                     Icon(Icons.Default.MoreVert, contentDescription = stringResource(R.string.action_more))
                 }
                 DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
-                    if (item.kind == ItemKind.LOYALTY) {
+                    if (item.kind != ItemKind.PASS) {
                         DropdownMenuItem(
                             text = { Text(stringResource(R.string.action_edit)) },
                             onClick = {
@@ -202,16 +206,9 @@ private fun DetailFields(item: WalletItem, modifier: Modifier = Modifier) {
                 details.memberName?.let { LabeledValue(stringResource(R.string.detail_member_name), it) }
                 details.notes?.let { LabeledValue(stringResource(R.string.detail_notes), it) }
             }
-            // Boarding pass and pkpass layouts arrive with Plans 2 and 3.
-            is ItemDetails.BoardingPass, is ItemDetails.Pass -> Unit
+            is ItemDetails.BoardingPass -> BoardingPassDetails(details)
+            // The pkpass layout arrives with Plan 3.
+            is ItemDetails.Pass -> Unit
         }
-    }
-}
-
-@Composable
-private fun LabeledValue(label: String, value: String) {
-    Column {
-        Text(label, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Text(value, style = MaterialTheme.typography.bodyLarge)
     }
 }
