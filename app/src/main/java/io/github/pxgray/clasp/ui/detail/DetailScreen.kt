@@ -40,7 +40,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import io.github.pxgray.clasp.R
@@ -50,6 +52,7 @@ import io.github.pxgray.clasp.domain.WalletItem
 import io.github.pxgray.clasp.domain.secondaryLine
 import io.github.pxgray.clasp.ui.components.LogoTile
 import io.github.pxgray.clasp.ui.components.contentColorOn
+import io.github.pxgray.clasp.ui.components.isLightColor
 import io.github.pxgray.clasp.ui.navigation.sharedCardBounds
 import io.github.pxgray.clasp.ui.navigation.sharedLogo
 
@@ -79,6 +82,7 @@ fun DetailScreen(
     MaxBrightnessEffect()
     val brand = item.brandColor?.let(::Color) ?: MaterialTheme.colorScheme.primaryContainer
     val onBrand = if (item.brandColor != null) contentColorOn(brand) else MaterialTheme.colorScheme.onPrimaryContainer
+    StatusBarIconsEffect(darkIcons = isLightColor(brand))
 
     Surface(color = MaterialTheme.colorScheme.surface, modifier = Modifier.fillMaxSize()) {
         Column(
@@ -102,7 +106,7 @@ fun DetailScreen(
                         logoPath = item.logoPath,
                         size = 72.dp,
                         modifier = Modifier.sharedLogo(item.id),
-                        borderColor = onBrand.copy(alpha = 0.35f),
+                        invertMonogram = true,
                     )
                     Spacer(Modifier.width(16.dp))
                     Column {
@@ -115,12 +119,21 @@ fun DetailScreen(
             }
 
             item.barcode?.let { barcode ->
-                BarcodePanel(
-                    barcode = barcode,
+                Column(
                     modifier = Modifier
                         .padding(horizontal = 16.dp)
                         .offset(y = (-40).dp),
-                )
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                ) {
+                    BarcodePanel(barcode)
+                    Spacer(Modifier.height(16.dp))
+                    Text(
+                        text = barcode.altText ?: barcode.value,
+                        style = MaterialTheme.typography.titleLarge,
+                        letterSpacing = 2.sp,
+                        textAlign = TextAlign.Center,
+                    )
+                }
             }
 
             DetailFields(item, Modifier.padding(horizontal = 24.dp))
@@ -183,8 +196,8 @@ private fun DetailTopBar(
 private fun DetailFields(item: WalletItem, modifier: Modifier = Modifier) {
     Column(modifier, verticalArrangement = Arrangement.spacedBy(20.dp)) {
         when (val details = item.details) {
+            // The card number is already shown under the barcode.
             is ItemDetails.Loyalty -> {
-                LabeledValue(stringResource(R.string.detail_card_number), details.cardNumber)
                 details.memberName?.let { LabeledValue(stringResource(R.string.detail_member_name), it) }
                 details.notes?.let { LabeledValue(stringResource(R.string.detail_notes), it) }
             }

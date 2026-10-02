@@ -4,7 +4,6 @@ import android.graphics.BitmapFactory
 import android.util.LruCache
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
@@ -23,7 +22,6 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -31,7 +29,10 @@ import kotlinx.coroutines.withContext
 /** Logo files are immutable (unique name per import), so caching by path is always safe. */
 private val logoCache = LruCache<String, ImageBitmap>(64)
 
-/** The hero tile on every card: the brand logo, or a monogram on the brand color. */
+/**
+ * The hero tile on every card: the brand logo, or a monogram on the brand color.
+ * [invertMonogram] swaps the monogram's colors, for tiles sitting on a brand-colored background.
+ */
 @Composable
 fun LogoTile(
     title: String,
@@ -39,27 +40,24 @@ fun LogoTile(
     logoPath: String?,
     size: Dp,
     modifier: Modifier = Modifier,
-    borderColor: Color? = null,
+    invertMonogram: Boolean = false,
 ) {
     val shape = RoundedCornerShape(size * 0.3f)
     val logo = rememberLogo(logoPath)
+    val brand = brandColor?.let(::Color) ?: MaterialTheme.colorScheme.primaryContainer
+    val onBrand = if (brandColor != null) contentColorOn(brand) else MaterialTheme.colorScheme.onPrimaryContainer
     val background = when {
         logo != null -> Color.White
-        brandColor != null -> Color(brandColor)
-        else -> MaterialTheme.colorScheme.primaryContainer
+        invertMonogram -> onBrand
+        else -> brand
     }
-    val tileModifier = modifier
-        .size(size)
-        .clip(shape)
-        .background(background)
-        .let { if (borderColor != null) it.border(2.dp, borderColor, shape) else it }
-    Box(tileModifier, contentAlignment = Alignment.Center) {
+    Box(modifier.size(size).clip(shape).background(background), contentAlignment = Alignment.Center) {
         if (logo != null) {
             Image(logo, contentDescription = null, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
         } else {
             Text(
                 text = monogram(title),
-                color = if (brandColor != null) contentColorOn(background) else MaterialTheme.colorScheme.onPrimaryContainer,
+                color = if (invertMonogram) brand else onBrand,
                 fontSize = (size.value * 0.42f).sp,
                 fontWeight = FontWeight.SemiBold,
             )

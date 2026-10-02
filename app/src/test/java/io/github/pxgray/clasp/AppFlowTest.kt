@@ -1,6 +1,7 @@
 package io.github.pxgray.clasp
 
 import androidx.compose.ui.test.ExperimentalTestApi
+import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
@@ -32,7 +33,7 @@ class AppFlowTest {
         compose.onNodeWithText("•••• 6789").assertExists()
         compose.onNodeWithText("Costco").performClick()
 
-        compose.waitUntilAtLeastOneExists(hasText("Card number"), 5_000)
+        compose.waitUntilAtLeastOneExists(hasContentDescription("More options"), 5_000)
         compose.onNodeWithContentDescription("More options").performClick()
         compose.onNodeWithText("Delete").performClick()
 
