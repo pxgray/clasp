@@ -24,4 +24,13 @@
     <string name="edit_color_hue">Hue</string>
     <string name="edit_color_saturation">Saturation</string>
     <string name="edit_color_brightness">Brightness</string>
+    <string name="action_undo">Undo</string>
+    <string name="home_add">Add</string>
+    <string name="home_section_passes">Passes</string>
+    <string name="home_section_cards">Loyalty cards</string>
+    <string name="home_empty_title">Your wallet is empty</string>
+    <string name="home_empty_body">Add a loyalty card to keep it close at hand.</string>
+    <string name="home_deleted">Card deleted</string>
+    <string name="add_manually">Enter manually</string>
+    <string name="add_manually_description">Type in a card number</string>
 </resources>
