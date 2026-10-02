@@ -5,6 +5,8 @@ import kotlinx.serialization.Serializable
 sealed interface Destination {
     @Serializable data object Home : Destination
 
+    @Serializable data object Scan : Destination
+
     @Serializable data class Detail(val id: String) : Destination
 
     /**

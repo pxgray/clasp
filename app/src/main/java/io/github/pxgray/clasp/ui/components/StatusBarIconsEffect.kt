@@ -1,4 +1,4 @@
-package io.github.pxgray.clasp.ui.detail
+package io.github.pxgray.clasp.ui.components
 
 import androidx.activity.compose.LocalActivity
 import androidx.compose.runtime.Composable

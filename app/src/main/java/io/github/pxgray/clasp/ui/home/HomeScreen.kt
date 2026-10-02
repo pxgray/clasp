@@ -15,6 +15,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material3.Button
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
@@ -38,6 +39,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -52,6 +54,7 @@ fun HomeRoute(
     deletedItemId: String?,
     onDeletedItemConsumed: () -> Unit,
     onOpenItem: (String) -> Unit,
+    onScan: () -> Unit,
     onAddManually: () -> Unit,
     viewModel: HomeViewModel = viewModel(factory = HomeViewModel.Factory),
 ) {
@@ -78,7 +81,7 @@ fun HomeRoute(
         }
     }
 
-    HomeScreen(state, snackbarHostState, onOpenItem, onAddManually)
+    HomeScreen(state, snackbarHostState, onOpenItem, onScan, onAddManually)
 }
 
 @Composable
@@ -86,6 +89,7 @@ fun HomeScreen(
     state: HomeUiState,
     snackbarHostState: SnackbarHostState,
     onOpenItem: (String) -> Unit,
+    onScan: () -> Unit,
     onAddManually: () -> Unit,
 ) {
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
@@ -115,7 +119,7 @@ fun HomeScreen(
     ) { padding ->
         when {
             state.loading -> Unit
-            state.isEmpty -> EmptyWallet(Modifier.padding(padding), onAddManually)
+            state.isEmpty -> EmptyWallet(Modifier.padding(padding), onScan, onAddManually)
             else -> LazyColumn(
                 state = listState,
                 contentPadding = PaddingValues(
@@ -136,6 +140,10 @@ fun HomeScreen(
     if (showAddSheet) {
         AddItemSheet(
             onDismiss = { showAddSheet = false },
+            onScan = {
+                showAddSheet = false
+                onScan()
+            },
             onAddManually = {
                 showAddSheet = false
                 onAddManually()
@@ -162,7 +170,7 @@ private fun LazyListScope.section(labelRes: Int?, items: List<WalletItem>, onOpe
 }
 
 @Composable
-private fun EmptyWallet(modifier: Modifier, onAddManually: () -> Unit) {
+private fun EmptyWallet(modifier: Modifier, onScan: () -> Unit, onAddManually: () -> Unit) {
     Column(
         modifier = modifier.fillMaxSize().padding(32.dp),
         verticalArrangement = Arrangement.Center,
@@ -181,6 +189,12 @@ private fun EmptyWallet(modifier: Modifier, onAddManually: () -> Unit) {
             textAlign = TextAlign.Center,
         )
         Spacer(Modifier.height(24.dp))
+        Button(onClick = onScan) {
+            Icon(painterResource(R.drawable.ic_scan), contentDescription = null)
+            Spacer(Modifier.width(8.dp))
+            Text(stringResource(R.string.add_scan))
+        }
+        Spacer(Modifier.height(12.dp))
         FilledTonalButton(onClick = onAddManually) {
             Icon(Icons.Default.Edit, contentDescription = null)
             Spacer(Modifier.width(8.dp))

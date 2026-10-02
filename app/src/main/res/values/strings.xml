@@ -29,7 +29,7 @@
     <string name="home_section_passes">Passes</string>
     <string name="home_section_cards">Loyalty cards</string>
     <string name="home_empty_title">Your wallet is empty</string>
-    <string name="home_empty_body">Add a loyalty card to keep it close at hand.</string>
+    <string name="home_empty_body">Scan a loyalty card or boarding pass to keep it close at hand.</string>
     <string name="home_deleted">Card deleted</string>
     <string name="add_manually">Enter manually</string>
     <string name="add_manually_description">Type in a card number</string>
@@ -64,4 +64,16 @@
     <string name="detail_confirmation">Confirmation</string>
     <string name="detail_connections">Connecting flights</string>
     <string name="detail_connection_seat">Seat %1$s</string>
+    <string name="add_scan">Scan a barcode</string>
+    <string name="add_scan_description">Loyalty cards and boarding passes</string>
+    <string name="scan_hint">Line up the barcode inside the frame</string>
+    <string name="scan_close">Close</string>
+    <string name="scan_torch_on">Turn on flashlight</string>
+    <string name="scan_torch_off">Turn off flashlight</string>
+    <string name="scan_permission_title">Scan with your camera</string>
+    <string name="scan_permission_body">Clasp uses the camera only while this screen is open. Nothing leaves your phone.</string>
+    <string name="scan_permission_denied_body">Camera access is turned off for Clasp. You can turn it on in Settings.</string>
+    <string name="scan_permission_allow">Allow camera</string>
+    <string name="scan_permission_settings">Open settings</string>
+    <string name="scan_unavailable">No camera is available on this device.</string>
 </resources>

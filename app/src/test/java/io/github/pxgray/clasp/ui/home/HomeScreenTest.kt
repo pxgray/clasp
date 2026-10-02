@@ -18,7 +18,7 @@ class HomeScreenTest {
 
     private fun show(state: HomeUiState) = compose.setContent {
         ClaspTheme(dynamicColor = false) {
-            HomeScreen(state, SnackbarHostState(), onOpenItem = {}, onAddManually = {})
+            HomeScreen(state, SnackbarHostState(), onOpenItem = {}, onScan = {}, onAddManually = {})
         }
     }
 
@@ -27,6 +27,7 @@ class HomeScreenTest {
         show(HomeUiState(loading = false))
         compose.onNodeWithText("Your wallet is empty").assertIsDisplayed()
         compose.onNodeWithText("Enter manually").assertIsDisplayed()
+        compose.onNodeWithText("Scan a barcode").assertIsDisplayed()
     }
 
     @Test

@@ -13,6 +13,7 @@ import androidx.navigation.compose.rememberNavController
 import io.github.pxgray.clasp.ui.detail.DetailRoute
 import io.github.pxgray.clasp.ui.edit.EditRoute
 import io.github.pxgray.clasp.ui.home.HomeRoute
+import io.github.pxgray.clasp.ui.scan.ScanRoute
 
 /** Detail hands a deleted id back to Home, which owns the undo snackbar. */
 private const val DELETED_ITEM_KEY = "deletedItemId"
@@ -31,9 +32,23 @@ fun ClaspNavHost(navController: NavHostController = rememberNavController()) {
                             deletedItemId = deletedItemId,
                             onDeletedItemConsumed = { entry.savedStateHandle[DELETED_ITEM_KEY] = null },
                             onOpenItem = { navController.navigate(Destination.Detail(it)) },
+                            onScan = { navController.navigate(Destination.Scan) },
                             onAddManually = { navController.navigate(Destination.Edit()) },
                         )
                     }
+                }
+                composable<Destination.Scan> {
+                    ScanRoute(
+                        onBarcode = { barcode ->
+                            navController.navigate(
+                                Destination.Edit(scannedValue = barcode.value, scannedFormat = barcode.format.name),
+                            ) {
+                                // Back from the editor returns home, not to the camera.
+                                popUpTo<Destination.Scan> { inclusive = true }
+                            }
+                        },
+                        onClose = { navController.popBackStack() },
+                    )
                 }
                 composable<Destination.Detail> {
                     WithVisibilityScope(this) {

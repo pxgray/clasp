@@ -52,6 +52,7 @@ import io.github.pxgray.clasp.domain.WalletItem
 import io.github.pxgray.clasp.domain.monogram
 import io.github.pxgray.clasp.domain.secondaryLine
 import io.github.pxgray.clasp.ui.components.LogoTile
+import io.github.pxgray.clasp.ui.components.StatusBarIconsEffect
 import io.github.pxgray.clasp.ui.components.contentColorOn
 import io.github.pxgray.clasp.ui.components.isLightColor
 import io.github.pxgray.clasp.ui.navigation.sharedCardBounds
