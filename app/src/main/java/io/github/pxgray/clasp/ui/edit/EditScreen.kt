@@ -4,6 +4,7 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -75,6 +76,13 @@ fun EditRoute(
     )
 }
 
+@StringRes
+private fun screenTitle(state: EditFormState?): Int = when {
+    state?.boarding != null -> if (state.isNew) R.string.edit_title_new_pass else R.string.edit_title_existing_pass
+    state?.isNew == false -> R.string.edit_title_existing
+    else -> R.string.edit_title_new
+}
+
 @Composable
 fun EditScreen(
     state: EditFormState?,
@@ -87,9 +95,7 @@ fun EditScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = {
-                    Text(stringResource(if (state?.isNew != false) R.string.edit_title_new else R.string.edit_title_existing))
-                },
+                title = { Text(stringResource(screenTitle(state))) },
                 navigationIcon = {
                     IconButton(onClick = onCancel) {
                         Icon(Icons.Default.Close, contentDescription = stringResource(R.string.action_cancel))
@@ -143,50 +149,16 @@ fun EditScreen(
                 modifier = Modifier.fillMaxWidth().testTag("edit_name"),
             )
 
-            val numberError = state.cardNumberError?.takeIf {
-                state.showErrors || it == CardNumberError.NOT_ENCODABLE
+            val boarding = state.boarding
+            if (boarding != null) {
+                BoardingPassFields(
+                    fields = boarding,
+                    showErrors = state.showErrors,
+                    onChange = { fields -> onUpdate { it.copy(boarding = fields) } },
+                )
+            } else {
+                LoyaltyFields(state, onUpdate)
             }
-            val numberErrorText = when (numberError) {
-                CardNumberError.MISSING -> stringResource(R.string.edit_card_number_missing)
-                CardNumberError.NOT_ENCODABLE ->
-                    stringResource(R.string.edit_card_number_not_encodable, state.format.displayName)
-                null -> null
-            }
-            val numberSupport: (@Composable () -> Unit)? = numberErrorText?.let { text -> { Text(text) } }
-            OutlinedTextField(
-                value = state.cardNumber,
-                onValueChange = { value -> onUpdate { it.copy(cardNumber = value) } },
-                label = { Text(stringResource(R.string.edit_card_number)) },
-                isError = numberError != null,
-                supportingText = numberSupport,
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Characters, imeAction = ImeAction.Next),
-                modifier = Modifier.fillMaxWidth().testTag("edit_number"),
-            )
-
-            BarcodeFormatField(
-                selected = state.format,
-                onSelect = { format -> onUpdate { it.copy(format = format) } },
-                modifier = Modifier.fillMaxWidth(),
-            )
-
-            OutlinedTextField(
-                value = state.memberName,
-                onValueChange = { value -> onUpdate { it.copy(memberName = value) } },
-                label = { Text(stringResource(R.string.edit_member_name)) },
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words, imeAction = ImeAction.Next),
-                modifier = Modifier.fillMaxWidth(),
-            )
-
-            OutlinedTextField(
-                value = state.notes,
-                onValueChange = { value -> onUpdate { it.copy(notes = value) } },
-                label = { Text(stringResource(R.string.edit_notes)) },
-                minLines = 3,
-                keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
-                modifier = Modifier.fillMaxWidth(),
-            )
 
             Text(stringResource(R.string.edit_color), style = MaterialTheme.typography.titleSmall)
             BrandColorPicker(
@@ -195,4 +167,52 @@ fun EditScreen(
             )
         }
     }
+}
+
+@Composable
+private fun LoyaltyFields(state: EditFormState, onUpdate: ((EditFormState) -> EditFormState) -> Unit) {
+    val numberError = state.cardNumberError?.takeIf {
+        state.showErrors || it == CardNumberError.NOT_ENCODABLE
+    }
+    val numberErrorText = when (numberError) {
+        CardNumberError.MISSING -> stringResource(R.string.edit_card_number_missing)
+        CardNumberError.NOT_ENCODABLE ->
+            stringResource(R.string.edit_card_number_not_encodable, state.format.displayName)
+        null -> null
+    }
+    val numberSupport: (@Composable () -> Unit)? = numberErrorText?.let { text -> { Text(text) } }
+    OutlinedTextField(
+        value = state.cardNumber,
+        onValueChange = { value -> onUpdate { it.copy(cardNumber = value) } },
+        label = { Text(stringResource(R.string.edit_card_number)) },
+        isError = numberError != null,
+        supportingText = numberSupport,
+        singleLine = true,
+        keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Characters, imeAction = ImeAction.Next),
+        modifier = Modifier.fillMaxWidth().testTag("edit_number"),
+    )
+
+    BarcodeFormatField(
+        selected = state.format,
+        onSelect = { format -> onUpdate { it.copy(format = format) } },
+        modifier = Modifier.fillMaxWidth(),
+    )
+
+    OutlinedTextField(
+        value = state.memberName,
+        onValueChange = { value -> onUpdate { it.copy(memberName = value) } },
+        label = { Text(stringResource(R.string.edit_member_name)) },
+        singleLine = true,
+        keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words, imeAction = ImeAction.Next),
+        modifier = Modifier.fillMaxWidth(),
+    )
+
+    OutlinedTextField(
+        value = state.notes,
+        onValueChange = { value -> onUpdate { it.copy(notes = value) } },
+        label = { Text(stringResource(R.string.edit_notes)) },
+        minLines = 3,
+        keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
+        modifier = Modifier.fillMaxWidth(),
+    )
 }

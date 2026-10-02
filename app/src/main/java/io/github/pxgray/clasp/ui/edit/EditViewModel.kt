@@ -12,6 +12,8 @@ import io.github.pxgray.clasp.ClaspApplication
 import io.github.pxgray.clasp.data.ItemFiles
 import io.github.pxgray.clasp.data.LogoImporter
 import io.github.pxgray.clasp.data.WalletRepository
+import io.github.pxgray.clasp.domain.Barcode
+import io.github.pxgray.clasp.domain.BarcodeFormat
 import io.github.pxgray.clasp.ui.navigation.Destination
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
@@ -25,6 +27,8 @@ import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
 import java.util.UUID
 import kotlin.time.Clock
 
@@ -42,6 +46,8 @@ class EditViewModel(
     clock: Clock,
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
     newId: () -> String = { UUID.randomUUID().toString() },
+    scanned: Barcode? = null,
+    timeZone: TimeZone = TimeZone.currentSystemDefault(),
 ) : ViewModel() {
 
     private val _state = MutableStateFlow<EditFormState?>(null)
@@ -56,7 +62,10 @@ class EditViewModel(
 
     init {
         if (itemId == null) {
-            _state.value = EditFormState(id = newId(), isNew = true, createdAt = clock.now())
+            val now = clock.now()
+            _state.value = scanned
+                ?.let { EditFormState.fromScan(newId(), now, it, today = now.toLocalDateTime(timeZone).date) }
+                ?: EditFormState(id = newId(), isNew = true, createdAt = now)
         } else {
             viewModelScope.launch {
                 val item = repository.observeItem(itemId).first()
@@ -117,7 +126,13 @@ class EditViewModel(
             initializer {
                 val container = (this[APPLICATION_KEY] as ClaspApplication).container
                 val route = createSavedStateHandle().toRoute<Destination.Edit>()
+                val scanned = route.scannedValue?.let { value ->
+                    route.scannedFormat
+                        ?.let { name -> BarcodeFormat.entries.firstOrNull { it.name == name } }
+                        ?.let { Barcode(value, it) }
+                }
                 EditViewModel(
+                    scanned = scanned,
                     itemId = route.id,
                     repository = container.repository,
                     logoImporter = container.logoImporter,

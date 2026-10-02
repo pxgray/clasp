@@ -1,5 +1,9 @@
 package io.github.pxgray.clasp.ui.edit
 
+import io.github.pxgray.clasp.domain.Barcode
+import io.github.pxgray.clasp.testing.BCBP_SAMPLE
+import io.github.pxgray.clasp.testing.boardingItem
+import kotlinx.datetime.LocalDate
 import io.github.pxgray.clasp.domain.BarcodeFormat
 import io.github.pxgray.clasp.domain.ItemDetails
 import io.github.pxgray.clasp.domain.ItemKind
@@ -44,5 +48,49 @@ class EditFormStateTest {
         val form = EditFormState.from(item)
         assertFalse(form.isNew)
         assertEquals(item, form.toWalletItem())
+    }
+
+    private val scannedPass = Barcode(BCBP_SAMPLE, BarcodeFormat.PDF417)
+    private val today = LocalDate(2026, 10, 2)
+
+    @Test
+    fun `scanning a boarding pass prefills a boarding form`() {
+        val form = EditFormState.fromScan("n", Instant.fromEpochMilliseconds(0), scannedPass, today)
+        assertEquals("AC 834", form.title)
+        val boarding = form.boarding!!
+        assertEquals("Luc Desmarais", boarding.passenger)
+        assertEquals("YUL", boarding.from)
+        assertEquals("FRA", boarding.to)
+        assertEquals(LocalDate(2026, 11, 22), boarding.date)
+        assertEquals("1A", boarding.seat)
+        assertTrue(form.isValid)
+
+        val item = form.toWalletItem()
+        assertEquals(ItemKind.BOARDING_PASS, item.kind)
+        assertEquals(scannedPass, item.barcode) // raw value untouched, trailing data and all
+    }
+
+    @Test
+    fun `scanning anything else prefills a loyalty form`() {
+        val form = EditFormState.fromScan("n", Instant.fromEpochMilliseconds(0), Barcode("4006381333931", BarcodeFormat.EAN_13), today)
+        assertNull(form.boarding)
+        assertEquals("4006381333931", form.cardNumber)
+        assertEquals(BarcodeFormat.EAN_13, form.format)
+    }
+
+    @Test
+    fun `boarding form requires route, airline, flight and passenger`() {
+        val form = blank.copy(title = "X", boarding = BoardingFields(barcode = scannedPass, from = "YU"))
+        assertEquals(
+            setOf(BoardingField.PASSENGER, BoardingField.AIRLINE, BoardingField.FLIGHT, BoardingField.FROM, BoardingField.TO),
+            form.boarding!!.errors,
+        )
+        assertFalse(form.isValid)
+    }
+
+    @Test
+    fun `from round-trips a boarding pass`() {
+        val item = boardingItem()
+        assertEquals(item, EditFormState.from(item).toWalletItem())
     }
 }

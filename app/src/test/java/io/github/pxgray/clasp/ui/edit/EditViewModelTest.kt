@@ -1,5 +1,8 @@
 package io.github.pxgray.clasp.ui.edit
 
+import io.github.pxgray.clasp.domain.Barcode
+import io.github.pxgray.clasp.domain.BarcodeFormat
+import io.github.pxgray.clasp.testing.BCBP_SAMPLE
 import android.net.Uri
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import app.cash.turbine.test
@@ -116,5 +119,26 @@ class EditViewModelTest {
 
         assertEquals("items/id-1/logo-1.png", repository.items.value.single().logoPath)
         assertFalse(files.resolve("items/id-1/logo-0.png").exists())
+    }
+
+    @Test
+    fun `a scanned boarding pass opens as a boarding form`() {
+        val vm = EditViewModel(
+            null, repository, importer, files, clock, main.dispatcher, newId = { "new-id" },
+            scanned = Barcode(BCBP_SAMPLE, BarcodeFormat.PDF417),
+        )
+        val state = vm.state.value!!
+        assertEquals("AC 834", state.title)
+        assertEquals("YUL", state.boarding!!.from)
+    }
+
+    @Test
+    fun `a scanned loyalty card opens with its number filled in`() {
+        val vm = EditViewModel(
+            null, repository, importer, files, clock, main.dispatcher, newId = { "new-id" },
+            scanned = Barcode("4006381333931", BarcodeFormat.EAN_13),
+        )
+        assertEquals("4006381333931", vm.state.value!!.cardNumber)
+        assertEquals(BarcodeFormat.EAN_13, vm.state.value!!.format)
     }
 }
