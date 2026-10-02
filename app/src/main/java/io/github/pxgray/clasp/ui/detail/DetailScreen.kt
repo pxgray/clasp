@@ -1,6 +1,5 @@
 package io.github.pxgray.clasp.ui.detail
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -11,12 +10,10 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -52,7 +49,7 @@ import io.github.pxgray.clasp.domain.WalletItem
 import io.github.pxgray.clasp.domain.monogram
 import io.github.pxgray.clasp.domain.secondaryLine
 import io.github.pxgray.clasp.ui.components.LogoTile
-import io.github.pxgray.clasp.ui.components.StatusBarIconsEffect
+import io.github.pxgray.clasp.ui.components.SystemBarIconsEffect
 import io.github.pxgray.clasp.ui.components.contentColorOn
 import io.github.pxgray.clasp.ui.components.isLightColor
 import io.github.pxgray.clasp.ui.navigation.sharedCardBounds
@@ -84,48 +81,43 @@ fun DetailScreen(
     MaxBrightnessEffect()
     val brand = item.brandColor?.let(::Color) ?: MaterialTheme.colorScheme.primaryContainer
     val onBrand = if (item.brandColor != null) contentColorOn(brand) else MaterialTheme.colorScheme.onPrimaryContainer
-    StatusBarIconsEffect(darkIcons = isLightColor(brand))
+    SystemBarIconsEffect(darkIcons = isLightColor(brand))
 
-    Surface(color = MaterialTheme.colorScheme.surface, modifier = Modifier.fillMaxSize()) {
+    // Like Google Wallet, the whole page takes the card's color; the card morphs into it.
+    Surface(
+        color = brand,
+        contentColor = onBrand,
+        modifier = Modifier.fillMaxSize().sharedCardBounds(item.id),
+    ) {
         Column(
             Modifier
                 .verticalScroll(rememberScrollState())
+                .statusBarsPadding()
                 .navigationBarsPadding(),
         ) {
-            Column(
-                Modifier
-                    .fillMaxWidth()
-                    .sharedCardBounds(item.id)
-                    .background(brand, RoundedCornerShape(bottomStart = 36.dp, bottomEnd = 36.dp))
-                    .statusBarsPadding()
-                    .padding(bottom = 64.dp),
-            ) {
-                DetailTopBar(item, onBrand, onBack, onEdit, onDelete)
-                Row(Modifier.padding(horizontal = 24.dp), verticalAlignment = Alignment.CenterVertically) {
-                    LogoTile(
-                        monogram = item.monogram(),
-                        brandColor = item.brandColor,
-                        logoPath = item.logoPath,
-                        size = 72.dp,
-                        modifier = Modifier.sharedLogo(item.id),
-                        invertMonogram = true,
-                        logoOutline = onBrand.copy(alpha = 0.6f),
-                    )
-                    Spacer(Modifier.width(16.dp))
-                    Column {
-                        Text(item.title, style = MaterialTheme.typography.headlineMedium, color = onBrand)
-                        item.secondaryLine()?.let {
-                            Text(it, style = MaterialTheme.typography.bodyLarge, color = onBrand.copy(alpha = 0.8f))
-                        }
+            DetailTopBar(item, onBrand, onBack, onEdit, onDelete)
+            Row(Modifier.padding(horizontal = 24.dp), verticalAlignment = Alignment.CenterVertically) {
+                LogoTile(
+                    monogram = item.monogram(),
+                    brandColor = item.brandColor,
+                    logoPath = item.logoPath,
+                    size = 72.dp,
+                    modifier = Modifier.sharedLogo(item.id),
+                    invertMonogram = true,
+                    logoOutline = onBrand.copy(alpha = 0.6f),
+                )
+                Spacer(Modifier.width(16.dp))
+                Column {
+                    Text(item.title, style = MaterialTheme.typography.headlineMedium, color = onBrand)
+                    item.secondaryLine()?.let {
+                        Text(it, style = MaterialTheme.typography.bodyLarge, color = onBrand.copy(alpha = 0.8f))
                     }
                 }
             }
 
             item.barcode?.let { barcode ->
                 Column(
-                    modifier = Modifier
-                        .padding(horizontal = 16.dp)
-                        .offset(y = (-40).dp),
+                    modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 32.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
                     BarcodePanel(barcode)
@@ -143,7 +135,7 @@ fun DetailScreen(
                 }
             }
 
-            DetailFields(item, Modifier.padding(horizontal = 24.dp))
+            DetailFields(item, Modifier.padding(start = 24.dp, end = 24.dp, top = 32.dp))
             Spacer(Modifier.height(24.dp))
         }
     }

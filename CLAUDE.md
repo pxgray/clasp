@@ -48,7 +48,7 @@ Cross-cutting patterns:
 - **Scan → edit**: the scanner navigates to `Destination.Edit(scannedValue, scannedFormat)`; `EditFormState.fromScan` decides boarding pass (BCBP) vs loyalty card. Scanned values are stored byte-for-byte — never trim a BCBP value.
 - **Incoming passes**: `MainActivity` (singleTop) puts `ACTION_VIEW` URIs into `ImportInbox`; `ClaspNavHost` pops to Home, whose `ImportViewModel` shows the preview sheet. pkpass item ids derive from `passTypeIdentifier`/`serialNumber`, so re-imports update rather than duplicate.
 - **Logos**: written as `items/<id>/logo-<timestamp>.png` (unique per import, cached by path in `LogoTile`); after save/cancel, `ItemFiles.pruneLogos` removes the unused ones.
-- **Theme**: `MainActivity` waits for `SettingsRepository` before drawing, resolves light/dark, and restyles the system bars. Screens with custom-colored headers use `StatusBarIconsEffect`.
+- **Theme**: `MainActivity` waits for `SettingsRepository` before drawing, resolves light/dark, and restyles the system bars. Screens with custom-colored headers use `SystemBarIconsEffect`.
 
 ## Constraints and gotchas
 

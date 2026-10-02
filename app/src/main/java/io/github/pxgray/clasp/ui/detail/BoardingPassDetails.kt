@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -36,7 +37,7 @@ fun BoardingPassDetails(pass: ItemDetails.BoardingPass, modifier: Modifier = Mod
             Icon(
                 painter = painterResource(R.drawable.ic_flight),
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                tint = LocalContentColor.current.copy(alpha = 0.72f),
                 modifier = Modifier.size(32.dp).rotate(90f),
             )
             AirportCode(pass.to)

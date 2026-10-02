@@ -127,4 +127,20 @@ class DetailScreenTest {
         compose.onNodeWithContentDescription("More options").performClick()
         compose.onNodeWithText("Edit").assertExists()
     }
+
+    @Test
+    fun `navigation bar icons follow the brand color too`() {
+        val window = compose.activity.window
+        compose.runOnUiThread {
+            // Home's setting in light theme: dark icons.
+            WindowCompat.getInsetsController(window, window.decorView).isAppearanceLightNavigationBars = true
+        }
+        compose.setContent {
+            ClaspTheme(dynamicColor = false, darkTheme = false) {
+                DetailScreen(loyaltyItem(brandColor = 0xFFD32F2F.toInt()), onBack = {}, onEdit = {}, onDelete = {})
+            }
+        }
+        compose.waitForIdle()
+        assertFalse(WindowCompat.getInsetsController(window, window.decorView).isAppearanceLightNavigationBars)
+    }
 }

@@ -51,7 +51,7 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import io.github.pxgray.clasp.R
 import io.github.pxgray.clasp.domain.Barcode
-import io.github.pxgray.clasp.ui.components.StatusBarIconsEffect
+import io.github.pxgray.clasp.ui.components.SystemBarIconsEffect
 
 enum class CameraPermission { GRANTED, NOT_GRANTED, DENIED }
 
@@ -103,7 +103,7 @@ fun ScanScreen(
     var torchOn by rememberSaveable { mutableStateOf(false) }
     var hasFlash by remember { mutableStateOf(false) }
     var unavailable by remember { mutableStateOf(false) }
-    StatusBarIconsEffect(darkIcons = false)
+    SystemBarIconsEffect(darkIcons = false)
 
     Box(Modifier.fillMaxSize().background(Color.Black)) {
         when {
