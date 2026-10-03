@@ -1,6 +1,7 @@
 package io.github.pxgray.clasp.logo
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class LinkTagsTest {
@@ -31,5 +32,33 @@ class LinkTagsTest {
     @Test
     fun `tags without rel or href are skipped`() {
         assertEquals(emptyList<LinkTag>(), scanLinkTags("""<head><link href="/x"><link rel="icon"></head>"""))
+    }
+
+    @Test
+    fun `hostile input is scanned in linear time`() {
+        val unclosed = "<link ".repeat(100_000)
+        val noEquals = "<link " + "a".repeat(500_000) + ">"
+        val start = System.nanoTime()
+        assertEquals(emptyList<LinkTag>(), scanLinkTags(unclosed))
+        assertEquals(emptyList<LinkTag>(), scanLinkTags(noEquals))
+        val millis = (System.nanoTime() - start) / 1_000_000
+        assertTrue("took ${millis}ms", millis < 1000)
+    }
+
+    @Test
+    fun `a document without a closing head still yields its links`() {
+        assertEquals(
+            listOf(LinkTag(setOf("icon"), "/a.png", null, null)),
+            scanLinkTags("""<link rel="icon" href="/a.png"><body>"""),
+        )
+    }
+
+    @Test
+    fun `an over-long tag is skipped but later tags are found`() {
+        val long = """<link rel="icon" href="/x.png" data-x="${"a".repeat(5000)}">"""
+        assertEquals(
+            listOf(LinkTag(setOf("icon"), "/b.png", null, null)),
+            scanLinkTags("""<head>$long<link rel="icon" href="/b.png"></head>"""),
+        )
     }
 }
