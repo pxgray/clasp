@@ -105,6 +105,9 @@
     <string name="settings_cards">Cards</string>
     <string name="settings_max_brightness">Brighten screen for barcodes</string>
     <string name="settings_max_brightness_description">Turn brightness up while a card is open, to help scanners read it</string>
+    <string name="settings_online">Online</string>
+    <string name="settings_logo_search">Logo search</string>
+    <string name="settings_logo_search_description">Search Wikidata and card websites when you tap Find logo</string>
     <string name="settings_backup">Backup</string>
     <string name="settings_export">Export wallet</string>
     <string name="settings_export_description">Save your cards and passes to a file</string>

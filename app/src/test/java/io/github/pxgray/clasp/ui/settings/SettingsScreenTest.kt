@@ -38,6 +38,7 @@ class SettingsScreenTest {
                     onTheme = { theme = it },
                     onDynamicColor = {},
                     onMaxBrightness = { brightness = it },
+                    onLogoSearch = {},
                     onExport = { exported = true },
                     onImport = { imported = true },
                     onLicenses = { licenses = true },

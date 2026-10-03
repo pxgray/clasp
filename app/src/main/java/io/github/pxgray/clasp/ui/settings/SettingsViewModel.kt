@@ -58,6 +58,10 @@ class SettingsViewModel(
         viewModelScope.launch { settingsRepository.setMaxBrightness(enabled) }
     }
 
+    fun setLogoSearch(enabled: Boolean) {
+        viewModelScope.launch { settingsRepository.setLogoSearchEnabled(enabled) }
+    }
+
     fun export(uri: Uri) = runExclusive {
         val count = try {
             documents.openOutput(uri)?.use { backup.export(it) }

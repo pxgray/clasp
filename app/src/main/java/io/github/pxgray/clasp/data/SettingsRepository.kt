@@ -25,6 +25,8 @@ data class AppSettings(
     val maxBrightness: Boolean = false,
     /** How the home list is ordered; chosen from the home screen's sort menu. */
     val sortOrder: SortOrder = SortOrder.RECENTLY_USED,
+    /** Opt-in: the only feature that uses the network. Off until the user agrees. */
+    val logoSearchEnabled: Boolean = false,
 ) {
     fun isDark(systemDark: Boolean): Boolean = when (theme) {
         ThemeMode.SYSTEM -> systemDark
@@ -44,6 +46,7 @@ class SettingsRepository(private val store: DataStore<Preferences>) {
                 maxBrightness = prefs[MAX_BRIGHTNESS] ?: false,
                 sortOrder = prefs[SORT_ORDER]?.let { name -> SortOrder.entries.firstOrNull { it.name == name } }
                     ?: SortOrder.RECENTLY_USED,
+                logoSearchEnabled = prefs[LOGO_SEARCH] ?: false,
             )
         }
 
@@ -63,11 +66,16 @@ class SettingsRepository(private val store: DataStore<Preferences>) {
         store.edit { it[SORT_ORDER] = order.name }
     }
 
+    suspend fun setLogoSearchEnabled(enabled: Boolean) {
+        store.edit { it[LOGO_SEARCH] = enabled }
+    }
+
     companion object {
         private val THEME = stringPreferencesKey("theme")
         private val DYNAMIC_COLOR = booleanPreferencesKey("dynamic_color")
         private val MAX_BRIGHTNESS = booleanPreferencesKey("max_brightness")
         private val SORT_ORDER = stringPreferencesKey("sort_order")
+        private val LOGO_SEARCH = booleanPreferencesKey("logo_search")
 
         /** Call once per process: DataStore allows a single instance per file. */
         fun create(context: Context) = SettingsRepository(

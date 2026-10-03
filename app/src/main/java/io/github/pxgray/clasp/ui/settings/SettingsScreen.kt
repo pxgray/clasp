@@ -88,6 +88,7 @@ fun SettingsRoute(
         onTheme = viewModel::setTheme,
         onDynamicColor = viewModel::setDynamicColor,
         onMaxBrightness = viewModel::setMaxBrightness,
+        onLogoSearch = viewModel::setLogoSearch,
         onExport = { exportTo.launch("clasp-backup-${LocalDate.now()}.zip") },
         onImport = { importFrom.launch(BACKUP_MIME_TYPES) },
         onLicenses = onLicenses,
@@ -105,6 +106,7 @@ fun SettingsScreen(
     onTheme: (ThemeMode) -> Unit,
     onDynamicColor: (Boolean) -> Unit,
     onMaxBrightness: (Boolean) -> Unit,
+    onLogoSearch: (Boolean) -> Unit,
     onExport: () -> Unit,
     onImport: () -> Unit,
     onLicenses: () -> Unit,
@@ -158,6 +160,14 @@ fun SettingsScreen(
                 supportingContent = { Text(stringResource(R.string.settings_max_brightness_description)) },
                 trailingContent = { Switch(checked = settings.maxBrightness, onCheckedChange = onMaxBrightness) },
                 modifier = Modifier.clickable { onMaxBrightness(!settings.maxBrightness) },
+            )
+
+            SectionHeader(R.string.settings_online)
+            ListItem(
+                headlineContent = { Text(stringResource(R.string.settings_logo_search)) },
+                supportingContent = { Text(stringResource(R.string.settings_logo_search_description)) },
+                trailingContent = { Switch(checked = settings.logoSearchEnabled, onCheckedChange = onLogoSearch) },
+                modifier = Modifier.clickable { onLogoSearch(!settings.logoSearchEnabled) },
             )
 
             SectionHeader(R.string.settings_backup)
