@@ -83,6 +83,10 @@ dependencies {
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.kotlinx.datetime)
     implementation(libs.zxing.core)
+    implementation(libs.pdfbox.android) {
+        // BouncyCastle is only needed for encrypted PDFs; Google Takeout exports aren't encrypted.
+        exclude(group = "org.bouncycastle")
+    }
     implementation(libs.androidx.camera.core)
     implementation(libs.androidx.camera.camera2)
     implementation(libs.androidx.camera.lifecycle)

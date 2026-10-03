@@ -17,6 +17,7 @@ zxing = "3.5.4"
 camerax = "1.6.2"
 datastore = "1.2.1"
 roborazzi = "1.76.0"
+pdfboxAndroid = "2.0.27.0"
 junit = "4.13.2"
 turbine = "1.2.1"
 robolectric = "4.17"
@@ -46,6 +47,7 @@ kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serializa
 kotlinx-datetime = { module = "org.jetbrains.kotlinx:kotlinx-datetime", version.ref = "kotlinxDatetime" }
 kotlinx-coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "coroutines" }
 zxing-core = { module = "com.google.zxing:core", version.ref = "zxing" }
+pdfbox-android = { module = "com.tom-roush:pdfbox-android", version.ref = "pdfboxAndroid" }
 androidx-camera-core = { module = "androidx.camera:camera-core", version.ref = "camerax" }
 androidx-camera-camera2 = { module = "androidx.camera:camera-camera2", version.ref = "camerax" }
 androidx-camera-lifecycle = { module = "androidx.camera:camera-lifecycle", version.ref = "camerax" }
