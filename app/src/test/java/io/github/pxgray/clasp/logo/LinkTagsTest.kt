@@ -61,4 +61,18 @@ class LinkTagsTest {
             scanLinkTags("""<head>$long<link rel="icon" href="/b.png"></head>"""),
         )
     }
+
+    @Test
+    fun `many long tags without equals signs are scanned in linear time`() {
+        val html = "<link ${"a".repeat(4000)}>".repeat(128)
+        val start = System.nanoTime()
+        assertEquals(emptyList<LinkTag>(), scanLinkTags(html))
+        val millis = (System.nanoTime() - start) / 1_000_000
+        assertTrue("took ${millis}ms", millis < 1000)
+    }
+
+    @Test
+    fun `tags whose name merely starts with link do not match`() {
+        assertEquals(emptyList<LinkTag>(), scanLinkTags("""<head><linkfoo rel="icon" href="/x"></head>"""))
+    }
 }
