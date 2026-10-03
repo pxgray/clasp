@@ -17,6 +17,7 @@ import androidx.compose.runtime.produceState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
@@ -27,6 +28,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+
+private const val LOGO_ZOOM = 1.05f
 
 /** Logo files are immutable (unique name per import), so caching by path is always safe. */
 private val logoCache = LruCache<String, ImageBitmap>(64)
@@ -63,7 +66,14 @@ fun LogoTile(
         .let { if (logo != null && logoOutline != null) it.border(2.dp, logoOutline, shape) else it }
     Box(tileModifier, contentAlignment = Alignment.Center) {
         if (logo != null) {
-            Image(logo, contentDescription = null, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
+            Image(
+                bitmap = logo,
+                contentDescription = null,
+                // Round logos are often drawn a pixel or two inside their image, or fade out at the edge;
+                // a slight zoom puts the circle's clip inside the logo so no white rim shows.
+                modifier = Modifier.fillMaxSize().scale(LOGO_ZOOM),
+                contentScale = ContentScale.Crop,
+            )
         } else {
             Text(
                 text = monogram,
