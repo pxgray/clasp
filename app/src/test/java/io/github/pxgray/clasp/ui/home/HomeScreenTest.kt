@@ -1,6 +1,7 @@
 package io.github.pxgray.clasp.ui.home
 
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -76,5 +77,29 @@ class HomeScreenTest {
     fun `an empty wallet has no sort button`() {
         show(HomeUiState(loading = false))
         compose.onNodeWithContentDescription("Sort").assertDoesNotExist()
+    }
+
+    @Test
+    fun `the loading state has no sort button`() {
+        show(HomeUiState())
+        compose.onNodeWithContentDescription("Sort").assertDoesNotExist()
+    }
+
+    @Test
+    fun `changing the sort order scrolls the list back to the top`() {
+        val cards = (0 until 10).map { loyaltyItem(id = "c$it", title = "Card $it") }
+        val state = mutableStateOf(HomeUiState(loading = false, sortOrder = SortOrder.DATE_ADDED, cards = cards))
+        compose.setContent {
+            ClaspTheme(dynamicColor = false) {
+                HomeScreen(
+                    state.value, SnackbarHostState(), onOpenItem = {}, onScan = {}, onImport = {},
+                    onImportGoogleWallet = {}, onAddManually = {}, onOpenSettings = {}, onSortOrderChange = {},
+                )
+            }
+        }
+        compose.onNodeWithText("Card 0").assertIsDisplayed()
+        state.value = HomeUiState(loading = false, sortOrder = SortOrder.NAME, cards = cards.reversed())
+        compose.waitForIdle()
+        compose.onNodeWithText("Card 9").assertIsDisplayed()
     }
 }

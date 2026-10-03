@@ -155,6 +155,12 @@ fun HomeScreen(
 ) {
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
     val listState = rememberLazyListState()
+    // Keyed items keep the old first card in view after a reorder, so jump to the top when the order changes.
+    val shownSortOrder = remember { arrayOf(state.sortOrder) }
+    if (shownSortOrder[0] != state.sortOrder) {
+        shownSortOrder[0] = state.sortOrder
+        listState.requestScrollToItem(0)
+    }
     val fabExpanded by remember { derivedStateOf { listState.firstVisibleItemIndex == 0 } }
     var showAddSheet by rememberSaveable { mutableStateOf(false) }
 
