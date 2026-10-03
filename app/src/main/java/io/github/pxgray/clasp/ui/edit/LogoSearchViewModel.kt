@@ -17,6 +17,8 @@ import io.github.pxgray.clasp.logo.LogoLimits
 import io.github.pxgray.clasp.logo.LogoProvider
 import io.github.pxgray.clasp.logo.LogoQuery
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
@@ -34,7 +36,9 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
+import kotlinx.coroutines.withContext
 import kotlin.math.max
+import kotlin.math.min
 
 data class LogoTile(val candidate: LogoCandidate, val preview: ImageBitmap)
 
@@ -66,6 +70,7 @@ class LogoSearchViewModel(
     private val logoImporter: LogoImporter,
     enabledFlow: Flow<Boolean>,
     private val setEnabled: suspend (Boolean) -> Unit,
+    private val decodeDispatcher: CoroutineDispatcher = Dispatchers.Default,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(LogoSearchState())
@@ -80,8 +85,10 @@ class LogoSearchViewModel(
     private var itemId: String? = null
     private var searchJob: Job? = null
     private var downloadJob: Job? = null
+    private var turnOnJob: Job? = null
 
     fun open(itemId: String, name: String, websiteHost: String?) {
+        downloadJob?.cancel()
         this.itemId = itemId
         _state.value = LogoSearchState(visible = true, query = name, websiteHost = websiteHost)
         search()
@@ -89,8 +96,24 @@ class LogoSearchViewModel(
 
     /** Saves consent first, so the fetcher's own check of the setting already sees it. */
     fun turnOnAndOpen(itemId: String, name: String, websiteHost: String?) {
-        viewModelScope.launch {
-            setEnabled(true)
+        turnOnJob?.cancel()
+        turnOnJob = viewModelScope.launch {
+            try {
+                setEnabled(true)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (_: Exception) {
+                searchJob?.cancel()
+                downloadJob?.cancel()
+                this@LogoSearchViewModel.itemId = itemId
+                _state.value = LogoSearchState(
+                    visible = true,
+                    query = name,
+                    websiteHost = websiteHost,
+                    status = LogoSearchStatus.Error,
+                )
+                return@launch
+            }
             open(itemId, name, websiteHost)
         }
     }
@@ -126,6 +149,7 @@ class LogoSearchViewModel(
 
     fun choose(candidate: LogoCandidate) {
         val id = itemId ?: return
+        if (!_state.value.visible) return
         if (_state.value.downloading != null) return
         _state.update { it.copy(downloading = candidate.imageUrl, downloadFailed = false) }
         downloadJob = viewModelScope.launch {
@@ -147,13 +171,16 @@ class LogoSearchViewModel(
 
     /** Hides the sheet and stops any search or download; a half-downloaded logo is never applied. */
     fun close() {
+        turnOnJob?.cancel()
         searchJob?.cancel()
         downloadJob?.cancel()
         _state.update { it.copy(visible = false, downloading = null) }
     }
 
     private suspend fun tile(candidate: LogoCandidate): LogoTile? = try {
-        decodePreview(fetcher.fetch(candidate.previewUrl, LogoLimits.PREVIEW).body)?.let { LogoTile(candidate, it) }
+        fetcher.fetch(candidate.previewUrl, LogoLimits.PREVIEW).body.let { body ->
+            withContext(decodeDispatcher) { decodePreview(body) }
+        }?.let { LogoTile(candidate, it) }
     } catch (e: CancellationException) {
         throw e
     } catch (_: Exception) {
@@ -178,10 +205,20 @@ class LogoSearchViewModel(
     }
 }
 
-/** Decodes a preview held only in memory; null if it isn't an image or is implausibly large. */
+/**
+ * Decodes a preview held only in memory, downsampled so its shorter side stays at least
+ * [PREVIEW_TARGET] px; null if it isn't an image or is implausibly large.
+ */
 private fun decodePreview(bytes: ByteArray): ImageBitmap? {
     val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
     BitmapFactory.decodeByteArray(bytes, 0, bytes.size, bounds)
-    if (bounds.outWidth <= 0 || bounds.outHeight <= 0 || max(bounds.outWidth, bounds.outHeight) > LogoLimits.MAX_SIDE) return null
-    return BitmapFactory.decodeByteArray(bytes, 0, bytes.size)?.asImageBitmap()
+    val w = bounds.outWidth
+    val h = bounds.outHeight
+    if (w <= 0 || h <= 0 || max(w, h) > LogoLimits.MAX_SIDE) return null
+    var sample = 1
+    while (min(w, h) / (sample * 2) >= PREVIEW_TARGET) sample *= 2
+    val options = BitmapFactory.Options().apply { inSampleSize = sample }
+    return BitmapFactory.decodeByteArray(bytes, 0, bytes.size, options)?.asImageBitmap()
 }
+
+private const val PREVIEW_TARGET = 256

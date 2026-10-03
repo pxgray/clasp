@@ -14,6 +14,7 @@ import io.github.pxgray.clasp.logo.LogoQuery
 import io.github.pxgray.clasp.logo.LogoSource
 import io.github.pxgray.clasp.testing.FakeHttpFetcher
 import io.github.pxgray.clasp.testing.MainDispatcherRule
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertArrayEquals
@@ -62,7 +63,11 @@ class LogoSearchViewModelTest {
     }
     private val enabled = MutableStateFlow(false)
 
-    private fun viewModel() = LogoSearchViewModel(provider, fetcher, importer, enabled, setEnabled = { enabled.value = it })
+    private fun viewModel(setEnabled: suspend (Boolean) -> Unit = { enabled.value = it }) =
+        LogoSearchViewModel(provider, fetcher, importer, enabled, setEnabled = setEnabled, decodeDispatcher = main.dispatcher)
+
+    private fun pngOf(width: Int, height: Int) = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+        .let { bitmap -> ByteArrayOutputStream().use { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it); it.toByteArray() } }
 
     @Test
     fun `opening searches by name and website and shows decodable previews`() {
@@ -162,5 +167,86 @@ class LogoSearchViewModelTest {
         vm.open("item", "Tesco", null)
         vm.close()
         assertFalse(vm.state.value.visible)
+    }
+
+    @Test
+    fun `a large preview is downsampled`() {
+        results = { listOf(candidate("big")) }
+        fetcher.on("big-preview", bytes = pngOf(2048, 2048))
+        val vm = viewModel()
+        vm.open("item", "Tesco", null)
+        val tile = (vm.state.value.status as LogoSearchStatus.Results).tiles.single()
+        assertTrue(tile.preview.width <= 512)
+        assertTrue(tile.preview.width >= 256)
+    }
+
+    @Test
+    fun `a preview wider than the limit is dropped`() {
+        results = { listOf(candidate("wide")) }
+        fetcher.on("wide-preview", bytes = pngOf(4097, 1))
+        val vm = viewModel()
+        vm.open("item", "Tesco", null)
+        assertEquals(LogoSearchStatus.Empty, vm.state.value.status)
+    }
+
+    @Test
+    fun `closing during a download prevents the result`() = runTest {
+        results = { listOf(candidate("good")) }
+        fetcher.on("good-preview", bytes = png)
+        val gate = CompletableDeferred<Unit>()
+        val slowImporter = object : LogoImporter {
+            override suspend fun import(itemId: String, uri: Uri): ImportedLogo? = null
+            override suspend fun importBytes(itemId: String, bytes: ByteArray): ImportedLogo {
+                gate.await()
+                return ImportedLogo("items/$itemId/logo-1.png", brandColor = 0)
+            }
+        }
+        val slowVm = LogoSearchViewModel(provider, fetcher, slowImporter, enabled, { }, main.dispatcher)
+        fetcher.on("good.png", bytes = byteArrayOf(9))
+        slowVm.open("item", "Tesco", null)
+        slowVm.found.test {
+            slowVm.choose(candidate("good"))
+            slowVm.close()
+            gate.complete(Unit)
+            expectNoEvents()
+        }
+        assertFalse(slowVm.state.value.visible)
+    }
+
+    @Test
+    fun `a newer search supersedes a slow older one`() {
+        val gate = CompletableDeferred<List<LogoCandidate>>()
+        var calls = 0
+        val slowProvider = object : LogoProvider {
+            override suspend fun search(query: LogoQuery): List<LogoCandidate> =
+                if (calls++ == 0) gate.await() else listOf(candidate("second"))
+        }
+        fetcher.on("second-preview", bytes = png)
+        fetcher.on("first-preview", bytes = png)
+        val vm = LogoSearchViewModel(slowProvider, fetcher, importer, enabled, { }, main.dispatcher)
+        vm.open("item", "Tesco", null)
+        vm.search()
+        gate.complete(listOf(candidate("first")))
+        val tiles = (vm.state.value.status as LogoSearchStatus.Results).tiles
+        assertEquals(listOf("second"), tiles.map { it.candidate.label })
+    }
+
+    @Test
+    fun `a failing setting save opens the sheet with an error`() {
+        val vm = viewModel(setEnabled = { throw IllegalStateException("disk") })
+        vm.turnOnAndOpen("item", "Tesco", null)
+        assertTrue(vm.state.value.visible)
+        assertEquals(LogoSearchStatus.Error, vm.state.value.status)
+        assertTrue(queries.isEmpty())
+    }
+
+    @Test
+    fun `choosing after closing does nothing`() {
+        val vm = viewModel()
+        vm.open("item", "Tesco", null)
+        vm.close()
+        vm.choose(candidate("good"))
+        assertTrue(imported.isEmpty())
+        assertNull(vm.state.value.downloading)
     }
 }
