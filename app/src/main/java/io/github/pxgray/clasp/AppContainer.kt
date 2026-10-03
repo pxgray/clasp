@@ -2,6 +2,7 @@ package io.github.pxgray.clasp
 
 import android.content.Context
 import io.github.pxgray.clasp.data.AndroidLogoImporter
+import io.github.pxgray.clasp.data.AndroidTakeoutImporter
 import io.github.pxgray.clasp.data.ImportInbox
 import io.github.pxgray.clasp.data.ItemFiles
 import io.github.pxgray.clasp.data.LogoImporter
@@ -9,6 +10,7 @@ import io.github.pxgray.clasp.data.PassImporter
 import io.github.pxgray.clasp.data.PkPassImporter
 import io.github.pxgray.clasp.data.RoomWalletRepository
 import io.github.pxgray.clasp.data.SettingsRepository
+import io.github.pxgray.clasp.data.TakeoutImporter
 import io.github.pxgray.clasp.data.backup.AndroidDocumentStreams
 import io.github.pxgray.clasp.data.backup.DocumentStreams
 import io.github.pxgray.clasp.data.backup.WalletBackup
@@ -24,6 +26,7 @@ class AppContainer(context: Context) {
     val repository: WalletRepository = RoomWalletRepository(database.walletDao(), itemFiles)
     val logoImporter: LogoImporter = AndroidLogoImporter(context.contentResolver, itemFiles, clock)
     val passImporter: PassImporter = PkPassImporter(context.contentResolver, itemFiles, clock)
+    val takeoutImporter: TakeoutImporter = AndroidTakeoutImporter(context, itemFiles, clock)
     val importInbox = ImportInbox()
     val walletBackup = WalletBackup(repository, itemFiles)
     val documents: DocumentStreams = AndroidDocumentStreams(context.contentResolver)
