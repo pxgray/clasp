@@ -142,6 +142,7 @@ class ScreenshotTest {
         onTheme = {},
         onDynamicColor = {},
         onMaxBrightness = {},
+        onLogoSearch = {},
         onExport = {},
         onImport = {},
         onLicenses = {},

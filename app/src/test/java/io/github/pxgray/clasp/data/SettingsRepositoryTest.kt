@@ -64,4 +64,12 @@ class SettingsRepositoryTest {
         store.edit { it[stringPreferencesKey("sort_order")] = "SHUFFLE" }
         assertEquals(SortOrder.RECENTLY_USED, SettingsRepository(store).settings.first().sortOrder)
     }
+
+    @Test
+    fun `logo search is off by default and can be turned on`() = runTest {
+        val repository = repository()
+        assertFalse(repository.settings.first().logoSearchEnabled)
+        repository.setLogoSearchEnabled(true)
+        assertTrue(repository.settings.first().logoSearchEnabled)
+    }
 }
