@@ -3,10 +3,13 @@ package io.github.pxgray.clasp.screenshots
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onRoot
+import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.github.takahirom.roborazzi.RobolectricDeviceQualifiers
 import com.github.takahirom.roborazzi.captureRoboImage
+import com.github.takahirom.roborazzi.captureScreenRoboImage
 import io.github.pxgray.clasp.data.AppSettings
 import io.github.pxgray.clasp.domain.Barcode
 import io.github.pxgray.clasp.domain.BarcodeFormat
@@ -66,6 +69,14 @@ class ScreenshotTest {
     @Test fun homeLight() = snap("home") { HomeContent(wallet) }
     @Test fun homeDark() = snap("home_dark", dark = true) { HomeContent(wallet) }
 
+    /** The menu is a popup window, so capture the whole screen rather than the compose root. */
+    @Test fun homeSortMenu() {
+        compose.setContent { ClaspTheme(darkTheme = false, dynamicColor = false) { HomeContent(wallet) } }
+        compose.onNodeWithContentDescription("Sort").performClick()
+        compose.waitForIdle()
+        captureScreenRoboImage("src/test/screenshots/home_sort_menu.png")
+    }
+
     @Test fun detailLoyaltyLight() = snap("detail_loyalty") { DetailContent(wallet.cards.first()) }
     @Test fun detailLoyaltyDark() = snap("detail_loyalty_dark", dark = true) { DetailContent(wallet.cards.first()) }
     @Test fun detailBoardingPass() = snap("detail_boarding_pass") { DetailContent(boardingItem().copy(brandColor = 0xFFC62828.toInt())) }
@@ -99,8 +110,10 @@ class ScreenshotTest {
     @Test fun settingsDark() = snap("settings_dark", dark = true) { SettingsContent() }
 
     @Composable
-    private fun HomeContent(state: HomeUiState) =
-        HomeScreen(state, SnackbarHostState(), onOpenItem = {}, onScan = {}, onImport = {}, onImportGoogleWallet = {}, onAddManually = {}, onOpenSettings = {})
+    private fun HomeContent(state: HomeUiState) = HomeScreen(
+        state, SnackbarHostState(), onOpenItem = {}, onScan = {}, onImport = {}, onImportGoogleWallet = {},
+        onAddManually = {}, onOpenSettings = {}, onSortOrderChange = {},
+    )
 
     @Composable
     private fun DetailContent(item: WalletItem) = DetailScreen(item, onBack = {}, onEdit = {}, onDelete = {})

@@ -31,6 +31,10 @@
     <string name="home_empty_title">Your wallet is empty</string>
     <string name="home_empty_body">Scan a loyalty card or boarding pass to keep it close at hand.</string>
     <string name="home_deleted">Card deleted</string>
+    <string name="home_sort">Sort</string>
+    <string name="sort_recently_used">Recently used</string>
+    <string name="sort_name">Name</string>
+    <string name="sort_date_added">Date added</string>
     <string name="add_manually">Enter manually</string>
     <string name="add_manually_description">Type in a card number</string>
     <string name="action_back">Back</string>

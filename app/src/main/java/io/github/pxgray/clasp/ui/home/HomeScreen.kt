@@ -4,12 +4,14 @@ import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
@@ -17,9 +19,12 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Button
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
@@ -47,11 +52,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import io.github.pxgray.clasp.R
+import io.github.pxgray.clasp.domain.SortOrder
 import io.github.pxgray.clasp.domain.WalletItem
 import io.github.pxgray.clasp.ui.components.ClaspMark
 import io.github.pxgray.clasp.ui.components.WalletCard
@@ -128,6 +136,7 @@ fun HomeRoute(
         onImportGoogleWallet = { pickTakeout.launch(TAKEOUT_MIME_TYPES) },
         onAddManually = onAddManually,
         onOpenSettings = onOpenSettings,
+        onSortOrderChange = viewModel::setSortOrder,
     )
     ImportSheet(importState, onConfirm = importViewModel::confirm, onDismiss = importViewModel::dismiss)
 }
@@ -142,6 +151,7 @@ fun HomeScreen(
     onImportGoogleWallet: () -> Unit,
     onAddManually: () -> Unit,
     onOpenSettings: () -> Unit,
+    onSortOrderChange: (SortOrder) -> Unit,
 ) {
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
     val listState = rememberLazyListState()
@@ -156,6 +166,9 @@ fun HomeScreen(
                 title = {},
                 navigationIcon = { ClaspMark(Modifier.padding(start = 12.dp)) },
                 actions = {
+                    if (!state.loading && !state.isEmpty) {
+                        SortMenu(state.sortOrder, onSortOrderChange)
+                    }
                     IconButton(onClick = onOpenSettings) {
                         Icon(Icons.Default.Settings, contentDescription = stringResource(R.string.settings_title))
                     }
@@ -217,6 +230,40 @@ fun HomeScreen(
         )
     }
 }
+
+@Composable
+private fun SortMenu(current: SortOrder, onSelect: (SortOrder) -> Unit) {
+    var open by remember { mutableStateOf(false) }
+    Box {
+        IconButton(onClick = { open = true }) {
+            Icon(painterResource(R.drawable.ic_sort), contentDescription = stringResource(R.string.home_sort))
+        }
+        DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+            SortOrder.entries.forEach { order ->
+                DropdownMenuItem(
+                    text = { Text(stringResource(order.label)) },
+                    leadingIcon = {
+                        // A blank slot keeps the labels aligned with the checked one.
+                        if (order == current) Icon(Icons.Default.Check, contentDescription = null)
+                        else Spacer(Modifier.size(24.dp))
+                    },
+                    onClick = {
+                        open = false
+                        onSelect(order)
+                    },
+                    modifier = Modifier.semantics { selected = order == current },
+                )
+            }
+        }
+    }
+}
+
+private val SortOrder.label: Int
+    get() = when (this) {
+        SortOrder.RECENTLY_USED -> R.string.sort_recently_used
+        SortOrder.NAME -> R.string.sort_name
+        SortOrder.DATE_ADDED -> R.string.sort_date_added
+    }
 
 private fun LazyListScope.section(labelRes: Int?, items: List<WalletItem>, onOpenItem: (String) -> Unit) {
     if (items.isEmpty()) return
