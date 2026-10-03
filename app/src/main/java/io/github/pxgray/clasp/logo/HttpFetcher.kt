@@ -60,6 +60,12 @@ interface HttpFetcher {
  * runs as a child coroutine on [ioDispatcher]; the awaiting side aborts it by closing its sockets
  * when the deadline passes or the caller is cancelled, because a blocked socket read ignores
  * coroutine cancellation and thread interrupts.
+ *
+ * DNS lookup and the TCP connect can't be aborted that way; they are bounded only by the connect
+ * timeout (= [readTimeout]), so [fetch] may return up to that long after the deadline or a cancel.
+ *
+ * [hostAllowed] checks host names only: it gives no protection against a public name that
+ * resolves to a private address (DNS rebinding).
  */
 class UrlConnectionHttpFetcher(
     private val isAllowed: suspend () -> Boolean,

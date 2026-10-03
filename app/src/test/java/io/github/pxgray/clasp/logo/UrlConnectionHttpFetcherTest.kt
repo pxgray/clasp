@@ -179,8 +179,9 @@ class UrlConnectionHttpFetcherTest {
     @Test
     fun `by default refuses localhost without connecting`() {
         server.enqueue(MockResponse().setBody("secret"))
-        val strict = fetcher(hostAllowed = ::isPublicHostName)
-        assertThrows(LogoNetworkException::class.java) { runBlocking { strict.fetch(url("/a"), 100) } }
+        // Built without hostAllowed, so this checks the real default wiring.
+        val strict = UrlConnectionHttpFetcher(isAllowed = { true }, userAgent = "Clasp-test", sslSocketFactory = clientSockets)
+        assertThrows(LogoNetworkException::class.java) { runBlocking { strict.fetch("https://localhost:${server.port}/", 100) } }
         assertThrows(LogoNetworkException::class.java) { runBlocking { strict.fetch("https://0177.0.0.01/", 100) } }
         assertEquals(0, server.requestCount)
     }

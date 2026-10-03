@@ -27,6 +27,9 @@ fun websiteHost(raw: String): String? {
  * `localhost` or a local-only suffix, and isn't an IP literal. No public top-level domain starts
  * with a digit, so checking the last label rules out every numeric IPv4 spelling (`10.0.0.1`,
  * `0177.0.0.01`, `127.1`, `0x7f.0.0.1`); IPv6 literals come bracketed.
+ *
+ * This checks the name only. It can't stop a public name that resolves to a private address
+ * (DNS rebinding); nothing resolves the name here.
  */
 internal fun isPublicHostName(host: String): Boolean {
     val name = host.lowercase().trimEnd('.')
