@@ -4,6 +4,8 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.indication
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -32,6 +34,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -81,6 +84,8 @@ fun FindLogoSheet(
     var shown by remember { mutableStateOf(false) }
     LaunchedEffect(state.visible) {
         if (state.visible) {
+            // Reopened while still composed (a hide was interrupted): bring the sheet fully back.
+            if (shown) sheetState.show()
             shown = true
         } else if (shown) {
             sheetState.hide()
@@ -178,12 +183,21 @@ private fun LogoGrid(tiles: List<LogoTile>, downloading: String?, onChoose: (Log
 private fun LogoTileButton(tile: LogoTile, busy: Boolean, enabled: Boolean, onClick: () -> Unit) {
     val shape = MaterialTheme.shapes.large
     val downloadingText = stringResource(R.string.logo_search_downloading)
+    // The whole tile, caption included, is one button for TalkBack; the ripple stays on the square.
+    val interactionSource = remember { MutableInteractionSource() }
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(4.dp),
         modifier = Modifier
             .alpha(if (enabled || busy) 1f else 0.38f)
-            .semantics(mergeDescendants = true) { if (busy) stateDescription = downloadingText },
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null,
+                enabled = enabled,
+                role = Role.Button,
+                onClick = onClick,
+            )
+            .semantics { if (busy) stateDescription = downloadingText },
     ) {
         Box(
             modifier = Modifier
@@ -193,7 +207,7 @@ private fun LogoTileButton(tile: LogoTile, busy: Boolean, enabled: Boolean, onCl
                 // Logos are drawn for light backgrounds; white matches the saved tile.
                 .background(Color.White)
                 .border(1.dp, MaterialTheme.colorScheme.outlineVariant, shape)
-                .clickable(enabled = enabled, role = Role.Button, onClick = onClick),
+                .indication(interactionSource, ripple()),
             contentAlignment = Alignment.Center,
         ) {
             Image(
