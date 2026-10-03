@@ -142,4 +142,22 @@ class EditViewModelTest {
         assertEquals("4006381333931", vm.state.value!!.cardNumber)
         assertEquals(BarcodeFormat.EAN_13, vm.state.value!!.format)
     }
+
+    @Test
+    fun `a found logo is applied and fills an empty website`() {
+        val vm = viewModel()
+        vm.onLogoFound(ImportedLogo("items/new-id/logo-5.png", 0xFF0000FF.toInt()), "https://www.tesco.com")
+        val state = vm.state.value!!
+        assertEquals("items/new-id/logo-5.png", state.logoPath)
+        assertEquals(0xFF0000FF.toInt(), state.brandColor)
+        assertEquals("https://www.tesco.com", state.website)
+    }
+
+    @Test
+    fun `a found logo does not replace a typed website`() {
+        val vm = viewModel()
+        vm.update { it.copy(website = "tesco.ie") }
+        vm.onLogoFound(ImportedLogo("items/new-id/logo-5.png", null), "https://www.tesco.com")
+        assertEquals("tesco.ie", vm.state.value!!.website)
+    }
 }

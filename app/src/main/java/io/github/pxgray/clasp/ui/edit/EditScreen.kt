@@ -7,19 +7,23 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
@@ -37,10 +41,12 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import io.github.pxgray.clasp.R
+import io.github.pxgray.clasp.logo.websiteHost
 import io.github.pxgray.clasp.ui.components.WalletCard
 import kotlinx.coroutines.launch
 
@@ -70,6 +76,7 @@ fun EditRoute(
         state = state,
         snackbarHostState = snackbarHostState,
         onUpdate = viewModel::update,
+        onFindLogo = {},
         onPickLogo = { pickLogo.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) },
         onSave = viewModel::save,
         onCancel = viewModel::cancel,
@@ -88,6 +95,7 @@ fun EditScreen(
     state: EditFormState?,
     snackbarHostState: SnackbarHostState,
     onUpdate: ((EditFormState) -> EditFormState) -> Unit,
+    onFindLogo: () -> Unit,
     onPickLogo: () -> Unit,
     onSave: () -> Unit,
     onCancel: () -> Unit,
@@ -124,8 +132,16 @@ fun EditScreen(
                 sharedKey = null,
             )
 
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                FilledTonalButton(onClick = onPickLogo) {
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+                itemVerticalAlignment = Alignment.CenterVertically,
+            ) {
+                FilledTonalButton(onClick = onFindLogo, contentPadding = ButtonDefaults.ButtonWithIconContentPadding) {
+                    Icon(Icons.Default.Search, contentDescription = null, modifier = Modifier.size(ButtonDefaults.IconSize))
+                    Text(stringResource(R.string.edit_logo_find), modifier = Modifier.padding(start = ButtonDefaults.IconSpacing))
+                }
+                OutlinedButton(onClick = onPickLogo) {
                     Text(stringResource(if (state.logoPath == null) R.string.edit_logo_choose else R.string.edit_logo_change))
                 }
                 if (state.logoPath != null) {
@@ -147,6 +163,24 @@ fun EditScreen(
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words, imeAction = ImeAction.Next),
                 modifier = Modifier.fillMaxWidth().testTag("edit_name"),
+            )
+
+            val websiteInvalid = state.website.isNotBlank() && websiteHost(state.website) == null
+            OutlinedTextField(
+                value = state.website,
+                onValueChange = { value -> onUpdate { it.copy(website = value) } },
+                label = { Text(stringResource(R.string.edit_website)) },
+                supportingText = {
+                    Text(stringResource(if (websiteInvalid) R.string.edit_website_invalid else R.string.edit_website_hint))
+                },
+                isError = websiteInvalid,
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Uri,
+                    autoCorrectEnabled = false,
+                    imeAction = ImeAction.Next,
+                ),
+                modifier = Modifier.fillMaxWidth().testTag("edit_website"),
             )
 
             val boarding = state.boarding

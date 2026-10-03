@@ -14,9 +14,13 @@
     <string name="edit_barcode_format">Barcode type</string>
     <string name="edit_member_name">Member name (optional)</string>
     <string name="edit_notes">Notes (optional)</string>
-    <string name="edit_logo_choose">Choose logo</string>
-    <string name="edit_logo_change">Change logo</string>
-    <string name="edit_logo_remove">Remove logo</string>
+    <string name="edit_logo_find">Find logo</string>
+    <string name="edit_logo_choose">Choose image</string>
+    <string name="edit_logo_change">Change image</string>
+    <string name="edit_logo_remove">Remove</string>
+    <string name="edit_website">Website (optional)</string>
+    <string name="edit_website_hint">Helps find a logo</string>
+    <string name="edit_website_invalid">Not a website address</string>
     <string name="edit_logo_failed">Couldn’t read that image</string>
     <string name="edit_color">Card color</string>
     <string name="edit_color_auto">Theme color</string>
