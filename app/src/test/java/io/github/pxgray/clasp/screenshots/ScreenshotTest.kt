@@ -65,9 +65,17 @@ class ScreenshotTest {
         ),
     )
 
+    private val walletWithFavorites = wallet.copy(
+        favorites = listOf(wallet.cards.first().copy(isFavorite = true), concert.copy(isFavorite = true)),
+        passes = listOf(boardingItem()),
+        cards = wallet.cards.drop(1),
+    )
+
     @Test fun homeEmpty() = snap("home_empty") { HomeContent(HomeUiState(loading = false)) }
     @Test fun homeLight() = snap("home") { HomeContent(wallet) }
     @Test fun homeDark() = snap("home_dark", dark = true) { HomeContent(wallet) }
+    @Test fun homeFavorites() = snap("home_favorites") { HomeContent(walletWithFavorites) }
+    @Test fun homeFavoritesDark() = snap("home_favorites_dark", dark = true) { HomeContent(walletWithFavorites) }
 
     /** The menu is a popup window, so capture the whole screen rather than the compose root. */
     @Test fun homeSortMenu() {
@@ -113,6 +121,7 @@ class ScreenshotTest {
     private fun HomeContent(state: HomeUiState) = HomeScreen(
         state, SnackbarHostState(), onOpenItem = {}, onScan = {}, onImport = {}, onImportGoogleWallet = {},
         onAddManually = {}, onOpenSettings = {}, onSortOrderChange = {},
+        onFavoriteChange = { _, _ -> },
     )
 
     @Composable

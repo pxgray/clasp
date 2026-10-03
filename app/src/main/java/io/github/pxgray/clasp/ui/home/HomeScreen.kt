@@ -137,6 +137,7 @@ fun HomeRoute(
         onAddManually = onAddManually,
         onOpenSettings = onOpenSettings,
         onSortOrderChange = viewModel::setSortOrder,
+        onFavoriteChange = viewModel::setFavorite,
     )
     ImportSheet(importState, onConfirm = importViewModel::confirm, onDismiss = importViewModel::dismiss)
 }
@@ -152,6 +153,7 @@ fun HomeScreen(
     onAddManually: () -> Unit,
     onOpenSettings: () -> Unit,
     onSortOrderChange: (SortOrder) -> Unit,
+    onFavoriteChange: (id: String, favorite: Boolean) -> Unit,
 ) {
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
     val listState = rememberLazyListState()
@@ -207,9 +209,15 @@ fun HomeScreen(
                 ),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                val labelled = state.passes.isNotEmpty() && state.cards.isNotEmpty()
-                section(R.string.home_section_passes.takeIf { labelled }, state.passes, onOpenItem)
-                section(R.string.home_section_cards.takeIf { labelled }, state.cards, onOpenItem)
+                val sections = listOf(
+                    R.string.home_section_favorites to state.favorites,
+                    R.string.home_section_passes to state.passes,
+                    R.string.home_section_cards to state.cards,
+                )
+                val labelled = sections.count { (_, items) -> items.isNotEmpty() } >= 2
+                sections.forEach { (label, items) ->
+                    section(label.takeIf { labelled }, items, onOpenItem, onFavoriteChange)
+                }
             }
         }
     }
@@ -272,7 +280,12 @@ private val SortOrder.label: Int
         SortOrder.DATE_ADDED -> R.string.sort_date_added
     }
 
-private fun LazyListScope.section(labelRes: Int?, items: List<WalletItem>, onOpenItem: (String) -> Unit) {
+private fun LazyListScope.section(
+    labelRes: Int?,
+    items: List<WalletItem>,
+    onOpenItem: (String) -> Unit,
+    onFavoriteChange: (String, Boolean) -> Unit,
+) {
     if (items.isEmpty()) return
     if (labelRes != null) {
         item(key = "label-$labelRes", contentType = "label") {
@@ -285,7 +298,12 @@ private fun LazyListScope.section(labelRes: Int?, items: List<WalletItem>, onOpe
         }
     }
     items(items, key = { it.id }, contentType = { "card" }) { item ->
-        WalletCard(item, onClick = { onOpenItem(item.id) }, modifier = Modifier.animateItem())
+        WalletCard(
+            item,
+            onClick = { onOpenItem(item.id) },
+            modifier = Modifier.animateItem(),
+            onFavoriteChange = { onFavoriteChange(item.id, it) },
+        )
     }
 }
 
