@@ -11,23 +11,28 @@ import io.github.pxgray.clasp.ClaspApplication
 import io.github.pxgray.clasp.data.WalletRepository
 import io.github.pxgray.clasp.domain.WalletItem
 import io.github.pxgray.clasp.ui.navigation.Destination
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlin.time.Clock
 
-data class DetailUiState(val loading: Boolean = true, val item: WalletItem? = null)
+data class DetailUiState(val loading: Boolean = true, val item: WalletItem? = null, val maxBrightness: Boolean = false)
 
 class DetailViewModel(
     itemId: String,
     repository: WalletRepository,
     clock: Clock,
+    maxBrightness: Flow<Boolean> = flowOf(false),
 ) : ViewModel() {
 
-    val state: StateFlow<DetailUiState> = repository.observeItem(itemId)
-        .map { DetailUiState(loading = false, item = it) }
+    val state: StateFlow<DetailUiState> = combine(repository.observeItem(itemId), maxBrightness) { item, brighten ->
+        DetailUiState(loading = false, item = item, maxBrightness = brighten)
+    }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), DetailUiState())
 
     init {
@@ -39,7 +44,12 @@ class DetailViewModel(
             initializer {
                 val container = (this[APPLICATION_KEY] as ClaspApplication).container
                 val route = createSavedStateHandle().toRoute<Destination.Detail>()
-                DetailViewModel(route.id, container.repository, container.clock)
+                DetailViewModel(
+                    route.id,
+                    container.repository,
+                    container.clock,
+                    maxBrightness = container.settings.settings.map { it.maxBrightness },
+                )
             }
         }
     }

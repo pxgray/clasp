@@ -87,6 +87,7 @@ fun SettingsRoute(
         onBack = onBack,
         onTheme = viewModel::setTheme,
         onDynamicColor = viewModel::setDynamicColor,
+        onMaxBrightness = viewModel::setMaxBrightness,
         onExport = { exportTo.launch("clasp-backup-${LocalDate.now()}.zip") },
         onImport = { importFrom.launch(BACKUP_MIME_TYPES) },
         onLicenses = onLicenses,
@@ -103,6 +104,7 @@ fun SettingsScreen(
     onBack: () -> Unit,
     onTheme: (ThemeMode) -> Unit,
     onDynamicColor: (Boolean) -> Unit,
+    onMaxBrightness: (Boolean) -> Unit,
     onExport: () -> Unit,
     onImport: () -> Unit,
     onLicenses: () -> Unit,
@@ -149,6 +151,14 @@ fun SettingsScreen(
                     modifier = Modifier.clickable { onDynamicColor(!settings.dynamicColor) },
                 )
             }
+
+            SectionHeader(R.string.settings_cards)
+            ListItem(
+                headlineContent = { Text(stringResource(R.string.settings_max_brightness)) },
+                supportingContent = { Text(stringResource(R.string.settings_max_brightness_description)) },
+                trailingContent = { Switch(checked = settings.maxBrightness, onCheckedChange = onMaxBrightness) },
+                modifier = Modifier.clickable { onMaxBrightness(!settings.maxBrightness) },
+            )
 
             SectionHeader(R.string.settings_backup)
             ListItem(

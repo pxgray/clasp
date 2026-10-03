@@ -1,5 +1,6 @@
 package io.github.pxgray.clasp.ui.detail
 
+import kotlinx.coroutines.flow.flowOf
 import app.cash.turbine.test
 import io.github.pxgray.clasp.testing.FakeWalletRepository
 import io.github.pxgray.clasp.testing.FixedClock
@@ -33,6 +34,14 @@ class DetailViewModelTest {
             val state = expectMostRecentItem()
             assertFalse(state.loading)
             assertNull(state.item)
+        }
+    }
+
+    @Test
+    fun `state carries the barcode brightness setting`() = runTest {
+        val repository = FakeWalletRepository(listOf(loyaltyItem(id = "c")))
+        DetailViewModel("c", repository, clock, maxBrightness = flowOf(true)).state.test {
+            assertEquals(true, expectMostRecentItem().maxBrightness)
         }
     }
 }

@@ -38,4 +38,12 @@ class SettingsRepositoryTest {
         assertFalse(AppSettings(ThemeMode.LIGHT).isDark(systemDark = true))
         assertTrue(AppSettings(ThemeMode.DARK).isDark(systemDark = false))
     }
+
+    @Test
+    fun `barcode brightness is off by default and can be turned on`() = runTest {
+        val repository = repository()
+        assertFalse(repository.settings.first().maxBrightness)
+        repository.setMaxBrightness(true)
+        assertTrue(repository.settings.first().maxBrightness)
+    }
 }

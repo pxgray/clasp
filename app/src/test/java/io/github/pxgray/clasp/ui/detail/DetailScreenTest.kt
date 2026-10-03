@@ -143,4 +143,21 @@ class DetailScreenTest {
         compose.waitForIdle()
         assertFalse(WindowCompat.getInsetsController(window, window.decorView).isAppearanceLightNavigationBars)
     }
+
+    @Test
+    fun `screen brightness is left alone unless the setting is on`() {
+        var maxBrightness by mutableStateOf(false)
+        compose.setContent {
+            ClaspTheme(dynamicColor = false) {
+                DetailScreen(loyaltyItem(), onBack = {}, onEdit = {}, onDelete = {}, maxBrightness = maxBrightness)
+            }
+        }
+        compose.waitForIdle()
+        val window = compose.activity.window
+        assertEquals(-1f, window.attributes.screenBrightness) // BRIGHTNESS_OVERRIDE_NONE
+
+        maxBrightness = true
+        compose.waitForIdle()
+        assertEquals(1f, window.attributes.screenBrightness)
+    }
 }

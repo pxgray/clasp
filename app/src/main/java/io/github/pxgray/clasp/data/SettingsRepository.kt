@@ -20,6 +20,8 @@ data class AppSettings(
     val theme: ThemeMode = ThemeMode.SYSTEM,
     /** Only has an effect on Android 12+. */
     val dynamicColor: Boolean = true,
+    /** Turn the screen to full brightness while a card is open. Off by default, like Google Wallet. */
+    val maxBrightness: Boolean = false,
 ) {
     fun isDark(systemDark: Boolean): Boolean = when (theme) {
         ThemeMode.SYSTEM -> systemDark
@@ -36,6 +38,7 @@ class SettingsRepository(private val store: DataStore<Preferences>) {
             AppSettings(
                 theme = prefs[THEME]?.let { name -> ThemeMode.entries.firstOrNull { it.name == name } } ?: ThemeMode.SYSTEM,
                 dynamicColor = prefs[DYNAMIC_COLOR] ?: true,
+                maxBrightness = prefs[MAX_BRIGHTNESS] ?: false,
             )
         }
 
@@ -47,9 +50,14 @@ class SettingsRepository(private val store: DataStore<Preferences>) {
         store.edit { it[DYNAMIC_COLOR] = enabled }
     }
 
+    suspend fun setMaxBrightness(enabled: Boolean) {
+        store.edit { it[MAX_BRIGHTNESS] = enabled }
+    }
+
     companion object {
         private val THEME = stringPreferencesKey("theme")
         private val DYNAMIC_COLOR = booleanPreferencesKey("dynamic_color")
+        private val MAX_BRIGHTNESS = booleanPreferencesKey("max_brightness")
 
         /** Call once per process: DataStore allows a single instance per file. */
         fun create(context: Context) = SettingsRepository(
