@@ -3,6 +3,7 @@ package io.github.pxgray.clasp.ui.home
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
@@ -168,7 +169,7 @@ class HomeScreenTest {
     fun `starring a card reports its id`() {
         var starred: Pair<String, Boolean>? = null
         show(HomeUiState(loading = false, cards = listOf(loyaltyItem(id = "c"))), onFavoriteChange = { id, fav -> starred = id to fav })
-        compose.onNodeWithContentDescription("Add to favorites").performClick()
+        compose.onNodeWithContentDescription("Favorite Costco").assertIsOff().performClick()
         assertEquals("c" to true, starred)
     }
 }
