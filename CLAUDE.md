@@ -39,6 +39,7 @@ Single `:app` module, package `io.github.pxgray.clasp`:
 - `data/` — `WalletRepository` (Room implementation + test fake), `ItemFiles` (per-item files under `filesDir/items/<id>/`), logo import, `.pkpass` import, `SettingsRepository` (DataStore), `backup/WalletBackup` (zip of `wallet.json` + item files).
 - `barcode/` (ZXing encode/decode, quiet zones), `bcbp/` (IATA boarding-pass barcode parser), `pkpass/` (zip → `PkPass` → `WalletItem`) — pure JVM, no Android UI.
 - `takeout/` — Google Takeout "Google Wallet" PDF import: `TakeoutPdfReader` (PdfBox-Android: positioned text + embedded images) → `TakeoutParser` (groups by logo; issuer/title/fields by font size and column; decodes barcode images) → `TakeoutMapping` (`WalletItem`). Tests build synthetic PDFs with PdfBox; never commit real exports.
+- `logo/` — opt-in online logo lookup. `HttpFetcher` (`UrlConnectionHttpFetcher`) is the only network code: HTTPS only, byte caps (`LogoLimits`), a 30 s overall deadline, public hostnames only (`isPublicHostName`, also checked on redirects), and it refuses every request unless `AppSettings.logoSearchEnabled`. `LogoProvider`s (`SiteIconProvider`: the card website's `<link>`/manifest icons; `WikidataLogoProvider`: P154/P8972 via Commons `Special:FilePath`) are merged by `CompositeLogoProvider`. UI: `ui/edit/LogoSearchViewModel` + `FindLogoSheet`; the chosen image goes through `LogoImporter.importBytes`.
 - `ui/` — one package per screen; each `XRoute` composable binds a ViewModel to a stateless `XScreen`.
 
 Cross-cutting patterns:
@@ -54,7 +55,7 @@ Cross-cutting patterns:
 
 ## Constraints and gotchas
 
-- F-Droid friendly: FOSS dependencies only (no Play Services, ML Kit, Firebase), no `INTERNET` permission, no build-time network beyond Gradle repos. New dependencies must be Apache-2.0-compatible and added to the list in `ui/settings/LicensesScreen.kt`.
+- F-Droid friendly: FOSS dependencies only (no Play Services, ML Kit, Firebase), network only through `logo/HttpFetcher`, only after the user turns on logo search, and only to free/open services (Wikidata/Wikimedia, the card's own website) — a proprietary provider would add F-Droid's `NonFreeNet` anti-feature, no build-time network beyond Gradle repos. New dependencies must be Apache-2.0-compatible and added to the list in `ui/settings/LicensesScreen.kt`.
 - AGP 9 compiles Kotlin itself — don't apply `org.jetbrains.kotlin.android`. Material3 is pinned to a `1.5.0` alpha for the Expressive APIs; `ExposedDropdownMenu` must be imported explicitly.
 - User-visible strings go in `res/values/strings.xml`.
 - Untrusted input (`.pkpass` files, backups) goes through size caps and path validation — keep that when touching the importers.
