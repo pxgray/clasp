@@ -29,8 +29,7 @@
     <string name="home_section_passes">Passes</string>
     <string name="home_section_cards">Loyalty cards</string>
     <string name="home_section_favorites">Favorites</string>
-    <string name="favorite_add">Add to favorites</string>
-    <string name="favorite_remove">Remove from favorites</string>
+    <string name="favorite_toggle">Favorite %1$s</string>
     <string name="home_empty_title">Your wallet is empty</string>
     <string name="home_empty_body">Scan a loyalty card or boarding pass to keep it close at hand.</string>
     <string name="home_deleted">Card deleted</string>

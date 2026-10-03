@@ -90,16 +90,16 @@ private fun WalletCardContent(item: WalletItem, sharedKey: String?, onFavoriteCh
                 )
             }
         }
-        if (onFavoriteChange != null) FavoriteToggle(item.isFavorite, onFavoriteChange)
+        if (onFavoriteChange != null) FavoriteToggle(item.title, item.isFavorite, onFavoriteChange)
     }
 }
 
 @Composable
-private fun FavoriteToggle(favorite: Boolean, onChange: (Boolean) -> Unit) {
+private fun FavoriteToggle(title: String, favorite: Boolean, onChange: (Boolean) -> Unit) {
     IconToggleButton(checked = favorite, onCheckedChange = onChange) {
         Icon(
             painter = painterResource(if (favorite) R.drawable.ic_star else R.drawable.ic_star_outline),
-            contentDescription = stringResource(if (favorite) R.string.favorite_remove else R.string.favorite_add),
+            contentDescription = stringResource(R.string.favorite_toggle, title),
             tint = if (favorite) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
         )
     }
