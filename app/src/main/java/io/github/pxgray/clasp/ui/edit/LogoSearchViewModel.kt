@@ -140,10 +140,17 @@ class LogoSearchViewModel(
                 return@launch
             }
             val gate = Semaphore(PREVIEW_PARALLELISM)
-            val tiles = coroutineScope {
+            val previews = coroutineScope {
                 candidates.map { candidate -> async { gate.withPermit { tile(candidate) } } }.awaitAll()
-            }.filterNotNull()
-            _state.update { it.copy(status = if (tiles.isEmpty()) LogoSearchStatus.Empty else LogoSearchStatus.Results(tiles)) }
+            }
+            val tiles = previews.mapNotNull { it.getOrNull() }
+            // Offline, the site provider still offers guessed URLs, so only failed downloads tell.
+            val status = when {
+                tiles.isNotEmpty() -> LogoSearchStatus.Results(tiles)
+                previews.any { it.isFailure } -> LogoSearchStatus.Error
+                else -> LogoSearchStatus.Empty
+            }
+            _state.update { it.copy(status = status) }
         }
     }
 
@@ -163,7 +170,8 @@ class LogoSearchViewModel(
             if (logo == null) {
                 _state.update { it.copy(downloading = null, downloadFailed = true) }
             } else {
-                _state.update { it.copy(visible = false, downloading = null) }
+                // Keep the tile's spinner while the sheet slides away; open() and close() reset it.
+                _state.update { it.copy(visible = false) }
                 _found.send(LogoFound(logo, candidate.website))
             }
         }
@@ -177,14 +185,23 @@ class LogoSearchViewModel(
         _state.update { it.copy(visible = false, downloading = null) }
     }
 
-    private suspend fun tile(candidate: LogoCandidate): LogoTile? = try {
-        fetcher.fetch(candidate.previewUrl, LogoLimits.PREVIEW).body.let { body ->
-            withContext(decodeDispatcher) { decodePreview(body) }
-        }?.let { LogoTile(candidate, it) }
-    } catch (e: CancellationException) {
-        throw e
-    } catch (_: Exception) {
-        null
+    /** A failure if the preview couldn't be downloaded; null if it downloaded but isn't usable. */
+    private suspend fun tile(candidate: LogoCandidate): Result<LogoTile?> {
+        val body = try {
+            fetcher.fetch(candidate.previewUrl, LogoLimits.PREVIEW).body
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            return Result.failure(e)
+        }
+        val preview = withContext(decodeDispatcher) {
+            try {
+                decodePreview(body)
+            } catch (_: Exception) {
+                null
+            }
+        }
+        return Result.success(preview?.let { LogoTile(candidate, it) })
     }
 
     companion object {
@@ -207,14 +224,14 @@ class LogoSearchViewModel(
 
 /**
  * Decodes a preview held only in memory, downsampled so its shorter side stays at least
- * [PREVIEW_TARGET] px; null if it isn't an image or is implausibly large.
+ * [PREVIEW_TARGET] px; null if it isn't an image, is too small to make a sharp logo, or is implausibly large.
  */
 private fun decodePreview(bytes: ByteArray): ImageBitmap? {
     val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
     BitmapFactory.decodeByteArray(bytes, 0, bytes.size, bounds)
     val w = bounds.outWidth
     val h = bounds.outHeight
-    if (w <= 0 || h <= 0 || max(w, h) > LogoLimits.MAX_SIDE) return null
+    if (w <= 0 || h <= 0 || max(w, h) > LogoLimits.MAX_SIDE || LogoLimits.isTooSmall(w, h)) return null
     var sample = 1
     while (min(w, h) / (sample * 2) >= PREVIEW_TARGET) sample *= 2
     val options = BitmapFactory.Options().apply { inSampleSize = sample }

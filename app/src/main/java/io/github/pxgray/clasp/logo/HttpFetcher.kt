@@ -22,7 +22,7 @@ import kotlin.time.Duration.Companion.seconds
 import kotlin.time.TimeMark
 import kotlin.time.TimeSource
 
-/** Byte caps for everything logo lookup downloads, and the largest image side it will decode. */
+/** Byte caps for everything logo lookup downloads, and the image sizes it will accept. */
 object LogoLimits {
     const val HTML = 512 * 1024
     const val MANIFEST = 64 * 1024
@@ -30,6 +30,16 @@ object LogoLimits {
     const val PREVIEW = 512 * 1024
     const val IMAGE = 2 * 1024 * 1024
     const val MAX_SIDE = 4096
+
+    /** Smaller icons would be blown up into a blurry 512 px tile. */
+    const val MIN_SIDE = 48
+
+    /**
+     * Whether a [width]×[height] image is too small to use. Square-ish icons fill the tile, so their
+     * short side counts; wordmarks are fitted by their long side, so a wide but short one is fine.
+     * Taking the longer side covers both.
+     */
+    fun isTooSmall(width: Int, height: Int): Boolean = maxOf(width, height) < MIN_SIDE
 }
 
 class HttpResponse(val body: ByteArray, val contentType: String?, val url: String)

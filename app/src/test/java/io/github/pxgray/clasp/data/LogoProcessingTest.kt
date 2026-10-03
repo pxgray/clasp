@@ -115,4 +115,10 @@ class LogoProcessingTest {
         assertNull(importer().importBytes("a", byteArrayOf(1, 2, 3)))
         assertNull(importer().importBytes("a", png(5000, 10, Color.RED)))
     }
+
+    @Test
+    fun `importBytes rejects an icon too small to make a sharp tile`() = runTest {
+        assertNull(importer().importBytes("a", png(32, 32, Color.RED)))
+        assertNotNull(importer().importBytes("a", png(48, 48, Color.RED)))
+    }
 }

@@ -38,7 +38,7 @@ class SiteIconProvider(private val fetcher: HttpFetcher) : LogoProvider {
         resolve(base, "/favicon.ico")?.let { icons += Icon(it, null, apple = false, guessed = true) }
 
         return icons
-            .filter { it.size == null || it.size >= MIN_SIZE }
+            .filter { it.size == null || it.size >= LogoLimits.MIN_SIDE }
             .distinctBy { it.url }
             .sortedWith(compareBy<Icon> { it.guessed }.thenByDescending { it.size ?: 0 }.thenByDescending { it.apple })
             .take(MAX_RESULTS)
@@ -63,7 +63,6 @@ class SiteIconProvider(private val fetcher: HttpFetcher) : LogoProvider {
     private fun JsonObject.string(key: String): String? = (this[key] as? JsonPrimitive)?.takeIf { it.isString }?.content
 
     private companion object {
-        const val MIN_SIZE = 48
         const val APPLE_DEFAULT_SIZE = 180
         const val MAX_RESULTS = 3
         val SIZE = Regex("""(\d+)[xX](\d+)""")
