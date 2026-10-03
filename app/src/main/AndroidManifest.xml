@@ -3,6 +3,8 @@
 
     <uses-feature android:name="android.hardware.camera.any" android:required="false" />
     <uses-permission android:name="android.permission.CAMERA" />
+    <!-- Only used by the opt-in logo search (Settings → Online). -->
+    <uses-permission android:name="android.permission.INTERNET" />
 
     <application
         android:name=".ClaspApplication"
@@ -10,7 +12,8 @@
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:supportsRtl="true"
-        android:theme="@style/Theme.Clasp">
+        android:theme="@style/Theme.Clasp"
+        android:usesCleartextTraffic="false">
         <activity
             android:name=".MainActivity"
             android:exported="true"
