@@ -9,7 +9,7 @@ Clasp has no accounts, analytics or ads, and keeps everything on your phone. The
 - the search text is sent to [Wikidata](https://www.wikidata.org/) and matching logos are downloaded from Wikimedia Commons;
 - if the card has a website, Clasp fetches that site's home page and icons.
 
-Only the logo you pick is saved, as a local file. Showing a card never uses the network.
+Like any web request, these let Wikimedia and the card's website see your IP address, and Clasp identifies itself to them as Clasp and its version (the User-Agent). Only the logo you pick is saved, as a local file. Showing a card never uses the network.
 
 ## Development
 
