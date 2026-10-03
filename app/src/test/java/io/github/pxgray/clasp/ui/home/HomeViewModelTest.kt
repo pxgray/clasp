@@ -128,11 +128,11 @@ class HomeViewModelTest {
             assertEquals(SortOrder.RECENTLY_USED, initial.sortOrder)
             assertEquals(listOf("z", "a"), initial.cards.map { it.id })
 
-            vm.setSortOrder(SortOrder.NAME)
+            vm.setSortOrder(SortOrder.NAME_A_TO_Z)
             var sorted = awaitItem()
-            while (sorted.sortOrder != SortOrder.NAME) sorted = awaitItem()
+            while (sorted.sortOrder != SortOrder.NAME_A_TO_Z) sorted = awaitItem()
             assertEquals(listOf("a", "z"), sorted.cards.map { it.id })
         }
-        assertEquals(SortOrder.NAME, settings.settings.first().sortOrder)
+        assertEquals(SortOrder.NAME_A_TO_Z, settings.settings.first().sortOrder)
     }
 }

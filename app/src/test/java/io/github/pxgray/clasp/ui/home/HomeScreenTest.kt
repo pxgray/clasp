@@ -68,8 +68,9 @@ class HomeScreenTest {
         compose.onNodeWithContentDescription("Sort").performClick()
         compose.onNodeWithText("Recently used").assertIsDisplayed()
         compose.onNodeWithText("Date added").assertIsDisplayed()
-        compose.onNodeWithText("Name").performClick()
-        assertEquals(SortOrder.NAME, chosen)
+        compose.onNodeWithText("Name (A–Z)").assertIsDisplayed()
+        compose.onNodeWithText("Name (Z–A)").performClick()
+        assertEquals(SortOrder.NAME_Z_TO_A, chosen)
         compose.onNodeWithText("Date added").assertDoesNotExist()
     }
 
@@ -98,7 +99,7 @@ class HomeScreenTest {
             }
         }
         compose.onNodeWithText("Card 0").assertIsDisplayed()
-        state.value = HomeUiState(loading = false, sortOrder = SortOrder.NAME, cards = cards.reversed())
+        state.value = HomeUiState(loading = false, sortOrder = SortOrder.NAME_A_TO_Z, cards = cards.reversed())
         compose.waitForIdle()
         compose.onNodeWithText("Card 9").assertIsDisplayed()
     }

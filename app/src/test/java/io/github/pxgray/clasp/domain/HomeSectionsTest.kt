@@ -35,7 +35,7 @@ class HomeSectionsTest {
             loyaltyItem(id = "a", title = "Apple"),
             loyaltyItem(id = "d", title = "Date"),
         )
-        assertEquals(listOf("a", "b", "d", "e", "f"), items.toHomeSections(SortOrder.NAME).cards.map { it.id })
+        assertEquals(listOf("a", "b", "d", "e", "f"), items.toHomeSections(SortOrder.NAME_A_TO_Z).cards.map { it.id })
     }
 
     @Test
@@ -44,7 +44,19 @@ class HomeSectionsTest {
             loyaltyItem(id = "old", title = "Costco", createdAt = t(100)),
             loyaltyItem(id = "new", title = "costco", createdAt = t(200)),
         )
-        assertEquals(listOf("new", "old"), items.toHomeSections(SortOrder.NAME).cards.map { it.id })
+        assertEquals(listOf("new", "old"), items.toHomeSections(SortOrder.NAME_A_TO_Z).cards.map { it.id })
+        assertEquals(listOf("new", "old"), items.toHomeSections(SortOrder.NAME_Z_TO_A).cards.map { it.id })
+    }
+
+    @Test
+    fun `z to a reverses the name order`() {
+        val items = listOf(
+            loyaltyItem(id = "b", title = "banana"),
+            loyaltyItem(id = "e", title = "Éclair"),
+            loyaltyItem(id = "a", title = "Apple"),
+            loyaltyItem(id = "f", title = "Fig"),
+        )
+        assertEquals(listOf("f", "e", "b", "a"), items.toHomeSections(SortOrder.NAME_Z_TO_A).cards.map { it.id })
     }
 
     @Test
