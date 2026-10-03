@@ -41,7 +41,7 @@ class RoomWalletRepositoryTest {
 
     @Test
     fun `upserted items round-trip through the database`() = runTest {
-        val card = loyaltyItem(id = "c", brandColor = 0xFF112233.toInt(), logoPath = "items/c/logo-1.png")
+        val card = loyaltyItem(id = "c", brandColor = 0xFF112233.toInt(), logoPath = "items/c/logo-1.png", isFavorite = true)
         val pass = boardingItem(id = "b", lastUsedAt = Instant.fromEpochMilliseconds(5_000))
         repository.upsert(card)
         repository.upsert(pass)
@@ -61,6 +61,15 @@ class RoomWalletRepositoryTest {
         repository.upsert(loyaltyItem(id = "c"))
         repository.markUsed("c", Instant.fromEpochMilliseconds(9_000))
         assertEquals(Instant.fromEpochMilliseconds(9_000), repository.observeItem("c").first()!!.lastUsedAt)
+    }
+
+    @Test
+    fun `setFavorite flags and unflags an item`() = runTest {
+        repository.upsert(loyaltyItem(id = "c"))
+        repository.setFavorite("c", true)
+        assertEquals(true, repository.observeItem("c").first()!!.isFavorite)
+        repository.setFavorite("c", false)
+        assertEquals(false, repository.observeItem("c").first()!!.isFavorite)
     }
 
     @Test

@@ -30,4 +30,7 @@ class FakeWalletRepository(initial: List<WalletItem> = emptyList()) : WalletRepo
         markedUsed += id to at
         items.update { list -> list.map { if (it.id == id) it.copy(lastUsedAt = at) else it } }
     }
+
+    override suspend fun setFavorite(id: String, favorite: Boolean) =
+        items.update { list -> list.map { if (it.id == id) it.copy(isFavorite = favorite) else it } }
 }
