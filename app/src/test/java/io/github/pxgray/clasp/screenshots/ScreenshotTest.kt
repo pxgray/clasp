@@ -98,6 +98,7 @@ class ScreenshotTest {
         onBack = {},
         onTheme = {},
         onDynamicColor = {},
+        onMaxBrightness = {},
         onExport = {},
         onImport = {},
         onLicenses = {},

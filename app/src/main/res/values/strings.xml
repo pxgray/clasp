@@ -95,6 +95,9 @@
     <string name="settings_theme_dark">Dark</string>
     <string name="settings_dynamic_color">Dynamic color</string>
     <string name="settings_dynamic_color_description">Use colors from your wallpaper</string>
+    <string name="settings_cards">Cards</string>
+    <string name="settings_max_brightness">Brighten screen for barcodes</string>
+    <string name="settings_max_brightness_description">Turn brightness up while a card is open, to help scanners read it</string>
     <string name="settings_backup">Backup</string>
     <string name="settings_export">Export wallet</string>
     <string name="settings_export_description">Save your cards and passes to a file</string>

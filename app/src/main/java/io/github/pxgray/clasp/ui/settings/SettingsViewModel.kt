@@ -54,6 +54,10 @@ class SettingsViewModel(
         viewModelScope.launch { settingsRepository.setDynamicColor(enabled) }
     }
 
+    fun setMaxBrightness(enabled: Boolean) {
+        viewModelScope.launch { settingsRepository.setMaxBrightness(enabled) }
+    }
+
     fun export(uri: Uri) = runExclusive {
         val count = try {
             documents.openOutput(uri)?.use { backup.export(it) }

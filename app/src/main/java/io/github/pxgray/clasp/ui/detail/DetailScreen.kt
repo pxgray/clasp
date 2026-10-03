@@ -65,7 +65,7 @@ fun DetailRoute(
     val state by viewModel.state.collectAsStateWithLifecycle()
     val item = state.item
     if (item != null) {
-        DetailScreen(item, onBack, onEdit, onDelete)
+        DetailScreen(item, onBack, onEdit, onDelete, maxBrightness = state.maxBrightness)
     } else if (!state.loading) {
         LaunchedEffect(Unit) { onBack() }
     }
@@ -77,8 +77,9 @@ fun DetailScreen(
     onBack: () -> Unit,
     onEdit: (String) -> Unit,
     onDelete: (String) -> Unit,
+    maxBrightness: Boolean = false,
 ) {
-    MaxBrightnessEffect()
+    if (maxBrightness) MaxBrightnessEffect()
     val brand = item.brandColor?.let(::Color) ?: MaterialTheme.colorScheme.primaryContainer
     val onBrand = if (item.brandColor != null) contentColorOn(brand) else MaterialTheme.colorScheme.onPrimaryContainer
     SystemBarIconsEffect(darkIcons = isLightColor(brand))

@@ -25,6 +25,7 @@ class SettingsScreenTest {
         var exported = false
         var imported = false
         var licenses = false
+        var brightness: Boolean? = null
         compose.setContent {
             ClaspTheme(dynamicColor = false) {
                 SettingsScreen(
@@ -36,6 +37,7 @@ class SettingsScreenTest {
                     onBack = {},
                     onTheme = { theme = it },
                     onDynamicColor = {},
+                    onMaxBrightness = { brightness = it },
                     onExport = { exported = true },
                     onImport = { imported = true },
                     onLicenses = { licenses = true },
@@ -43,11 +45,13 @@ class SettingsScreenTest {
             }
         }
         compose.onNodeWithText("Dark").performClick()
+        compose.onNodeWithText("Brighten screen for barcodes").performScrollTo().performClick()
         compose.onNodeWithText("Export wallet").performScrollTo().performClick()
         compose.onNodeWithText("Import backup").performScrollTo().performClick()
         compose.onNodeWithText("Open source licenses").performScrollTo().performClick()
         compose.onNodeWithText("0.1.0").assertExists()
         assertEquals(ThemeMode.DARK, theme)
+        assertEquals(true, brightness)
         assertTrue(exported && imported && licenses)
     }
 }
