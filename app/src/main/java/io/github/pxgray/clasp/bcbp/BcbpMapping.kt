@@ -9,7 +9,17 @@ import kotlinx.datetime.plus
 import java.time.Year
 import kotlin.math.abs
 
-fun Bcbp.toBoardingPass(today: LocalDate): ItemDetails.BoardingPass {
+/**
+ * [fallbackDate] resolves a bare day of the year when the pass has no issue date; by default the
+ * nearest such date to [today], which suits a pass scanned around the time of the flight.
+ */
+fun Bcbp.toBoardingPass(
+    today: LocalDate,
+    fallbackDate: (dayOfYear: Int) -> LocalDate? = { resolveDayOfYear(it, today) },
+): ItemDetails.BoardingPass {
+    val issued = issueDate?.let { resolveIssueDate(it, today) }
+    // A flight is on or after the day its boarding pass was issued.
+    fun flightDate(dayOfYear: Int?) = dayOfYear?.let { day -> issued?.let { firstOnOrAfter(day, it) } ?: fallbackDate(day) }
     val first = legs.first()
     return ItemDetails.BoardingPass(
         passenger = formatPassengerName(passengerName),
@@ -18,7 +28,7 @@ fun Bcbp.toBoardingPass(today: LocalDate): ItemDetails.BoardingPass {
         flightNumber = first.flightNumber,
         from = first.from,
         to = first.to,
-        departureDate = first.dayOfYear?.let { resolveDayOfYear(it, today) },
+        departureDate = flightDate(first.dayOfYear),
         seat = first.seat,
         sequence = first.sequence,
         connections = legs.drop(1).map { leg ->
@@ -27,7 +37,7 @@ fun Bcbp.toBoardingPass(today: LocalDate): ItemDetails.BoardingPass {
                 flightNumber = leg.flightNumber,
                 from = leg.from,
                 to = leg.to,
-                date = leg.dayOfYear?.let { resolveDayOfYear(it, today) },
+                date = flightDate(leg.dayOfYear),
                 seat = leg.seat,
             )
         },
@@ -56,3 +66,24 @@ fun resolveDayOfYear(dayOfYear: Int, today: LocalDate): LocalDate? =
         .filter { year -> dayOfYear <= if (Year.isLeap(year.toLong())) 366 else 365 }
         .map { year -> LocalDate(year, 1, 1).plus(dayOfYear - 1, DateTimeUnit.DAY) }
         .minByOrNull { abs(today.daysUntil(it)) }
+
+/** For history (e.g. an export of old passes): the latest such date, allowing up to [graceDays] ahead. */
+fun resolvePastDayOfYear(dayOfYear: Int, today: LocalDate, graceDays: Int = 7): LocalDate? {
+    val latest = today.plus(graceDays, DateTimeUnit.DAY)
+    return (latest.year downTo latest.year - 2)
+        .mapNotNull { year -> dateOf(year, dayOfYear) }
+        .firstOrNull { it <= latest }
+}
+
+/** The most recent date up to [today] whose year ends in the issue date's digit. */
+private fun resolveIssueDate(issue: BcbpIssueDate, today: LocalDate): LocalDate? =
+    (today.year downTo today.year - 10)
+        .filter { it % 10 == issue.yearDigit }
+        .mapNotNull { dateOf(it, issue.dayOfYear) }
+        .firstOrNull { it <= today }
+
+private fun firstOnOrAfter(dayOfYear: Int, start: LocalDate): LocalDate? =
+    (start.year..start.year + 1).mapNotNull { dateOf(it, dayOfYear) }.firstOrNull { it >= start }
+
+private fun dateOf(year: Int, dayOfYear: Int): LocalDate? =
+    if (dayOfYear <= if (Year.isLeap(year.toLong())) 366 else 365) LocalDate(year, 1, 1).plus(dayOfYear - 1, DateTimeUnit.DAY) else null

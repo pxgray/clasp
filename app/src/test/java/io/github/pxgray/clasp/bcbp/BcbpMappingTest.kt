@@ -55,4 +55,26 @@ class BcbpMappingTest {
         val pass = BcbpParser.parse(raw)!!.toBoardingPass(today)
         assertEquals(listOf(Connection("B6", "42", "JFK", "BOS", LocalDate(2026, 11, 23), "12C")), pass.connections)
     }
+
+    @Test
+    fun `an issue date pins the flight's year`() {
+        val unique = "1WW5318B DL " // issued day 318 of a year ending in 5
+        val raw = bcbpString("DOE/JANE", bcbpLeg(day = "321", conditional = ">3" + "%02X".format(unique.length) + unique))
+        // Today is 2026-10-02: the nearest-year guess would say 2026-11-17, but it was issued in 2025.
+        assertEquals(LocalDate(2025, 11, 17), BcbpParser.parse(raw)!!.toBoardingPass(today).departureDate)
+    }
+
+    @Test
+    fun `flights are on or after their issue date, even across new year`() {
+        val unique = "1WW5364B DL " // issued Dec 30, 2025
+        val raw = bcbpString("DOE/JANE", bcbpLeg(day = "003", conditional = ">3" + "%02X".format(unique.length) + unique))
+        assertEquals(LocalDate(2026, 1, 3), BcbpParser.parse(raw)!!.toBoardingPass(today).departureDate)
+    }
+
+    @Test
+    fun `assuming the past picks the latest date up to a week ahead`() {
+        assertEquals(LocalDate(2025, 11, 17), resolvePastDayOfYear(321, today))
+        assertEquals(LocalDate(2026, 10, 5), resolvePastDayOfYear(278, today)) // three days ahead is kept
+        assertEquals(LocalDate(2026, 9, 1), resolvePastDayOfYear(244, today))
+    }
 }
