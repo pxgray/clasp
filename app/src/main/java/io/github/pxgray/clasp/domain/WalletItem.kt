@@ -17,6 +17,8 @@ data class WalletItem(
     val lastUsedAt: Instant? = null,
     /** Starred items are listed first on the home screen. */
     val isFavorite: Boolean = false,
+    /** The card's website as the user typed it; used to look up logos. */
+    val website: String? = null,
 )
 
 enum class ItemKind { LOYALTY, BOARDING_PASS, PASS }

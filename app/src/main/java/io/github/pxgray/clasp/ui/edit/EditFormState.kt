@@ -86,6 +86,8 @@ data class EditFormState(
     val lastUsedAt: Instant? = null,
     val isFavorite: Boolean = false,
     val title: String = "",
+    /** As typed; trimmed on save, blank means none. */
+    val website: String = "",
     val cardNumber: String = "",
     val format: BarcodeFormat = BarcodeFormat.CODE_128,
     val memberName: String = "",
@@ -122,6 +124,7 @@ data class EditFormState(
                 createdAt = createdAt,
                 lastUsedAt = lastUsedAt,
                 isFavorite = isFavorite,
+                website = website.trim().ifEmpty { null },
             )
         }
         val number = cardNumber.trim()
@@ -140,6 +143,7 @@ data class EditFormState(
             createdAt = createdAt,
             lastUsedAt = lastUsedAt,
             isFavorite = isFavorite,
+            website = website.trim().ifEmpty { null },
         )
     }
 
@@ -152,6 +156,7 @@ data class EditFormState(
                 lastUsedAt = item.lastUsedAt,
                 isFavorite = item.isFavorite,
                 title = item.title,
+                website = item.website.orEmpty(),
                 brandColor = item.brandColor,
                 logoPath = item.logoPath,
             )

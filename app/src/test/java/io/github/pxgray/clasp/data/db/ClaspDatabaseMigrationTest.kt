@@ -8,6 +8,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -42,6 +43,38 @@ class ClaspDatabaseMigrationTest {
             assertFalse(item.isFavorite)
             database.walletDao().setFavorite("c", true)
             assertTrue(database.walletDao().observeAll().first().single().toDomain().isFavorite)
+        } finally {
+            database.close()
+            context.deleteDatabase(name)
+        }
+    }
+
+    @Test
+    fun `migrating from v2 keeps items and gives them no website`() = runTest {
+        val name = "migration-v2-test.db"
+        context.deleteDatabase(name)
+        context.openOrCreateDatabase(name, Context.MODE_PRIVATE, null).use { db ->
+            db.execSQL(
+                "CREATE TABLE IF NOT EXISTS `wallet_items` (`id` TEXT NOT NULL, `kind` TEXT NOT NULL, " +
+                    "`title` TEXT NOT NULL, `subtitle` TEXT, `barcode` TEXT, `brandColor` INTEGER, `logoPath` TEXT, " +
+                    "`details` TEXT NOT NULL, `createdAt` INTEGER NOT NULL, `lastUsedAt` INTEGER, " +
+                    "`isFavorite` INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(`id`))",
+            )
+            db.execSQL("CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)")
+            db.execSQL("INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '66eaaec0d290ed5f5a11bf90c5b1ec5a')")
+            db.execSQL(
+                "INSERT INTO wallet_items (id, kind, title, details, createdAt, isFavorite) VALUES ('c', 'LOYALTY', 'Costco', ?, 1000, 1)",
+                arrayOf(Converters().detailsToJson(ItemDetails.Loyalty(cardNumber = "123"))),
+            )
+            db.version = 2
+        }
+
+        val database = ClaspDatabase.build(context, name)
+        try {
+            val item = database.walletDao().observeAll().first().single().toDomain()
+            assertEquals("Costco", item.title)
+            assertTrue(item.isFavorite)
+            assertNull(item.website)
         } finally {
             database.close()
             context.deleteDatabase(name)

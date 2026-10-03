@@ -44,7 +44,7 @@ class EditFormStateTest {
 
     @Test
     fun `from round-trips an existing loyalty item`() {
-        val item = loyaltyItem(memberName = "Jane", brandColor = 0xFF00FF00.toInt(), logoPath = "items/id-1/logo-1.png", isFavorite = true)
+        val item = loyaltyItem(memberName = "Jane", brandColor = 0xFF00FF00.toInt(), logoPath = "items/id-1/logo-1.png", isFavorite = true, website = "https://costco.com")
         val form = EditFormState.from(item)
         assertFalse(form.isNew)
         assertEquals(item, form.toWalletItem())
@@ -91,6 +91,19 @@ class EditFormStateTest {
     @Test
     fun `from round-trips a boarding pass`() {
         val item = boardingItem(isFavorite = true)
+        assertEquals(item, EditFormState.from(item).toWalletItem())
+    }
+
+    @Test
+    fun `website is trimmed and blank becomes null`() {
+        val form = EditFormState(id = "n", isNew = true, createdAt = Instant.fromEpochMilliseconds(0), title = "A", cardNumber = "1")
+        assertEquals("tesco.com", form.copy(website = "  tesco.com ").toWalletItem().website)
+        assertNull(form.copy(website = "   ").toWalletItem().website)
+    }
+
+    @Test
+    fun `boarding passes keep their website`() {
+        val item = boardingItem().copy(website = "https://united.com")
         assertEquals(item, EditFormState.from(item).toWalletItem())
     }
 }

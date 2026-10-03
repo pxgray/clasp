@@ -41,7 +41,7 @@ class RoomWalletRepositoryTest {
 
     @Test
     fun `upserted items round-trip through the database`() = runTest {
-        val card = loyaltyItem(id = "c", brandColor = 0xFF112233.toInt(), logoPath = "items/c/logo-1.png", isFavorite = true)
+        val card = loyaltyItem(id = "c", brandColor = 0xFF112233.toInt(), logoPath = "items/c/logo-1.png", isFavorite = true, website = "tesco.com")
         val pass = boardingItem(id = "b", lastUsedAt = Instant.fromEpochMilliseconds(5_000))
         repository.upsert(card)
         repository.upsert(pass)
