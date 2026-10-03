@@ -110,6 +110,46 @@ class HomeScreenTest {
         compose.onNodeWithText("Card 9").assertIsDisplayed()
     }
 
+    private fun showState(state: androidx.compose.runtime.MutableState<HomeUiState>) = compose.setContent {
+        ClaspTheme(dynamicColor = false) {
+            HomeScreen(
+                state.value, SnackbarHostState(), onOpenItem = {}, onScan = {}, onImport = {},
+                onImportGoogleWallet = {}, onAddManually = {}, onOpenSettings = {}, onSortOrderChange = {},
+                onFavoriteChange = { _, _ -> },
+            )
+        }
+    }
+
+    @Test
+    fun `starring a card at the top keeps the new favorites section in view`() {
+        val pass = boardingItem()
+        val cards = (0 until 6).map { loyaltyItem(id = "c$it", title = "Card $it") }
+        val state = mutableStateOf(HomeUiState(loading = false, passes = listOf(pass), cards = cards))
+        showState(state)
+        compose.onNodeWithText("Passes").assertIsDisplayed()
+        val starred = cards[3].copy(isFavorite = true)
+        state.value = HomeUiState(
+            loading = false, favorites = listOf(starred), passes = listOf(pass), cards = cards - cards[3],
+        )
+        compose.waitForIdle()
+        compose.onNodeWithText("Favorites").assertIsDisplayed()
+        compose.onNodeWithText("Card 3").assertIsDisplayed()
+    }
+
+    @Test
+    fun `starring the first card of an unlabelled list keeps the favorites label in view`() {
+        val cards = (0 until 6).map { loyaltyItem(id = "c$it", title = "Card $it") }
+        val state = mutableStateOf(HomeUiState(loading = false, cards = cards))
+        showState(state)
+        compose.onNodeWithText("Card 0").assertIsDisplayed()
+        state.value = HomeUiState(
+            loading = false, favorites = listOf(cards[0].copy(isFavorite = true)), cards = cards.drop(1),
+        )
+        compose.waitForIdle()
+        compose.onNodeWithText("Favorites").assertIsDisplayed()
+        compose.onNodeWithText("Card 0").assertIsDisplayed()
+    }
+
     @Test
     fun `favorites get their own labelled section`() {
         show(HomeUiState(loading = false, favorites = listOf(loyaltyItem(id = "f", title = "Fav", isFavorite = true)), cards = listOf(loyaltyItem())))

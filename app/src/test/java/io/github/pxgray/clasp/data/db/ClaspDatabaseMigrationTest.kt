@@ -8,6 +8,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 
@@ -39,6 +40,8 @@ class ClaspDatabaseMigrationTest {
             val item = database.walletDao().observeAll().first().single().toDomain()
             assertEquals("Costco", item.title)
             assertFalse(item.isFavorite)
+            database.walletDao().setFavorite("c", true)
+            assertTrue(database.walletDao().observeAll().first().single().toDomain().isFavorite)
         } finally {
             database.close()
             context.deleteDatabase(name)

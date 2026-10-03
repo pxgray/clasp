@@ -65,11 +65,13 @@ class RoomWalletRepositoryTest {
 
     @Test
     fun `setFavorite flags and unflags an item`() = runTest {
-        repository.upsert(loyaltyItem(id = "c"))
+        val used = Instant.fromEpochMilliseconds(5_000)
+        repository.upsert(loyaltyItem(id = "c", lastUsedAt = used))
         repository.setFavorite("c", true)
         assertEquals(true, repository.observeItem("c").first()!!.isFavorite)
         repository.setFavorite("c", false)
         assertEquals(false, repository.observeItem("c").first()!!.isFavorite)
+        assertEquals(used, repository.observeItem("c").first()!!.lastUsedAt)
     }
 
     @Test

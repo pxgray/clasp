@@ -102,7 +102,13 @@ class WalletBackupTest {
     fun `a logo missing from the backup is dropped`() = runTest {
         val json = """{"version":1,"items":[{"id":"c","kind":"LOYALTY","title":"X","logoPath":"items/c/logo-9.png","details":{"type":"loyalty","cardNumber":"1"},"createdAt":0}]}"""
         backupOf(targetRepo, targetFiles).import(zip("wallet.json" to json.toByteArray()).inputStream())
-        assertFalse(targetRepo.items.value.single().isFavorite)
         assertNull(targetRepo.items.value.single().logoPath)
+    }
+
+    @Test
+    fun `a backup without isFavorite imports unstarred`() = runTest {
+        val json = """{"version":1,"items":[{"id":"c","kind":"LOYALTY","title":"X","details":{"type":"loyalty","cardNumber":"1"},"createdAt":0}]}"""
+        backupOf(targetRepo, targetFiles).import(zip("wallet.json" to json.toByteArray()).inputStream())
+        assertFalse(targetRepo.items.value.single().isFavorite)
     }
 }
