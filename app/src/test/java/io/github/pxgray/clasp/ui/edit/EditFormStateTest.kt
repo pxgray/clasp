@@ -44,7 +44,7 @@ class EditFormStateTest {
 
     @Test
     fun `from round-trips an existing loyalty item`() {
-        val item = loyaltyItem(memberName = "Jane", brandColor = 0xFF00FF00.toInt(), logoPath = "items/id-1/logo-1.png")
+        val item = loyaltyItem(memberName = "Jane", brandColor = 0xFF00FF00.toInt(), logoPath = "items/id-1/logo-1.png", isFavorite = true)
         val form = EditFormState.from(item)
         assertFalse(form.isNew)
         assertEquals(item, form.toWalletItem())
@@ -90,7 +90,7 @@ class EditFormStateTest {
 
     @Test
     fun `from round-trips a boarding pass`() {
-        val item = boardingItem()
+        val item = boardingItem(isFavorite = true)
         assertEquals(item, EditFormState.from(item).toWalletItem())
     }
 }

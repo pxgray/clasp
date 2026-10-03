@@ -84,6 +84,7 @@ data class EditFormState(
     val isNew: Boolean,
     val createdAt: Instant,
     val lastUsedAt: Instant? = null,
+    val isFavorite: Boolean = false,
     val title: String = "",
     val cardNumber: String = "",
     val format: BarcodeFormat = BarcodeFormat.CODE_128,
@@ -120,6 +121,7 @@ data class EditFormState(
                 details = pass.toDetails(),
                 createdAt = createdAt,
                 lastUsedAt = lastUsedAt,
+                isFavorite = isFavorite,
             )
         }
         val number = cardNumber.trim()
@@ -137,6 +139,7 @@ data class EditFormState(
             ),
             createdAt = createdAt,
             lastUsedAt = lastUsedAt,
+            isFavorite = isFavorite,
         )
     }
 
@@ -147,6 +150,7 @@ data class EditFormState(
                 isNew = false,
                 createdAt = item.createdAt,
                 lastUsedAt = item.lastUsedAt,
+                isFavorite = item.isFavorite,
                 title = item.title,
                 brandColor = item.brandColor,
                 logoPath = item.logoPath,
