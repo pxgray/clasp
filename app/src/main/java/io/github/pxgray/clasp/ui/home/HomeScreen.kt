@@ -267,7 +267,8 @@ private fun SortMenu(current: SortOrder, onSelect: (SortOrder) -> Unit) {
 private val SortOrder.label: Int
     get() = when (this) {
         SortOrder.RECENTLY_USED -> R.string.sort_recently_used
-        SortOrder.NAME -> R.string.sort_name
+        SortOrder.NAME_A_TO_Z -> R.string.sort_name_a_to_z
+        SortOrder.NAME_Z_TO_A -> R.string.sort_name_z_to_a
         SortOrder.DATE_ADDED -> R.string.sort_date_added
     }
 

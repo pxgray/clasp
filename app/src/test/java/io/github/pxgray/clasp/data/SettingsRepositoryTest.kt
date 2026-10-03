@@ -54,8 +54,8 @@ class SettingsRepositoryTest {
     fun `sort order defaults to recently used and is persisted`() = runTest {
         val repository = repository()
         assertEquals(SortOrder.RECENTLY_USED, repository.settings.first().sortOrder)
-        repository.setSortOrder(SortOrder.NAME)
-        assertEquals(SortOrder.NAME, repository.settings.first().sortOrder)
+        repository.setSortOrder(SortOrder.NAME_A_TO_Z)
+        assertEquals(SortOrder.NAME_A_TO_Z, repository.settings.first().sortOrder)
     }
 
     @Test

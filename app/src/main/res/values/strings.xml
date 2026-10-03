@@ -33,7 +33,8 @@
     <string name="home_deleted">Card deleted</string>
     <string name="home_sort">Sort</string>
     <string name="sort_recently_used">Recently used</string>
-    <string name="sort_name">Name</string>
+    <string name="sort_name_a_to_z">Name (A–Z)</string>
+    <string name="sort_name_z_to_a">Name (Z–A)</string>
     <string name="sort_date_added">Date added</string>
     <string name="add_manually">Enter manually</string>
     <string name="add_manually_description">Type in a card number</string>
