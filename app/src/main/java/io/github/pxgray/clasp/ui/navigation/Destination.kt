@@ -11,6 +11,9 @@ sealed interface Destination {
 
     @Serializable data object Licenses : Destination
 
+    /** Preview of a Google Takeout export picked by the user. */
+    @Serializable data class TakeoutImport(val uri: String) : Destination
+
     @Serializable data class Detail(val id: String) : Destination
 
     /**

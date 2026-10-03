@@ -21,7 +21,13 @@ import io.github.pxgray.clasp.R
 
 /** Ways to add an item. */
 @Composable
-fun AddItemSheet(onDismiss: () -> Unit, onScan: () -> Unit, onImport: () -> Unit, onAddManually: () -> Unit) {
+fun AddItemSheet(
+    onDismiss: () -> Unit,
+    onScan: () -> Unit,
+    onImport: () -> Unit,
+    onImportGoogleWallet: () -> Unit,
+    onAddManually: () -> Unit,
+) {
     ModalBottomSheet(onDismissRequest = onDismiss) {
         Column(Modifier.navigationBarsPadding().padding(bottom = 16.dp)) {
             ListItem(
@@ -37,6 +43,13 @@ fun AddItemSheet(onDismiss: () -> Unit, onScan: () -> Unit, onImport: () -> Unit
                 leadingContent = { Icon(painterResource(R.drawable.ic_pass), contentDescription = null) },
                 colors = ListItemDefaults.colors(containerColor = Color.Transparent),
                 modifier = Modifier.clickable(onClick = onImport),
+            )
+            ListItem(
+                headlineContent = { Text(stringResource(R.string.add_google_wallet)) },
+                supportingContent = { Text(stringResource(R.string.add_google_wallet_description)) },
+                leadingContent = { Icon(painterResource(R.drawable.ic_wallet_import), contentDescription = null) },
+                colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+                modifier = Modifier.clickable(onClick = onImportGoogleWallet),
             )
             ListItem(
                 headlineContent = { Text(stringResource(R.string.add_manually)) },

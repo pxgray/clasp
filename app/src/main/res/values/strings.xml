@@ -117,4 +117,23 @@
         <item quantity="one">Restored 1 item</item>
         <item quantity="other">Restored %d items</item>
     </plurals>
+    <string name="add_google_wallet">Import from Google Wallet</string>
+    <string name="add_google_wallet_description">From a Google Takeout export (.zip or .pdf)</string>
+    <string name="takeout_title">Import from Google Wallet</string>
+    <string name="takeout_loading">Reading your export…</string>
+    <string name="takeout_failed_title">Couldn’t import from Google Wallet</string>
+    <string name="takeout_error_unreadable">The file couldn’t be read.</string>
+    <string name="takeout_error_too_large">This file is too large to be a Google Wallet export.</string>
+    <string name="takeout_error_no_passes">No Google Wallet passes were found. Choose the Takeout .zip, or the PDF in its “Google Wallet” folder.</string>
+    <string name="takeout_status_update">Updates a card you already have</string>
+    <string name="takeout_status_duplicate">Already in your wallet</string>
+    <string name="takeout_status_past">Past flight</string>
+    <plurals name="takeout_found">
+        <item quantity="one">Found 1 item. Choose what to add.</item>
+        <item quantity="other">Found %d items. Choose what to add.</item>
+    </plurals>
+    <plurals name="takeout_add">
+        <item quantity="one">Add 1 item</item>
+        <item quantity="other">Add %d items</item>
+    </plurals>
 </resources>

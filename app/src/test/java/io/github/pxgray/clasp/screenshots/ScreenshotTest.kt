@@ -25,6 +25,10 @@ import io.github.pxgray.clasp.ui.home.HomeUiState
 import io.github.pxgray.clasp.ui.scan.CameraPermission
 import io.github.pxgray.clasp.ui.scan.ScanScreen
 import io.github.pxgray.clasp.ui.settings.SettingsScreen
+import io.github.pxgray.clasp.ui.takeout.TakeoutImportScreen
+import io.github.pxgray.clasp.ui.takeout.TakeoutImportState
+import io.github.pxgray.clasp.ui.takeout.TakeoutRow
+import io.github.pxgray.clasp.ui.takeout.TakeoutRowStatus
 import io.github.pxgray.clasp.ui.theme.ClaspTheme
 import org.junit.Rule
 import org.junit.Test
@@ -74,12 +78,29 @@ class ScreenshotTest {
         ScanScreen(CameraPermission.NOT_GRANTED, onRequestPermission = {}, onOpenSettings = {}, onBarcode = {}, onClose = {})
     }
 
+    @Test fun takeoutImport() = snap("takeout_import") {
+        TakeoutImportScreen(
+            TakeoutImportState.Ready(
+                rows = listOf(
+                    TakeoutRow(wallet.cards[0], TakeoutRowStatus.NEW),
+                    TakeoutRow(wallet.cards[1], TakeoutRowStatus.UPDATE),
+                    TakeoutRow(wallet.cards[2], TakeoutRowStatus.DUPLICATE),
+                    TakeoutRow(wallet.passes[0], TakeoutRowStatus.PAST),
+                ),
+                selected = setOf(wallet.cards[0].id, wallet.cards[1].id),
+            ),
+            onToggle = {},
+            onConfirm = {},
+            onCancel = {},
+        )
+    }
+
     @Test fun settingsLight() = snap("settings") { SettingsContent() }
     @Test fun settingsDark() = snap("settings_dark", dark = true) { SettingsContent() }
 
     @Composable
     private fun HomeContent(state: HomeUiState) =
-        HomeScreen(state, SnackbarHostState(), onOpenItem = {}, onScan = {}, onImport = {}, onAddManually = {}, onOpenSettings = {})
+        HomeScreen(state, SnackbarHostState(), onOpenItem = {}, onScan = {}, onImport = {}, onImportGoogleWallet = {}, onAddManually = {}, onOpenSettings = {})
 
     @Composable
     private fun DetailContent(item: WalletItem) = DetailScreen(item, onBack = {}, onEdit = {}, onDelete = {})

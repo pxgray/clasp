@@ -59,6 +59,9 @@ import io.github.pxgray.clasp.ui.importpass.ImportSheet
 import io.github.pxgray.clasp.ui.importpass.ImportViewModel
 
 /** Many apps label `.pkpass` files generically, so the picker also offers binary and zip files. */
+/** A Takeout export arrives as a zip; the Google Wallet PDF inside it works too. */
+private val TAKEOUT_MIME_TYPES = arrayOf("application/zip", "application/pdf", "application/octet-stream")
+
 private val PASS_MIME_TYPES = arrayOf(
     "application/vnd.apple.pkpass",
     "application/vnd-com.apple.pkpass",
@@ -76,6 +79,7 @@ fun HomeRoute(
     onScan: () -> Unit,
     onAddManually: () -> Unit,
     onOpenSettings: () -> Unit,
+    onImportFromGoogleWallet: (uri: String) -> Unit,
     viewModel: HomeViewModel = viewModel(factory = HomeViewModel.Factory),
     importViewModel: ImportViewModel = viewModel(factory = ImportViewModel.Factory),
 ) {
@@ -106,6 +110,9 @@ fun HomeRoute(
     val pickPass = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         uri?.let(importViewModel::open)
     }
+    val pickTakeout = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        uri?.let { onImportFromGoogleWallet(it.toString()) }
+    }
     LaunchedEffect(pendingImport) {
         val uri = pendingImport ?: return@LaunchedEffect
         importViewModel.open(uri)
@@ -118,6 +125,7 @@ fun HomeRoute(
         onOpenItem = onOpenItem,
         onScan = onScan,
         onImport = { pickPass.launch(PASS_MIME_TYPES) },
+        onImportGoogleWallet = { pickTakeout.launch(TAKEOUT_MIME_TYPES) },
         onAddManually = onAddManually,
         onOpenSettings = onOpenSettings,
     )
@@ -131,6 +139,7 @@ fun HomeScreen(
     onOpenItem: (String) -> Unit,
     onScan: () -> Unit,
     onImport: () -> Unit,
+    onImportGoogleWallet: () -> Unit,
     onAddManually: () -> Unit,
     onOpenSettings: () -> Unit,
 ) {
@@ -168,7 +177,7 @@ fun HomeScreen(
     ) { padding ->
         when {
             state.loading -> Unit
-            state.isEmpty -> EmptyWallet(Modifier.padding(padding), onScan, onImport, onAddManually)
+            state.isEmpty -> EmptyWallet(Modifier.padding(padding), onScan, onImport, onImportGoogleWallet, onAddManually)
             else -> LazyColumn(
                 state = listState,
                 contentPadding = PaddingValues(
@@ -197,6 +206,10 @@ fun HomeScreen(
                 showAddSheet = false
                 onImport()
             },
+            onImportGoogleWallet = {
+                showAddSheet = false
+                onImportGoogleWallet()
+            },
             onAddManually = {
                 showAddSheet = false
                 onAddManually()
@@ -223,7 +236,13 @@ private fun LazyListScope.section(labelRes: Int?, items: List<WalletItem>, onOpe
 }
 
 @Composable
-private fun EmptyWallet(modifier: Modifier, onScan: () -> Unit, onImport: () -> Unit, onAddManually: () -> Unit) {
+private fun EmptyWallet(
+    modifier: Modifier,
+    onScan: () -> Unit,
+    onImport: () -> Unit,
+    onImportGoogleWallet: () -> Unit,
+    onAddManually: () -> Unit,
+) {
     Column(
         modifier = modifier.fillMaxSize().padding(32.dp),
         verticalArrangement = Arrangement.Center,
@@ -256,6 +275,9 @@ private fun EmptyWallet(modifier: Modifier, onScan: () -> Unit, onImport: () -> 
         Spacer(Modifier.height(4.dp))
         TextButton(onClick = onImport) {
             Text(stringResource(R.string.add_import))
+        }
+        TextButton(onClick = onImportGoogleWallet) {
+            Text(stringResource(R.string.add_google_wallet))
         }
     }
 }
