@@ -105,8 +105,15 @@ class UrlConnectionHttpFetcherTest {
 
     @Test
     fun `http errors throw`() {
-        server.enqueue(MockResponse().setResponseCode(404))
+        server.enqueue(MockResponse().setResponseCode(500))
         assertThrows(LogoNetworkException::class.java) { runBlocking { fetcher.fetch(url("/a"), 100) } }
+    }
+
+    @Test
+    fun `a 404 throws a status exception with its code`() {
+        server.enqueue(MockResponse().setResponseCode(404))
+        val e = assertThrows(HttpStatusException::class.java) { runBlocking { fetcher.fetch(url("/a"), 100) } }
+        assertEquals(404, e.code)
     }
 
     @Test
