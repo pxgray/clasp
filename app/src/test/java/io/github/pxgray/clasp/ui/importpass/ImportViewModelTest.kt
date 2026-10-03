@@ -87,6 +87,7 @@ class ImportViewModelTest {
             logoPath = "items/pass-1/logo-0.png",
             lastUsedAt = Instant.fromEpochMilliseconds(2_000),
             isFavorite = true,
+            website = "https://example.com",
         )
         repository.items.value = listOf(original)
         val vm = viewModel()
@@ -99,6 +100,7 @@ class ImportViewModelTest {
         assertEquals(original.createdAt, updated.createdAt)
         assertEquals(original.lastUsedAt, updated.lastUsedAt)
         assertTrue(updated.isFavorite)
+        assertEquals("https://example.com", updated.website)
         assertEquals("items/pass-1/logo-1.png", updated.logoPath)
         assertFalse(files.resolve("items/pass-1/logo-0.png").exists())
     }

@@ -128,6 +128,7 @@ class TakeoutImportViewModel(
                         createdAt = previous?.createdAt ?: row.item.createdAt,
                         lastUsedAt = previous?.lastUsedAt,
                         isFavorite = previous?.isFavorite ?: false,
+                        website = previous?.website ?: row.item.website,
                     )
                 },
             )

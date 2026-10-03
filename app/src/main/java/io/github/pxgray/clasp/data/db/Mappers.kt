@@ -15,6 +15,7 @@ fun WalletItemEntity.toDomain() = WalletItem(
     createdAt = Instant.fromEpochMilliseconds(createdAt),
     lastUsedAt = lastUsedAt?.let(Instant::fromEpochMilliseconds),
     isFavorite = isFavorite,
+    website = website,
 )
 
 fun WalletItem.toEntity() = WalletItemEntity(
@@ -29,4 +30,5 @@ fun WalletItem.toEntity() = WalletItemEntity(
     createdAt = createdAt.toEpochMilliseconds(),
     lastUsedAt = lastUsedAt?.toEpochMilliseconds(),
     isFavorite = isFavorite,
+    website = website,
 )

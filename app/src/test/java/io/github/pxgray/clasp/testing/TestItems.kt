@@ -19,6 +19,7 @@ fun loyaltyItem(
     brandColor: Int? = null,
     logoPath: String? = null,
     isFavorite: Boolean = false,
+    website: String? = null,
 ) = WalletItem(
     id = id,
     kind = ItemKind.LOYALTY,
@@ -30,6 +31,7 @@ fun loyaltyItem(
     createdAt = createdAt,
     lastUsedAt = lastUsedAt,
     isFavorite = isFavorite,
+    website = website,
 )
 
 fun boardingItem(

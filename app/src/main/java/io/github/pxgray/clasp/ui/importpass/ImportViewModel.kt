@@ -67,6 +67,7 @@ class ImportViewModel(
                     createdAt = previous?.createdAt ?: ready.item.createdAt,
                     lastUsedAt = previous?.lastUsedAt,
                     isFavorite = previous?.isFavorite ?: false,
+                    website = previous?.website ?: ready.item.website,
                 ),
             )
             withContext(ioDispatcher) { files.pruneLogos(ready.item.id, keep = ready.item.logoPath) }
