@@ -1,6 +1,9 @@
 package io.github.pxgray.clasp.data
 
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
+import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.stringPreferencesKey
+import io.github.pxgray.clasp.domain.SortOrder
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.runTest
@@ -45,5 +48,20 @@ class SettingsRepositoryTest {
         assertFalse(repository.settings.first().maxBrightness)
         repository.setMaxBrightness(true)
         assertTrue(repository.settings.first().maxBrightness)
+    }
+
+    @Test
+    fun `sort order defaults to recently used and is persisted`() = runTest {
+        val repository = repository()
+        assertEquals(SortOrder.RECENTLY_USED, repository.settings.first().sortOrder)
+        repository.setSortOrder(SortOrder.NAME)
+        assertEquals(SortOrder.NAME, repository.settings.first().sortOrder)
+    }
+
+    @Test
+    fun `an unknown sort order reads as the default`() = runTest {
+        val store = PreferenceDataStoreFactory.create(scope = backgroundScope) { File(tmp.root, "settings.preferences_pb") }
+        store.edit { it[stringPreferencesKey("sort_order")] = "SHUFFLE" }
+        assertEquals(SortOrder.RECENTLY_USED, SettingsRepository(store).settings.first().sortOrder)
     }
 }
