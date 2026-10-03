@@ -19,7 +19,7 @@ class HomeScreenTest {
 
     private fun show(state: HomeUiState) = compose.setContent {
         ClaspTheme(dynamicColor = false) {
-            HomeScreen(state, SnackbarHostState(), onOpenItem = {}, onScan = {}, onImport = {}, onAddManually = {}, onOpenSettings = {})
+            HomeScreen(state, SnackbarHostState(), onOpenItem = {}, onScan = {}, onImport = {}, onImportGoogleWallet = {}, onAddManually = {}, onOpenSettings = {})
         }
     }
 

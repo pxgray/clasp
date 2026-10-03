@@ -19,6 +19,7 @@ import io.github.pxgray.clasp.ui.home.HomeRoute
 import io.github.pxgray.clasp.ui.scan.ScanRoute
 import io.github.pxgray.clasp.ui.settings.LicensesScreen
 import io.github.pxgray.clasp.ui.settings.SettingsRoute
+import io.github.pxgray.clasp.ui.takeout.TakeoutImportRoute
 
 /** Detail hands a deleted id back to Home, which owns the undo snackbar. */
 private const val DELETED_ITEM_KEY = "deletedItemId"
@@ -52,6 +53,7 @@ fun ClaspNavHost(
                             onScan = { navController.navigate(Destination.Scan) },
                             onAddManually = { navController.navigate(Destination.Edit()) },
                             onOpenSettings = { navController.navigate(Destination.Settings) },
+                            onImportFromGoogleWallet = { navController.navigate(Destination.TakeoutImport(it)) },
                         )
                     }
                 }
@@ -73,6 +75,9 @@ fun ClaspNavHost(
                         onBack = { navController.popBackStack() },
                         onLicenses = { navController.navigate(Destination.Licenses) },
                     )
+                }
+                composable<Destination.TakeoutImport> {
+                    TakeoutImportRoute(onDone = { navController.popBackStack() })
                 }
                 composable<Destination.Licenses> {
                     LicensesScreen(onBack = { navController.popBackStack() })
