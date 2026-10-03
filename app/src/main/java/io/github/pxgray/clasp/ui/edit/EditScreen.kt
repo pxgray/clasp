@@ -34,7 +34,10 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
@@ -54,8 +57,12 @@ import kotlinx.coroutines.launch
 fun EditRoute(
     onDone: () -> Unit,
     viewModel: EditViewModel = viewModel(factory = EditViewModel.Factory),
+    logoSearch: LogoSearchViewModel = viewModel(factory = LogoSearchViewModel.Factory),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val searchState by logoSearch.state.collectAsStateWithLifecycle()
+    val searchEnabled by logoSearch.enabled.collectAsStateWithLifecycle()
+    var askConsent by rememberSaveable { mutableStateOf(false) }
     val snackbarHostState = remember { SnackbarHostState() }
     val logoFailed = stringResource(R.string.edit_logo_failed)
     val pickLogo = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
@@ -70,16 +77,45 @@ fun EditRoute(
             }
         }
     }
+    LaunchedEffect(logoSearch) {
+        logoSearch.found.collect { viewModel.onLogoFound(it.logo, it.website) }
+    }
     BackHandler(onBack = viewModel::cancel)
 
     EditScreen(
         state = state,
         snackbarHostState = snackbarHostState,
         onUpdate = viewModel::update,
-        onFindLogo = {},
+        onFindLogo = {
+            val form = state
+            if (form != null) {
+                if (searchEnabled == true) {
+                    logoSearch.open(form.id, form.title, websiteHost(form.website))
+                } else {
+                    askConsent = true
+                }
+            }
+        },
         onPickLogo = { pickLogo.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) },
         onSave = viewModel::save,
         onCancel = viewModel::cancel,
+    )
+
+    if (askConsent) {
+        LogoConsentDialog(
+            onConfirm = {
+                askConsent = false
+                state?.let { form -> logoSearch.turnOnAndOpen(form.id, form.title, websiteHost(form.website)) }
+            },
+            onDismiss = { askConsent = false },
+        )
+    }
+    FindLogoSheet(
+        state = searchState,
+        onQueryChange = logoSearch::onQueryChange,
+        onSearch = logoSearch::search,
+        onChoose = logoSearch::choose,
+        onDismiss = logoSearch::close,
     )
 }
 

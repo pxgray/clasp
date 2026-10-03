@@ -1,11 +1,17 @@
 package io.github.pxgray.clasp.screenshots
 
+import android.graphics.Bitmap
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.github.takahirom.roborazzi.RobolectricDeviceQualifiers
 import com.github.takahirom.roborazzi.captureRoboImage
@@ -18,11 +24,18 @@ import io.github.pxgray.clasp.domain.ItemKind
 import io.github.pxgray.clasp.domain.PassField
 import io.github.pxgray.clasp.domain.PkPassStyle
 import io.github.pxgray.clasp.domain.WalletItem
+import io.github.pxgray.clasp.logo.LogoCandidate
+import io.github.pxgray.clasp.logo.LogoSource
 import io.github.pxgray.clasp.testing.boardingItem
 import io.github.pxgray.clasp.testing.loyaltyItem
 import io.github.pxgray.clasp.ui.detail.DetailScreen
 import io.github.pxgray.clasp.ui.edit.EditFormState
 import io.github.pxgray.clasp.ui.edit.EditScreen
+import io.github.pxgray.clasp.ui.edit.FindLogoContent
+import io.github.pxgray.clasp.ui.edit.LogoConsentDialog
+import io.github.pxgray.clasp.ui.edit.LogoSearchState
+import io.github.pxgray.clasp.ui.edit.LogoSearchStatus
+import io.github.pxgray.clasp.ui.edit.LogoTile
 import io.github.pxgray.clasp.ui.home.HomeScreen
 import io.github.pxgray.clasp.ui.home.HomeUiState
 import io.github.pxgray.clasp.ui.scan.CameraPermission
@@ -33,12 +46,12 @@ import io.github.pxgray.clasp.ui.takeout.TakeoutImportState
 import io.github.pxgray.clasp.ui.takeout.TakeoutRow
 import io.github.pxgray.clasp.ui.takeout.TakeoutRowStatus
 import io.github.pxgray.clasp.ui.theme.ClaspTheme
+import kotlin.time.Instant
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
-import kotlin.time.Instant
 
 /**
  * Golden images of every screen, in light and dark. Record with `./gradlew recordRoborazziDebug`,
@@ -97,6 +110,18 @@ class ScreenshotTest {
         EditContent(EditFormState.from(wallet.cards.first()).copy(website = "not a site"))
     }
 
+    @Test fun logoSearchResults() = snap("logo_search_results") { LogoSearchContent(searchResults) }
+    @Test fun logoSearchResultsDark() = snap("logo_search_results_dark", dark = true) { LogoSearchContent(searchResults) }
+    @Test fun logoSearchEmpty() = snap("logo_search_empty") { LogoSearchContent(searchState.copy(status = LogoSearchStatus.Empty)) }
+    @Test fun logoSearchError() = snap("logo_search_error") { LogoSearchContent(searchState.copy(status = LogoSearchStatus.Error)) }
+
+    /** The dialog is its own window, so capture the whole screen. */
+    @Test fun logoConsent() {
+        compose.setContent { ClaspTheme(darkTheme = false, dynamicColor = false) { LogoConsentDialog(onConfirm = {}, onDismiss = {}) } }
+        compose.waitForIdle()
+        captureScreenRoboImage("src/test/screenshots/logo_consent.png")
+    }
+
     @Test fun scanPermission() = snap("scan_permission") {
         ScanScreen(CameraPermission.NOT_GRANTED, onRequestPermission = {}, onOpenSettings = {}, onBarcode = {}, onClose = {})
     }
@@ -134,6 +159,33 @@ class ScreenshotTest {
     @Composable
     private fun EditContent(state: EditFormState) =
         EditScreen(state, SnackbarHostState(), onUpdate = {}, onFindLogo = {}, onPickLogo = {}, onSave = {}, onCancel = {})
+
+    /** The sheet's content on a surface; the ModalBottomSheet window itself isn't captured. */
+    @Composable
+    private fun LogoSearchContent(state: LogoSearchState) = Surface {
+        FindLogoContent(state, onQueryChange = {}, onSearch = {}, onChoose = {}, modifier = Modifier.padding(top = 16.dp))
+    }
+
+    private val searchState = LogoSearchState(visible = true, query = "Costco", websiteHost = "costco.com")
+
+    private val searchResults: LogoSearchState
+        get() {
+            fun tile(label: String, source: LogoSource, color: Int, width: Int, height: Int) = LogoTile(
+                LogoCandidate("https://x/$label", "https://x/$label", source, label, null),
+                Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888).apply { eraseColor(color) }.asImageBitmap(),
+            )
+            return searchState.copy(
+                status = LogoSearchStatus.Results(
+                    listOf(
+                        tile("costco.com", LogoSource.WEBSITE, 0xFFE31837.toInt(), 180, 180),
+                        tile("Costco", LogoSource.WIKIDATA, 0xFF005DAA.toInt(), 400, 120),
+                        tile("Costco Wholesale", LogoSource.WIKIDATA, 0xFF2E7D32.toInt(), 300, 300),
+                        tile("Costco Travel", LogoSource.WIKIDATA, 0xFF6A1B9A.toInt(), 120, 300),
+                    ),
+                ),
+                downloading = "https://x/Costco Wholesale",
+            )
+        }
 
     @Composable
     private fun SettingsContent() = SettingsScreen(
