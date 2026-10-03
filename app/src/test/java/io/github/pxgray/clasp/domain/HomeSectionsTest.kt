@@ -77,4 +77,27 @@ class HomeSectionsTest {
         assertEquals(listOf("old", "new"), items.toHomeSections(SortOrder.RECENTLY_USED).passes.map { it.id })
         assertEquals(listOf("new", "old"), items.toHomeSections(SortOrder.DATE_ADDED).passes.map { it.id })
     }
+
+    @Test
+    fun `favorites of any kind come first, in the selected order`() {
+        val items = listOf(
+            loyaltyItem(id = "card", title = "Apple"),
+            loyaltyItem(id = "fav-card", title = "Zoo", isFavorite = true),
+            boardingItem(id = "pass"),
+            boardingItem(id = "fav-pass", isFavorite = true), // titled "UA 1234"
+        )
+        val az = items.toHomeSections(SortOrder.NAME_A_TO_Z)
+        assertEquals(listOf("fav-pass", "fav-card"), az.favorites.map { it.id })
+        assertEquals(listOf("pass"), az.passes.map { it.id })
+        assertEquals(listOf("card"), az.cards.map { it.id })
+
+        val za = items.toHomeSections(SortOrder.NAME_Z_TO_A)
+        assertEquals(listOf("fav-card", "fav-pass"), za.favorites.map { it.id })
+    }
+
+    @Test
+    fun `without favorites the favorites section is empty`() {
+        val sections = listOf(loyaltyItem(id = "c"), boardingItem(id = "b")).toHomeSections()
+        assertEquals(emptyList<WalletItem>(), sections.favorites)
+    }
 }

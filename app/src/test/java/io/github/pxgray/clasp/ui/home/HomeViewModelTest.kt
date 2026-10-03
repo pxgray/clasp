@@ -135,4 +135,25 @@ class HomeViewModelTest {
         }
         assertEquals(SortOrder.NAME_A_TO_Z, settings.settings.first().sortOrder)
     }
+
+    @Test
+    fun `starring an item moves it into favorites`() = runTest {
+        val vm = viewModel()
+        vm.state.test {
+            awaitLoaded()
+            vm.setFavorite("b", true)
+            var state = awaitItem()
+            while (state.favorites.isEmpty()) state = awaitItem()
+            assertEquals(listOf("b"), state.favorites.map { it.id })
+            assertEquals(listOf("a"), state.cards.map { it.id })
+        }
+        assertTrue(repository.items.value.single { it.id == "b" }.isFavorite)
+    }
+
+    @Test
+    fun `a wallet of only favorites is not empty`() = runTest {
+        viewModel(FakeWalletRepository(listOf(loyaltyItem(id = "a", isFavorite = true)))).state.test {
+            assertFalse(awaitLoaded().isEmpty)
+        }
+    }
 }
