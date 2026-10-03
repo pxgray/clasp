@@ -20,13 +20,14 @@ import kotlinx.coroutines.launch
 
 data class HomeUiState(
     val loading: Boolean = true,
+    val favorites: List<WalletItem> = emptyList(),
     val passes: List<WalletItem> = emptyList(),
     val cards: List<WalletItem> = emptyList(),
     /** An item the user deleted that is hidden while the undo snackbar shows. */
     val pendingDeleteId: String? = null,
     val sortOrder: SortOrder = SortOrder.RECENTLY_USED,
 ) {
-    val isEmpty: Boolean get() = !loading && passes.isEmpty() && cards.isEmpty()
+    val isEmpty: Boolean get() = !loading && favorites.isEmpty() && passes.isEmpty() && cards.isEmpty()
 }
 
 class HomeViewModel(
@@ -45,6 +46,7 @@ class HomeViewModel(
         val sections = items.filterNot { it.id == pending }.toHomeSections(order)
         HomeUiState(
             loading = false,
+            favorites = sections.favorites,
             passes = sections.passes,
             cards = sections.cards,
             pendingDeleteId = pending,
@@ -54,6 +56,10 @@ class HomeViewModel(
 
     fun setSortOrder(order: SortOrder) {
         viewModelScope.launch { settings.setSortOrder(order) }
+    }
+
+    fun setFavorite(id: String, favorite: Boolean) {
+        viewModelScope.launch { repository.setFavorite(id, favorite) }
     }
 
     /** Hides [id] immediately; it is removed for real by [commitDelete] unless [undoDelete] comes first. */

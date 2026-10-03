@@ -2,15 +2,16 @@ package io.github.pxgray.clasp.domain
 
 import java.text.Collator
 
-data class HomeSections(val passes: List<WalletItem>, val cards: List<WalletItem>)
+data class HomeSections(val favorites: List<WalletItem>, val passes: List<WalletItem>, val cards: List<WalletItem>)
 
-/** How the home list is ordered. Passes and cards are each sorted the same way. */
+/** How the home list is ordered. Each section is sorted the same way. */
 enum class SortOrder { RECENTLY_USED, NAME_A_TO_Z, NAME_Z_TO_A, DATE_ADDED }
 
-/** Passes (boarding passes and pkpass items) first, then loyalty cards, each in [order]. */
+/** Favorites of any kind first, then passes (boarding passes and pkpass items), then loyalty cards, each in [order]. */
 fun List<WalletItem>.toHomeSections(order: SortOrder = SortOrder.RECENTLY_USED): HomeSections {
-    val (cards, passes) = sortedWith(order.comparator()).partition { it.kind == ItemKind.LOYALTY }
-    return HomeSections(passes = passes, cards = cards)
+    val (favorites, rest) = sortedWith(order.comparator()).partition { it.isFavorite }
+    val (cards, passes) = rest.partition { it.kind == ItemKind.LOYALTY }
+    return HomeSections(favorites = favorites, passes = passes, cards = cards)
 }
 
 private fun SortOrder.comparator(): Comparator<WalletItem> = when (this) {
