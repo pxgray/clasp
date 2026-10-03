@@ -115,7 +115,7 @@ class ScreenshotTest {
     @Test fun logoSearchEmpty() = snap("logo_search_empty") { LogoSearchContent(searchState.copy(status = LogoSearchStatus.Empty)) }
     @Test fun logoSearchError() = snap("logo_search_error") { LogoSearchContent(searchState.copy(status = LogoSearchStatus.Error)) }
 
-    /** The dialog is its own window, so capture the whole screen. */
+    /** The dialog is its own window, so capture the whole screen. Robolectric lays the dialog window out edge to edge, so its width isn't representative of a device. */
     @Test fun logoConsent() {
         compose.setContent { ClaspTheme(darkTheme = false, dynamicColor = false) { LogoConsentDialog(onConfirm = {}, onDismiss = {}) } }
         compose.waitForIdle()
