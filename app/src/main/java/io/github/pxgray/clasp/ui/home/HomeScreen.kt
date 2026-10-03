@@ -158,11 +158,19 @@ fun HomeScreen(
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
     val listState = rememberLazyListState()
     // Keyed items keep the old first card in view after a reorder, so jump to the top when the order changes.
+    // Likewise when the favorites change while the list is at the top: the new section is inserted above the
+    // anchored first item and would land off-screen. This runs in composition, before the new items are laid
+    // out, so the list state still describes the previous layout.
     val shownSortOrder = remember { arrayOf(state.sortOrder) }
-    if (shownSortOrder[0] != state.sortOrder) {
-        shownSortOrder[0] = state.sortOrder
+    val shownFavoriteIds = remember { arrayOf(state.favorites.map { it.id }) }
+    val favoriteIds = state.favorites.map { it.id }
+    val favoritesChanged = shownFavoriteIds[0] != favoriteIds
+    val atTop = listState.firstVisibleItemIndex == 0 && listState.firstVisibleItemScrollOffset == 0
+    if (shownSortOrder[0] != state.sortOrder || (favoritesChanged && atTop)) {
         listState.requestScrollToItem(0)
     }
+    shownSortOrder[0] = state.sortOrder
+    shownFavoriteIds[0] = favoriteIds
     val fabExpanded by remember { derivedStateOf { listState.firstVisibleItemIndex == 0 } }
     var showAddSheet by rememberSaveable { mutableStateOf(false) }
 
