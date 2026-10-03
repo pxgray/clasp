@@ -10,6 +10,7 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import androidx.navigation.toRoute
 import io.github.pxgray.clasp.ClaspApplication
 import io.github.pxgray.clasp.data.ItemFiles
+import io.github.pxgray.clasp.data.ImportedLogo
 import io.github.pxgray.clasp.data.LogoImporter
 import io.github.pxgray.clasp.data.WalletRepository
 import io.github.pxgray.clasp.domain.Barcode
@@ -92,6 +93,17 @@ class EditViewModel(
             } else {
                 update { it.copy(logoPath = logo.path, brandColor = logo.brandColor ?: it.brandColor) }
             }
+        }
+    }
+
+    /** Applies a logo from online search; its website fills the field only if the user left it empty. */
+    fun onLogoFound(logo: ImportedLogo, website: String?) {
+        update {
+            it.copy(
+                logoPath = logo.path,
+                brandColor = logo.brandColor ?: it.brandColor,
+                website = if (it.website.isBlank() && website != null) website else it.website,
+            )
         }
     }
 

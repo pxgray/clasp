@@ -93,6 +93,10 @@ class ScreenshotTest {
     @Test fun editLoyalty() = snap("edit_loyalty") { EditContent(EditFormState.from(wallet.cards.first())) }
     @Test fun editBoardingPass() = snap("edit_boarding_pass") { EditContent(EditFormState.from(boardingItem())) }
 
+    @Test fun editWebsiteInvalid() = snap("edit_website_invalid") {
+        EditContent(EditFormState.from(wallet.cards.first()).copy(website = "not a site"))
+    }
+
     @Test fun scanPermission() = snap("scan_permission") {
         ScanScreen(CameraPermission.NOT_GRANTED, onRequestPermission = {}, onOpenSettings = {}, onBarcode = {}, onClose = {})
     }
@@ -129,7 +133,7 @@ class ScreenshotTest {
 
     @Composable
     private fun EditContent(state: EditFormState) =
-        EditScreen(state, SnackbarHostState(), onUpdate = {}, onPickLogo = {}, onSave = {}, onCancel = {})
+        EditScreen(state, SnackbarHostState(), onUpdate = {}, onFindLogo = {}, onPickLogo = {}, onSave = {}, onCancel = {})
 
     @Composable
     private fun SettingsContent() = SettingsScreen(
