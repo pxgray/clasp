@@ -1,6 +1,15 @@
 # Clasp
 
-A calm, private wallet for loyalty cards and passes on Android. No payments, no accounts, no network.
+A calm, private wallet for loyalty cards and passes on Android. No payments, no accounts. Offline unless you turn on logo search.
+
+## Privacy
+
+Clasp has no accounts, analytics or ads, and keeps everything on your phone. The only network feature is **logo search**, which is off until you agree to it (the first time you tap *Find logo*, or in Settings → Online). When it's on and you search:
+
+- the search text is sent to [Wikidata](https://www.wikidata.org/) and matching logos are downloaded from Wikimedia Commons;
+- if the card has a website, Clasp fetches that site's home page and icons.
+
+Only the logo you pick is saved, as a local file. Showing a card never uses the network.
 
 ## Development
 
