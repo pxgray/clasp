@@ -5,10 +5,13 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import io.github.pxgray.clasp.domain.SortOrder
 import io.github.pxgray.clasp.testing.boardingItem
 import io.github.pxgray.clasp.testing.loyaltyItem
 import io.github.pxgray.clasp.ui.theme.ClaspTheme
+import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -17,9 +20,12 @@ import org.junit.runner.RunWith
 class HomeScreenTest {
     @get:Rule val compose = createComposeRule()
 
-    private fun show(state: HomeUiState) = compose.setContent {
+    private fun show(state: HomeUiState, onSortOrderChange: (SortOrder) -> Unit = {}) = compose.setContent {
         ClaspTheme(dynamicColor = false) {
-            HomeScreen(state, SnackbarHostState(), onOpenItem = {}, onScan = {}, onImport = {}, onImportGoogleWallet = {}, onAddManually = {}, onOpenSettings = {})
+            HomeScreen(
+                state, SnackbarHostState(), onOpenItem = {}, onScan = {}, onImport = {}, onImportGoogleWallet = {},
+                onAddManually = {}, onOpenSettings = {}, onSortOrderChange = onSortOrderChange,
+            )
         }
     }
 
@@ -52,5 +58,23 @@ class HomeScreenTest {
         compose.onNodeWithContentDescription("Clasp").assertIsDisplayed()
         compose.onNodeWithContentDescription("Settings").assertIsDisplayed()
         compose.onNodeWithText("Clasp").assertDoesNotExist()
+    }
+
+    @Test
+    fun `the sort menu lists the orders and reports the choice`() {
+        var chosen: SortOrder? = null
+        show(HomeUiState(loading = false, cards = listOf(loyaltyItem())), onSortOrderChange = { chosen = it })
+        compose.onNodeWithContentDescription("Sort").performClick()
+        compose.onNodeWithText("Recently used").assertIsDisplayed()
+        compose.onNodeWithText("Date added").assertIsDisplayed()
+        compose.onNodeWithText("Name").performClick()
+        assertEquals(SortOrder.NAME, chosen)
+        compose.onNodeWithText("Date added").assertDoesNotExist()
+    }
+
+    @Test
+    fun `an empty wallet has no sort button`() {
+        show(HomeUiState(loading = false))
+        compose.onNodeWithContentDescription("Sort").assertDoesNotExist()
     }
 }
