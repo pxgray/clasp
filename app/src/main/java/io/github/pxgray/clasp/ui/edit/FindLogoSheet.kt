@@ -23,6 +23,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.ContainedLoadingIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.MaterialTheme
@@ -32,12 +33,21 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
@@ -66,10 +76,21 @@ fun FindLogoSheet(
     onChoose: (LogoCandidate) -> Unit,
     onDismiss: () -> Unit,
 ) {
-    if (!state.visible) return
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    // Stay composed while the sheet slides away after state.visible turns false.
+    var shown by remember { mutableStateOf(false) }
+    LaunchedEffect(state.visible) {
+        if (state.visible) {
+            shown = true
+        } else if (shown) {
+            sheetState.hide()
+            shown = false
+        }
+    }
+    if (!shown) return
     ModalBottomSheet(
         onDismissRequest = onDismiss,
-        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+        sheetState = sheetState,
     ) {
         FindLogoContent(state, onQueryChange, onSearch, onChoose, Modifier.navigationBarsPadding().imePadding())
     }
@@ -156,7 +177,14 @@ private fun LogoGrid(tiles: List<LogoTile>, downloading: String?, onChoose: (Log
 @Composable
 private fun LogoTileButton(tile: LogoTile, busy: Boolean, enabled: Boolean, onClick: () -> Unit) {
     val shape = MaterialTheme.shapes.large
-    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp)) {
+    val downloadingText = stringResource(R.string.logo_search_downloading)
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+        modifier = Modifier
+            .alpha(if (enabled || busy) 1f else 0.38f)
+            .semantics(mergeDescendants = true) { if (busy) stateDescription = downloadingText },
+    ) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -165,7 +193,7 @@ private fun LogoTileButton(tile: LogoTile, busy: Boolean, enabled: Boolean, onCl
                 // Logos are drawn for light backgrounds; white matches the saved tile.
                 .background(Color.White)
                 .border(1.dp, MaterialTheme.colorScheme.outlineVariant, shape)
-                .clickable(enabled = enabled, onClick = onClick),
+                .clickable(enabled = enabled, role = Role.Button, onClick = onClick),
             contentAlignment = Alignment.Center,
         ) {
             Image(
@@ -175,8 +203,8 @@ private fun LogoTileButton(tile: LogoTile, busy: Boolean, enabled: Boolean, onCl
                 modifier = Modifier.fillMaxSize().padding(12.dp),
             )
             if (busy) {
-                Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.32f)))
-                LoadingIndicator(Modifier.size(40.dp))
+                Box(Modifier.fillMaxSize().background(Color.White.copy(alpha = 0.6f)))
+                ContainedLoadingIndicator(Modifier.size(40.dp))
             }
         }
         Text(

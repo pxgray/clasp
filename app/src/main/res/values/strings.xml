@@ -33,6 +33,7 @@
     <string name="logo_search_retry">Retry</string>
     <string name="logo_search_download_failed">Couldn’t download that logo</string>
     <string name="logo_search_footer">Logos from Wikidata and company websites.</string>
+    <string name="logo_search_downloading">Downloading</string>
     <string name="logo_search_source_wikidata">Wikidata</string>
     <string name="edit_logo_failed">Couldn’t read that image</string>
     <string name="edit_color">Card color</string>
