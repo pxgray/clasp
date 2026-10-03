@@ -1,6 +1,7 @@
 package io.github.pxgray.clasp.ui.home
 
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsOff
@@ -96,22 +97,14 @@ class HomeScreenTest {
     fun `changing the sort order scrolls the list back to the top`() {
         val cards = (0 until 10).map { loyaltyItem(id = "c$it", title = "Card $it") }
         val state = mutableStateOf(HomeUiState(loading = false, sortOrder = SortOrder.DATE_ADDED, cards = cards))
-        compose.setContent {
-            ClaspTheme(dynamicColor = false) {
-                HomeScreen(
-                    state.value, SnackbarHostState(), onOpenItem = {}, onScan = {}, onImport = {},
-                    onImportGoogleWallet = {}, onAddManually = {}, onOpenSettings = {}, onSortOrderChange = {},
-                    onFavoriteChange = { _, _ -> },
-                )
-            }
-        }
+        showState(state)
         compose.onNodeWithText("Card 0").assertIsDisplayed()
         state.value = HomeUiState(loading = false, sortOrder = SortOrder.NAME_A_TO_Z, cards = cards.reversed())
         compose.waitForIdle()
         compose.onNodeWithText("Card 9").assertIsDisplayed()
     }
 
-    private fun showState(state: androidx.compose.runtime.MutableState<HomeUiState>) = compose.setContent {
+    private fun showState(state: MutableState<HomeUiState>) = compose.setContent {
         ClaspTheme(dynamicColor = false) {
             HomeScreen(
                 state.value, SnackbarHostState(), onOpenItem = {}, onScan = {}, onImport = {},

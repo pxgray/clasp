@@ -47,6 +47,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
@@ -165,8 +166,11 @@ fun HomeScreen(
     val shownFavoriteIds = remember { arrayOf(state.favorites.map { it.id }) }
     val favoriteIds = state.favorites.map { it.id }
     val favoritesChanged = shownFavoriteIds[0] != favoriteIds
-    val atTop = listState.firstVisibleItemIndex == 0 && listState.firstVisibleItemScrollOffset == 0
-    if (shownSortOrder[0] != state.sortOrder || (favoritesChanged && atTop)) {
+    // Read without observation so scrolling does not recompose the whole screen.
+    val atTop = favoritesChanged && Snapshot.withoutReadObservation {
+        listState.firstVisibleItemIndex == 0 && listState.firstVisibleItemScrollOffset == 0
+    }
+    if (shownSortOrder[0] != state.sortOrder || atTop) {
         listState.requestScrollToItem(0)
     }
     shownSortOrder[0] = state.sortOrder
