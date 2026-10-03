@@ -7,11 +7,14 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import app.cash.turbine.test
 import io.github.pxgray.clasp.data.ImportedLogo
 import io.github.pxgray.clasp.data.LogoImporter
+import io.github.pxgray.clasp.logo.CompositeLogoProvider
 import io.github.pxgray.clasp.logo.LogoCandidate
 import io.github.pxgray.clasp.logo.LogoNetworkException
 import io.github.pxgray.clasp.logo.LogoProvider
 import io.github.pxgray.clasp.logo.LogoQuery
 import io.github.pxgray.clasp.logo.LogoSource
+import io.github.pxgray.clasp.logo.SiteIconProvider
+import io.github.pxgray.clasp.logo.WikidataLogoProvider
 import io.github.pxgray.clasp.testing.FakeHttpFetcher
 import io.github.pxgray.clasp.testing.MainDispatcherRule
 import kotlinx.coroutines.CompletableDeferred
@@ -33,7 +36,7 @@ import java.io.ByteArrayOutputStream
 class LogoSearchViewModelTest {
     @get:Rule val main = MainDispatcherRule()
 
-    private val png = Bitmap.createBitmap(8, 8, Bitmap.Config.ARGB_8888).apply { eraseColor(Color.RED) }
+    private val png = Bitmap.createBitmap(64, 64, Bitmap.Config.ARGB_8888).apply { eraseColor(Color.RED) }
         .let { bitmap -> ByteArrayOutputStream().use { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it); it.toByteArray() } }
 
     private fun candidate(name: String, website: String? = null) = LogoCandidate(
@@ -88,11 +91,48 @@ class LogoSearchViewModelTest {
     }
 
     @Test
-    fun `no usable results is empty`() {
-        results = { listOf(candidate("missing")) }
+    fun `previews that fetch but don't decode are empty`() {
+        results = { listOf(candidate("broken")) }
+        fetcher.on("broken-preview", bytes = byteArrayOf(1, 2, 3))
         val vm = viewModel()
         vm.open("item", "Tesco", null)
         assertEquals(LogoSearchStatus.Empty, vm.state.value.status)
+    }
+
+    @Test
+    fun `previews that all fail to download are an error`() {
+        results = { listOf(candidate("missing")) }
+        val vm = viewModel()
+        vm.open("item", "Tesco", null)
+        assertEquals(LogoSearchStatus.Error, vm.state.value.status)
+    }
+
+    @Test
+    fun `offline with a website is an error, not empty`() {
+        // The site provider still guesses well-known icon paths when the homepage fails.
+        val offline = FakeHttpFetcher()
+        val real = CompositeLogoProvider(listOf(SiteIconProvider(offline), WikidataLogoProvider(offline, language = { "en" })))
+        val vm = LogoSearchViewModel(real, offline, importer, enabled, { }, main.dispatcher)
+        vm.open("item", "Tesco", "tesco.com")
+        assertEquals(LogoSearchStatus.Error, vm.state.value.status)
+    }
+
+    @Test
+    fun `a tiny preview is dropped`() {
+        results = { listOf(candidate("tiny")) }
+        fetcher.on("tiny-preview", bytes = pngOf(16, 16))
+        val vm = viewModel()
+        vm.open("item", "Tesco", null)
+        assertEquals(LogoSearchStatus.Empty, vm.state.value.status)
+    }
+
+    @Test
+    fun `a wide wordmark preview with a short side under the floor is kept`() {
+        results = { listOf(candidate("wordmark")) }
+        fetcher.on("wordmark-preview", bytes = pngOf(250, 40))
+        val vm = viewModel()
+        vm.open("item", "Tesco", null)
+        assertTrue(vm.state.value.status is LogoSearchStatus.Results)
     }
 
     @Test
@@ -132,7 +172,26 @@ class LogoSearchViewModelTest {
         }
         assertEquals("item", imported.single().first)
         assertArrayEquals(byteArrayOf(9, 9), imported.single().second)
+        // The tile keeps its spinner while the sheet slides away.
         assertFalse(vm.state.value.visible)
+        assertEquals(tile.candidate.imageUrl, vm.state.value.downloading)
+
+        vm.open("item", "Tesco", null)
+        assertNull(vm.state.value.downloading)
+    }
+
+    @Test
+    fun `closing after a pick clears the download`() = runTest {
+        results = { listOf(candidate("good")) }
+        fetcher.on("good-preview", bytes = png)
+        fetcher.on("img/good.png", bytes = byteArrayOf(9, 9))
+        val vm = viewModel()
+        vm.open("item", "Tesco", null)
+        vm.found.test {
+            vm.choose(candidate("good"))
+            awaitItem()
+        }
+        vm.close()
         assertNull(vm.state.value.downloading)
     }
 

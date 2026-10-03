@@ -26,7 +26,7 @@ interface LogoImporter {
     /** Copies the picked image into the item's directory as a square PNG. Null if it can't be read. */
     suspend fun import(itemId: String, uri: Uri): ImportedLogo?
 
-    /** Saves a downloaded image as the item's logo, padding wide or tall ones. Null if it can't be decoded. */
+    /** Saves a downloaded image as the item's logo, padding wide or tall ones. Null if it can't be decoded or is too small. */
     suspend fun importBytes(itemId: String, bytes: ByteArray): ImportedLogo?
 }
 
@@ -53,6 +53,7 @@ class AndroidLogoImporter(
         BitmapFactory.decodeByteArray(bytes, 0, bytes.size, bounds)
         val (width, height) = bounds.outWidth to bounds.outHeight
         if (width <= 0 || height <= 0 || max(width, height) > LogoLimits.MAX_SIDE) return@withContext null
+        if (LogoLimits.isTooSmall(width, height)) return@withContext null
         val options = BitmapFactory.Options().apply { inSampleSize = sampleSize(width, height, LOGO_SIZE) }
         val source = BitmapFactory.decodeByteArray(bytes, 0, bytes.size, options) ?: return@withContext null
         save(itemId, webLogo(source, LOGO_SIZE))
