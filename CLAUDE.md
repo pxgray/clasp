@@ -55,7 +55,7 @@ Cross-cutting patterns:
 
 ## Constraints and gotchas
 
-- F-Droid friendly: FOSS dependencies only (no Play Services, ML Kit, Firebase), network only through `logo/HttpFetcher`, only after the user turns on logo search, and only to free/open services (Wikidata/Wikimedia, the card's own website) — a proprietary provider would add F-Droid's `NonFreeNet` anti-feature, no build-time network beyond Gradle repos. New dependencies must be Apache-2.0-compatible and added to the list in `ui/settings/LicensesScreen.kt`.
+- F-Droid friendly: FOSS dependencies only (no Play Services, ML Kit, Firebase) and no build-time network beyond Gradle repos. At runtime, network goes only through `logo/HttpFetcher`, only after the user turns on logo search, and only to free/open services (Wikidata/Wikimedia, the card's own website); a proprietary provider would add F-Droid's `NonFreeNet` anti-feature. New dependencies must be Apache-2.0-compatible and added to the list in `ui/settings/LicensesScreen.kt`.
 - AGP 9 compiles Kotlin itself — don't apply `org.jetbrains.kotlin.android`. Material3 is pinned to a `1.5.0` alpha for the Expressive APIs; `ExposedDropdownMenu` must be imported explicitly.
 - User-visible strings go in `res/values/strings.xml`.
 - Untrusted input (`.pkpass` files, backups) goes through size caps and path validation — keep that when touching the importers.
