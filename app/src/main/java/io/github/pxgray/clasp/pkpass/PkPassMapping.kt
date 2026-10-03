@@ -50,6 +50,7 @@ fun PkPass.toWalletItem(id: String, createdAt: Instant, today: LocalDate): Walle
             secondaryFields = secondaryFields,
             auxiliaryFields = auxiliaryFields,
             backFields = backFields + listOfNotNull(unsupportedBarcodeText?.let { PassField("barcode", null, it) }),
+            date = relevantDate?.toLocalDate()?.toKotlinLocalDate(),
         ),
         createdAt = createdAt,
     )

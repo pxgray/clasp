@@ -43,6 +43,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import io.github.pxgray.clasp.R
 import io.github.pxgray.clasp.data.TakeoutError
+import io.github.pxgray.clasp.domain.ItemKind
 import io.github.pxgray.clasp.ui.components.WalletCard
 
 @Composable
@@ -146,7 +147,7 @@ private fun TakeoutRowItem(row: TakeoutRow, selected: Boolean, onToggle: () -> U
                 modifier = Modifier.weight(1f).alpha(if (selected) 1f else 0.55f),
             )
         }
-        row.status.note?.let { note ->
+        row.note?.let { note ->
             Text(
                 text = stringResource(note),
                 style = MaterialTheme.typography.labelMedium,
@@ -170,12 +171,12 @@ private fun Message(modifier: Modifier, content: @Composable () -> Unit) {
 }
 
 @get:StringRes
-private val TakeoutRowStatus.note: Int?
-    get() = when (this) {
+private val TakeoutRow.note: Int?
+    get() = when (status) {
         TakeoutRowStatus.NEW -> null
         TakeoutRowStatus.UPDATE -> R.string.takeout_status_update
         TakeoutRowStatus.DUPLICATE -> R.string.takeout_status_duplicate
-        TakeoutRowStatus.PAST -> R.string.takeout_status_past
+        TakeoutRowStatus.PAST -> if (item.kind == ItemKind.BOARDING_PASS) R.string.takeout_status_past else R.string.takeout_status_past_event
     }
 
 @get:StringRes

@@ -1,5 +1,13 @@
 package io.github.pxgray.clasp.ui.takeout
 
+import androidx.compose.ui.test.performScrollToNode
+import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.hasScrollAction
+import kotlin.time.Instant
+import io.github.pxgray.clasp.domain.WalletItem
+import io.github.pxgray.clasp.domain.PkPassStyle
+import io.github.pxgray.clasp.domain.ItemKind
+import io.github.pxgray.clasp.domain.ItemDetails
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -22,6 +30,13 @@ class TakeoutImportScreenTest {
             TakeoutRow(loyaltyItem(id = "ikea", title = "IKEA"), TakeoutRowStatus.NEW),
             TakeoutRow(loyaltyItem(id = "rei", title = "REI"), TakeoutRowStatus.DUPLICATE),
             TakeoutRow(boardingItem(id = "flight"), TakeoutRowStatus.PAST),
+            TakeoutRow(
+                WalletItem(
+                    id = "event", kind = ItemKind.PASS, title = "AMC Theatres",
+                    details = ItemDetails.Pass(PkPassStyle.EVENT_TICKET), createdAt = Instant.fromEpochMilliseconds(0),
+                ),
+                TakeoutRowStatus.PAST,
+            ),
         ),
         selected = setOf("ikea"),
     )
@@ -32,12 +47,15 @@ class TakeoutImportScreenTest {
         compose.setContent {
             ClaspTheme(dynamicColor = false) { TakeoutImportScreen(ready, onToggle = { toggled = it }, onConfirm = {}, onCancel = {}) }
         }
-        compose.onNodeWithText("Found 3 items. Choose what to add.").assertExists()
+        compose.onNodeWithText("Found 4 items. Choose what to add.").assertExists()
         compose.onNodeWithText("Already in your wallet").assertExists()
         compose.onNodeWithText("Past flight").assertExists()
         compose.onNodeWithText("Add 1 item").assertExists()
         compose.onNodeWithText("REI").performClick()
         assertEquals("rei", toggled)
+        // The last row starts off screen; lazy lists only create visible rows.
+        compose.onNode(hasScrollAction()).performScrollToNode(hasText("Past event"))
+        compose.onNodeWithText("Past event").assertExists()
     }
 
     @Test

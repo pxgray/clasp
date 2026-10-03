@@ -115,4 +115,18 @@ class TakeoutImportViewModelTest {
         }
         assertEquals(TakeoutImportState.Failed(TakeoutError.NO_PASSES), viewModel(FakeWalletRepository(), failing).state.value)
     }
+
+    @Test
+    fun `past events start unticked too`() {
+        val pastEvent = WalletItem(
+            id = "event",
+            kind = io.github.pxgray.clasp.domain.ItemKind.PASS,
+            title = "AMC Theatres",
+            details = ItemDetails.Pass(io.github.pxgray.clasp.domain.PkPassStyle.EVENT_TICKET, date = LocalDate(2024, 3, 1)),
+            createdAt = Instant.fromEpochMilliseconds(0),
+        )
+        val state = viewModel(FakeWalletRepository(), importer(listOf(newCard, pastEvent))).state.value as TakeoutImportState.Ready
+        assertEquals(TakeoutRowStatus.PAST, state.rows.single { it.item.id == "event" }.status)
+        assertEquals(setOf("new"), state.selected)
+    }
 }

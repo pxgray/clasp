@@ -106,4 +106,27 @@ class TakeoutMappingTest {
         assertEquals(pass().toWalletItem(now, today).id, pass().toWalletItem(now, today).id)
         assertNotEquals(pass().toWalletItem(now, today).id, pass(issuer = "Sheetz").toWalletItem(now, today).id)
     }
+
+    @Test
+    fun `an event's date comes from its date field`() {
+        val item = pass(
+            issuer = "AMC Theatres",
+            title = "Dune: Part Two",
+            fields = listOf(
+                PassField("start_date_time", "Start Date/Time", "Friday, March 1, 2024, 2:10:00 PM -05:00"),
+                PassField("seats", "Seats", "L18, L16"),
+            ),
+            barcode = Barcode("0123456789", BarcodeFormat.QR),
+        ).toWalletItem(now, today)
+        assertEquals(LocalDate(2024, 3, 1), (item.details as ItemDetails.Pass).date)
+    }
+
+    @Test
+    fun `dates are read in common written forms`() {
+        assertEquals(LocalDate(2024, 3, 1), parseFieldDate("Friday, March 1, 2024, 2:10:00 PM -05:00"))
+        assertEquals(LocalDate(2026, 11, 22), parseFieldDate("Nov 22, 2026"))
+        assertEquals(LocalDate(2026, 11, 22), parseFieldDate("2026-11-22T19:30:00-05:00"))
+        assertEquals(LocalDate(2026, 11, 22), parseFieldDate("22 November 2026"))
+        assertNull(parseFieldDate("L18, L16"))
+    }
 }

@@ -43,7 +43,7 @@ enum class TakeoutRowStatus {
     /** A different item in the wallet already has this barcode. */
     DUPLICATE,
 
-    /** A boarding pass whose flight has already left. */
+    /** A boarding pass whose flight has left, or a pass whose event is over. */
     PAST,
 }
 
@@ -89,11 +89,15 @@ class TakeoutImportViewModel(
                     val walletBarcodes = wallet.mapNotNull { it.barcode?.value }.toSet()
                     val today = clock.now().toLocalDateTime(timeZone).date
                     val rows = result.items.map { item ->
-                        val departure = (item.details as? ItemDetails.BoardingPass)?.departureDate
+                        val date = when (val details = item.details) {
+                            is ItemDetails.BoardingPass -> details.departureDate
+                            is ItemDetails.Pass -> details.date
+                            is ItemDetails.Loyalty -> null
+                        }
                         val status = when {
                             item.id in existingById -> TakeoutRowStatus.UPDATE
                             item.barcode?.value in walletBarcodes -> TakeoutRowStatus.DUPLICATE
-                            departure != null && departure < today -> TakeoutRowStatus.PAST
+                            date != null && date < today -> TakeoutRowStatus.PAST
                             else -> TakeoutRowStatus.NEW
                         }
                         TakeoutRow(item, status)
