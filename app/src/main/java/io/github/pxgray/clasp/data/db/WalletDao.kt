@@ -24,4 +24,7 @@ interface WalletDao {
 
     @Query("UPDATE wallet_items SET lastUsedAt = :at WHERE id = :id")
     suspend fun markUsed(id: String, at: Long)
+
+    @Query("UPDATE wallet_items SET isFavorite = :favorite WHERE id = :id")
+    suspend fun setFavorite(id: String, favorite: Boolean)
 }

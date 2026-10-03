@@ -15,4 +15,5 @@ interface WalletRepository {
     /** Removes the item and all of its files. */
     suspend fun delete(id: String)
     suspend fun markUsed(id: String, at: Instant)
+    suspend fun setFavorite(id: String, favorite: Boolean)
 }

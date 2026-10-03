@@ -33,4 +33,6 @@ class RoomWalletRepository(
     }
 
     override suspend fun markUsed(id: String, at: Instant) = dao.markUsed(id, at.toEpochMilliseconds())
+
+    override suspend fun setFavorite(id: String, favorite: Boolean) = dao.setFavorite(id, favorite)
 }

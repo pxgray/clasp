@@ -15,6 +15,8 @@ data class WalletItem(
     val details: ItemDetails,
     val createdAt: Instant,
     val lastUsedAt: Instant? = null,
+    /** Starred items are listed first on the home screen. */
+    val isFavorite: Boolean = false,
 )
 
 enum class ItemKind { LOYALTY, BOARDING_PASS, PASS }

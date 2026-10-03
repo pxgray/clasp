@@ -18,6 +18,7 @@ fun loyaltyItem(
     lastUsedAt: Instant? = null,
     brandColor: Int? = null,
     logoPath: String? = null,
+    isFavorite: Boolean = false,
 ) = WalletItem(
     id = id,
     kind = ItemKind.LOYALTY,
@@ -28,12 +29,14 @@ fun loyaltyItem(
     details = ItemDetails.Loyalty(cardNumber = cardNumber, memberName = memberName),
     createdAt = createdAt,
     lastUsedAt = lastUsedAt,
+    isFavorite = isFavorite,
 )
 
 fun boardingItem(
     id: String = "bp-1",
     createdAt: Instant = Instant.fromEpochMilliseconds(1_000),
     lastUsedAt: Instant? = null,
+    isFavorite: Boolean = false,
 ) = WalletItem(
     id = id,
     kind = ItemKind.BOARDING_PASS,
@@ -50,4 +53,5 @@ fun boardingItem(
     ),
     createdAt = createdAt,
     lastUsedAt = lastUsedAt,
+    isFavorite = isFavorite,
 )
