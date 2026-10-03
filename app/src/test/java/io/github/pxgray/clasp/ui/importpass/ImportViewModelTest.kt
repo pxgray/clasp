@@ -86,6 +86,7 @@ class ImportViewModelTest {
         val original = passItem(createdAt = 1_000).copy(
             logoPath = "items/pass-1/logo-0.png",
             lastUsedAt = Instant.fromEpochMilliseconds(2_000),
+            isFavorite = true,
         )
         repository.items.value = listOf(original)
         val vm = viewModel()
@@ -97,6 +98,7 @@ class ImportViewModelTest {
         val updated = repository.items.value.single()
         assertEquals(original.createdAt, updated.createdAt)
         assertEquals(original.lastUsedAt, updated.lastUsedAt)
+        assertTrue(updated.isFavorite)
         assertEquals("items/pass-1/logo-1.png", updated.logoPath)
         assertFalse(files.resolve("items/pass-1/logo-0.png").exists())
     }
