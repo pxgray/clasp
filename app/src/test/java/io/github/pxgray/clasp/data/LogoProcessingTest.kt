@@ -73,4 +73,46 @@ class LogoProcessingTest {
         val importer = AndroidLogoImporter(resolver, ItemFiles(tmp.root))
         assertNull(importer.import("abc", uri))
     }
+
+    private fun png(width: Int, height: Int, color: Int): ByteArray {
+        val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888).apply { eraseColor(color) }
+        return java.io.ByteArrayOutputStream().use { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it); it.toByteArray() }
+    }
+
+    private fun importer() = AndroidLogoImporter(
+        resolver,
+        ItemFiles(File(tmp.root, "files")),
+        object : Clock { override fun now() = Instant.fromEpochMilliseconds(7) },
+    )
+
+    @Test
+    fun `importBytes crops a square image edge to edge`() = runTest {
+        val logo = importer().importBytes("a", png(300, 300, Color.RED))!!
+        assertEquals("items/a/logo-7.png", logo.path)
+        val saved = android.graphics.BitmapFactory.decodeFile(File(tmp.root, "files/${logo.path}").path)
+        assertEquals(512, saved.width)
+        assertEquals(Color.RED, saved.getPixel(0, 0))
+    }
+
+    @Test
+    fun `importBytes pads a wordmark on white instead of cropping it`() = runTest {
+        val logo = importer().importBytes("a", png(400, 100, Color.BLUE))!!
+        val saved = android.graphics.BitmapFactory.decodeFile(File(tmp.root, "files/${logo.path}").path)
+        assertEquals(512, saved.height)
+        assertEquals(Color.WHITE, saved.getPixel(0, 0))
+        assertEquals(Color.BLUE, saved.getPixel(256, 256))
+    }
+
+    @Test
+    fun `importBytes puts transparent icons on white`() = runTest {
+        val logo = importer().importBytes("a", png(200, 200, Color.TRANSPARENT))!!
+        val saved = android.graphics.BitmapFactory.decodeFile(File(tmp.root, "files/${logo.path}").path)
+        assertEquals(Color.WHITE, saved.getPixel(10, 10))
+    }
+
+    @Test
+    fun `importBytes rejects garbage and oversized images`() = runTest {
+        assertNull(importer().importBytes("a", byteArrayOf(1, 2, 3)))
+        assertNull(importer().importBytes("a", png(5000, 10, Color.RED)))
+    }
 }
