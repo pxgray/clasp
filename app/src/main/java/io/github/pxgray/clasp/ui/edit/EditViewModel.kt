@@ -15,6 +15,7 @@ import io.github.pxgray.clasp.data.LogoImporter
 import io.github.pxgray.clasp.data.WalletRepository
 import io.github.pxgray.clasp.domain.Barcode
 import io.github.pxgray.clasp.domain.BarcodeFormat
+import io.github.pxgray.clasp.logo.websiteHost
 import io.github.pxgray.clasp.ui.navigation.Destination
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
@@ -102,7 +103,8 @@ class EditViewModel(
             it.copy(
                 logoPath = logo.path,
                 brandColor = logo.brandColor ?: it.brandColor,
-                website = if (it.website.isBlank() && website != null) website else it.website,
+                // The source's website is untrusted; only a plausible public web address fills the field.
+                website = if (it.website.isBlank() && website != null && websiteHost(website) != null) website else it.website,
             )
         }
     }

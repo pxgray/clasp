@@ -160,4 +160,14 @@ class EditViewModelTest {
         vm.onLogoFound(ImportedLogo("items/new-id/logo-5.png", null), "https://www.tesco.com")
         assertEquals("tesco.ie", vm.state.value!!.website)
     }
+
+    @Test
+    fun `a found logo's website is ignored unless it is a public web address`() {
+        listOf("javascript:x", "ftp://files.tesco.com/", "https://localhost/").forEach { website ->
+            val vm = viewModel()
+            vm.onLogoFound(ImportedLogo("items/new-id/logo-5.png", null), website)
+            assertEquals("items/new-id/logo-5.png", vm.state.value!!.logoPath)
+            assertEquals(website, "", vm.state.value!!.website)
+        }
+    }
 }
