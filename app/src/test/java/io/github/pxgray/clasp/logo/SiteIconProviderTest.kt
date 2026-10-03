@@ -76,4 +76,22 @@ class SiteIconProviderTest {
             urls(),
         )
     }
+
+    @Test
+    fun `an overflowing sizes value is treated as unsized`() = runTest {
+        fetcher.on("https://tesco.com/", contentType = "text/html", body = """<head><link rel="icon" sizes="99999999999x99999999999" href="/huge.png"></head>""")
+        assertEquals(
+            listOf("https://tesco.com/huge.png", "https://tesco.com/apple-touch-icon.png", "https://tesco.com/favicon.ico"),
+            urls(),
+        )
+    }
+
+    @Test
+    fun `an unsized declared icon ranks before the guessed fallbacks`() = runTest {
+        fetcher.on("https://tesco.com/", contentType = "text/html", body = """<head><link rel="icon" href="/declared.png"></head>""")
+        assertEquals(
+            listOf("https://tesco.com/declared.png", "https://tesco.com/apple-touch-icon.png", "https://tesco.com/favicon.ico"),
+            urls(),
+        )
+    }
 }
