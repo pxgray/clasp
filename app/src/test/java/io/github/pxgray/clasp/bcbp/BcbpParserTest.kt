@@ -62,4 +62,20 @@ class BcbpParserTest {
         assertNull(BcbpParser.parse(bcbpString("DOE/JANE", bcbpLeg(from = "Y1L"))))
         assertNull(BcbpParser.parse(bcbpString("DOE/JANE", bcbpLeg(flight = "0000"))))
     }
+
+    @Test
+    fun `reads the issue date from the conditional section`() {
+        // Version 3 unique section: passenger description, check-in source, issuance source, issue date (YDDD), …
+        val unique = "1WW5318B DL "
+        val raw = bcbpString("DOE/JANE", bcbpLeg(conditional = ">3" + "%02X".format(unique.length) + unique))
+        assertEquals(BcbpIssueDate(yearDigit = 5, dayOfYear = 318), BcbpParser.parse(raw)!!.issueDate)
+    }
+
+    @Test
+    fun `a blank issue date is ignored`() {
+        val unique = "  W    DL "
+        val raw = bcbpString("DOE/JANE", bcbpLeg(conditional = ">3" + "%02X".format(unique.length) + unique))
+        assertNull(BcbpParser.parse(raw)!!.issueDate)
+        assertNull(BcbpParser.parse(BCBP_SAMPLE)!!.issueDate)
+    }
 }
