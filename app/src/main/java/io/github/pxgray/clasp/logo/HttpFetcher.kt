@@ -44,7 +44,10 @@ object LogoLimits {
 
 class HttpResponse(val body: ByteArray, val contentType: String?, val url: String)
 
-class LogoNetworkException(message: String, cause: Throwable? = null) : IOException(message, cause)
+open class LogoNetworkException(message: String, cause: Throwable? = null) : IOException(message, cause)
+
+/** The server was reached but answered with an error status, such as 404 for a missing icon. */
+class HttpStatusException(val code: Int, url: String) : LogoNetworkException("HTTP $code for $url")
 
 /** The only way Clasp talks to the network. */
 interface HttpFetcher {
@@ -135,7 +138,7 @@ class UrlConnectionHttpFetcher(
                         contentType = connection.contentType,
                         url = current.toString(),
                     )
-                    else -> throw LogoNetworkException("HTTP $code for $current")
+                    else -> throw HttpStatusException(code, current.toString())
                 }
             } catch (e: LogoNetworkException) {
                 throw e

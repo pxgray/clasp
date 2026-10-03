@@ -102,15 +102,38 @@ class LogoSearchViewModelTest {
     @Test
     fun `previews that all fail to download are an error`() {
         results = { listOf(candidate("missing")) }
+        fetcher.offline = true
         val vm = viewModel()
         vm.open("item", "Tesco", null)
         assertEquals(LogoSearchStatus.Error, vm.state.value.status)
     }
 
     @Test
+    fun `previews that are all missing are empty`() {
+        results = { listOf(candidate("missing")) }
+        val vm = viewModel()
+        vm.open("item", "Tesco", null)
+        assertEquals(LogoSearchStatus.Empty, vm.state.value.status)
+    }
+
+    @Test
+    fun `a reachable site whose icons are missing, and no Wikidata hits, is empty`() {
+        val site = FakeHttpFetcher()
+        site.on("https://tesco.com/", body = "<html><head></head></html>", contentType = "text/html")
+        site.status("/apple-touch-icon.png", status = 404)
+        site.status("/favicon.ico", status = 404)
+        site.on("action=wbsearchentities", body = """{"search":[]}""")
+        val real = CompositeLogoProvider(listOf(SiteIconProvider(site), WikidataLogoProvider(site, language = { "en" })))
+        val vm = LogoSearchViewModel(real, site, importer, enabled, { }, main.dispatcher)
+        vm.open("item", "Tesco", "tesco.com")
+        assertTrue(site.requests.any { it.endsWith("/favicon.ico") })
+        assertEquals(LogoSearchStatus.Empty, vm.state.value.status)
+    }
+
+    @Test
     fun `offline with a website is an error, not empty`() {
         // The site provider still guesses well-known icon paths when the homepage fails.
-        val offline = FakeHttpFetcher()
+        val offline = FakeHttpFetcher().apply { this.offline = true }
         val real = CompositeLogoProvider(listOf(SiteIconProvider(offline), WikidataLogoProvider(offline, language = { "en" })))
         val vm = LogoSearchViewModel(real, offline, importer, enabled, { }, main.dispatcher)
         vm.open("item", "Tesco", "tesco.com")

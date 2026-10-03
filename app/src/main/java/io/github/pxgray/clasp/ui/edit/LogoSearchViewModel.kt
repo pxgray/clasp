@@ -12,6 +12,7 @@ import io.github.pxgray.clasp.ClaspApplication
 import io.github.pxgray.clasp.data.ImportedLogo
 import io.github.pxgray.clasp.data.LogoImporter
 import io.github.pxgray.clasp.logo.HttpFetcher
+import io.github.pxgray.clasp.logo.HttpStatusException
 import io.github.pxgray.clasp.logo.LogoCandidate
 import io.github.pxgray.clasp.logo.LogoLimits
 import io.github.pxgray.clasp.logo.LogoProvider
@@ -145,9 +146,11 @@ class LogoSearchViewModel(
             }
             val tiles = previews.mapNotNull { it.getOrNull() }
             // Offline, the site provider still offers guessed URLs, so only failed downloads tell.
+            // An error status means the server was reached and the icon just isn't there.
             val status = when {
                 tiles.isNotEmpty() -> LogoSearchStatus.Results(tiles)
-                previews.any { it.isFailure } -> LogoSearchStatus.Error
+                previews.any { it.exceptionOrNull().let { e -> e != null && e !is HttpStatusException } } ->
+                    LogoSearchStatus.Error
                 else -> LogoSearchStatus.Empty
             }
             _state.update { it.copy(status = status) }
@@ -185,7 +188,7 @@ class LogoSearchViewModel(
         _state.update { it.copy(visible = false, downloading = null) }
     }
 
-    /** A failure if the preview couldn't be downloaded; null if it downloaded but isn't usable. */
+    /** A failure if the preview couldn't be downloaded (an [HttpStatusException] if it's missing); null if it isn't usable. */
     private suspend fun tile(candidate: LogoCandidate): Result<LogoTile?> {
         val body = try {
             fetcher.fetch(candidate.previewUrl, LogoLimits.PREVIEW).body
