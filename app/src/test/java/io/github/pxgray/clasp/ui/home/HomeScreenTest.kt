@@ -21,11 +21,16 @@ import org.junit.runner.RunWith
 class HomeScreenTest {
     @get:Rule val compose = createComposeRule()
 
-    private fun show(state: HomeUiState, onSortOrderChange: (SortOrder) -> Unit = {}) = compose.setContent {
+    private fun show(
+        state: HomeUiState,
+        onSortOrderChange: (SortOrder) -> Unit = {},
+        onFavoriteChange: (String, Boolean) -> Unit = { _, _ -> },
+    ) = compose.setContent {
         ClaspTheme(dynamicColor = false) {
             HomeScreen(
                 state, SnackbarHostState(), onOpenItem = {}, onScan = {}, onImport = {}, onImportGoogleWallet = {},
                 onAddManually = {}, onOpenSettings = {}, onSortOrderChange = onSortOrderChange,
+                onFavoriteChange = onFavoriteChange,
             )
         }
     }
@@ -95,6 +100,7 @@ class HomeScreenTest {
                 HomeScreen(
                     state.value, SnackbarHostState(), onOpenItem = {}, onScan = {}, onImport = {},
                     onImportGoogleWallet = {}, onAddManually = {}, onOpenSettings = {}, onSortOrderChange = {},
+                    onFavoriteChange = { _, _ -> },
                 )
             }
         }
@@ -102,5 +108,27 @@ class HomeScreenTest {
         state.value = HomeUiState(loading = false, sortOrder = SortOrder.NAME_A_TO_Z, cards = cards.reversed())
         compose.waitForIdle()
         compose.onNodeWithText("Card 9").assertIsDisplayed()
+    }
+
+    @Test
+    fun `favorites get their own labelled section`() {
+        show(HomeUiState(loading = false, favorites = listOf(loyaltyItem(id = "f", title = "Fav", isFavorite = true)), cards = listOf(loyaltyItem())))
+        compose.onNodeWithText("Favorites").assertIsDisplayed()
+        compose.onNodeWithText("Loyalty cards").assertIsDisplayed()
+    }
+
+    @Test
+    fun `favorites only shows no section labels`() {
+        show(HomeUiState(loading = false, favorites = listOf(loyaltyItem(isFavorite = true))))
+        compose.onNodeWithText("Costco").assertIsDisplayed()
+        compose.onNodeWithText("Favorites").assertDoesNotExist()
+    }
+
+    @Test
+    fun `starring a card reports its id`() {
+        var starred: Pair<String, Boolean>? = null
+        show(HomeUiState(loading = false, cards = listOf(loyaltyItem(id = "c"))), onFavoriteChange = { id, fav -> starred = id to fav })
+        compose.onNodeWithContentDescription("Add to favorites").performClick()
+        assertEquals("c" to true, starred)
     }
 }
