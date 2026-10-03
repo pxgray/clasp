@@ -16,6 +16,13 @@ import io.github.pxgray.clasp.data.backup.DocumentStreams
 import io.github.pxgray.clasp.data.backup.WalletBackup
 import io.github.pxgray.clasp.data.WalletRepository
 import io.github.pxgray.clasp.data.db.ClaspDatabase
+import io.github.pxgray.clasp.logo.CompositeLogoProvider
+import io.github.pxgray.clasp.logo.HttpFetcher
+import io.github.pxgray.clasp.logo.LogoProvider
+import io.github.pxgray.clasp.logo.SiteIconProvider
+import io.github.pxgray.clasp.logo.UrlConnectionHttpFetcher
+import io.github.pxgray.clasp.logo.WikidataLogoProvider
+import kotlinx.coroutines.flow.first
 import kotlin.time.Clock
 
 class AppContainer(context: Context) {
@@ -30,4 +37,18 @@ class AppContainer(context: Context) {
     val importInbox = ImportInbox()
     val walletBackup = WalletBackup(repository, itemFiles)
     val documents: DocumentStreams = AndroidDocumentStreams(context.contentResolver)
+
+    private val versionName = context.packageManager.getPackageInfo(context.packageName, 0).versionName.orEmpty()
+
+    /** Refuses every request unless the user has turned on logo search. */
+    val httpFetcher: HttpFetcher = UrlConnectionHttpFetcher(
+        isAllowed = { settings.settings.first().logoSearchEnabled },
+        // Wikimedia asks API clients to identify themselves.
+        userAgent = "Clasp/$versionName (https://github.com/pxgray/clasp)",
+    )
+
+    /** Website icons first: when the user gave a website, they are the likeliest exact match. */
+    val logoProvider: LogoProvider = CompositeLogoProvider(
+        listOf(SiteIconProvider(httpFetcher), WikidataLogoProvider(httpFetcher)),
+    )
 }
