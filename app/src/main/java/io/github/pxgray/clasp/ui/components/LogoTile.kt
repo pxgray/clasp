@@ -8,7 +8,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -46,7 +46,8 @@ fun LogoTile(
     invertMonogram: Boolean = false,
     logoOutline: Color? = null,
 ) {
-    val shape = RoundedCornerShape(size * 0.3f)
+    // Circles, like Google Wallet: brand logos (including the ones Takeout exports) are designed for them.
+    val shape = CircleShape
     val logo = rememberLogo(logoPath)
     val brand = brandColor?.let(::Color) ?: MaterialTheme.colorScheme.primaryContainer
     val onBrand = if (brandColor != null) contentColorOn(brand) else MaterialTheme.colorScheme.onPrimaryContainer
