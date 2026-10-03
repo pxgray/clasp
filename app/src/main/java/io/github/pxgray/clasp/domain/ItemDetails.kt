@@ -44,6 +44,8 @@ sealed interface ItemDetails {
         val secondaryFields: List<PassField> = emptyList(),
         val auxiliaryFields: List<PassField> = emptyList(),
         val backFields: List<PassField> = emptyList(),
+        /** When the pass is for (an event's date), if known. */
+        val date: LocalDate? = null,
     ) : ItemDetails
 }
 

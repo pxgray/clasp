@@ -91,4 +91,11 @@ class PkPassMappingTest {
         assertEquals(pass(EVENT_TICKET_JSON).walletId(), pass(EVENT_TICKET_JSON).walletId())
         assertNotEquals(pass(EVENT_TICKET_JSON).walletId(), pass(BOARDING_PASS_JSON).walletId())
     }
+
+    @Test
+    fun `passes keep their relevant date`() {
+        val json = EVENT_TICKET_JSON.replace("\"logoText\": \"Example Arena\",", "\"logoText\": \"Example Arena\",\n  \"relevantDate\": \"2026-11-22T19:30-05:00\",")
+        val details = pass(json).toWalletItem("id", now, today).details as ItemDetails.Pass
+        assertEquals(LocalDate(2026, 11, 22), details.date)
+    }
 }

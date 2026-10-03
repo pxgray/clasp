@@ -18,6 +18,7 @@ import kotlin.time.Instant
 private val ID_FIELD = Regex("(?i)\\b(member|card|account|membership|customer|rewards|loyalty)\\b.*\\b(id|number|no|#)\\b")
 private val LOYALTY_TITLE = Regex("(?i)membership|rewards|loyalty|\\bclub\\b|\\bperks\\b|friends|\\bcard\\b")
 private val EVENT_FIELD = Regex("(?i)seat|ticket|venue|admission")
+private val DATE_FIELD = Regex("(?i)date|start|when")
 /** Boarding pass fields the boarding pass layout already shows. */
 private val SHOWN_BY_BOARDING_PASS = Regex("(?i)confirmation|flight number|city|airport|passenger|seat")
 private const val SHORT_FIELD_LENGTH = 40
@@ -74,6 +75,9 @@ fun TakeoutPass.toWalletItem(createdAt: Instant, today: LocalDate): WalletItem {
             primaryFields = listOfNotNull(title?.let { PassField("title", null, it) }),
             secondaryFields = short,
             backFields = long,
+            date = fields.firstNotNullOfOrNull { field ->
+                field.takeIf { DATE_FIELD.containsMatchIn(it.label.orEmpty()) }?.value?.let(::parseFieldDate)
+            },
         ),
         createdAt = createdAt,
     )

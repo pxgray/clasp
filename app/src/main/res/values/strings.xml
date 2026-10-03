@@ -128,6 +128,7 @@
     <string name="takeout_status_update">Updates a card you already have</string>
     <string name="takeout_status_duplicate">Already in your wallet</string>
     <string name="takeout_status_past">Past flight</string>
+    <string name="takeout_status_past_event">Past event</string>
     <plurals name="takeout_found">
         <item quantity="one">Found 1 item. Choose what to add.</item>
         <item quantity="other">Found %d items. Choose what to add.</item>
