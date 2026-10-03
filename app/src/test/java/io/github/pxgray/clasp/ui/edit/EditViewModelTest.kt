@@ -40,6 +40,7 @@ class EditViewModelTest {
             files.write(path, byteArrayOf(1))
             return ImportedLogo(path, brandColor = 0xFFFF0000.toInt())
         }
+        override suspend fun importBytes(itemId: String, bytes: ByteArray): ImportedLogo? = null
     }
 
     private fun viewModel(itemId: String? = null) =
