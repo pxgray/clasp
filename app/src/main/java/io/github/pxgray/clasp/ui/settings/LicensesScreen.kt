@@ -35,6 +35,7 @@ private val LIBRARIES = listOf(
     OpenSourceLibrary("Kotlin standard library", "Apache License 2.0"),
     OpenSourceLibrary("kotlinx.coroutines, kotlinx.serialization, kotlinx-datetime", "Apache License 2.0"),
     OpenSourceLibrary("ZXing (barcode encoding and decoding)", "Apache License 2.0"),
+    OpenSourceLibrary("PdfBox-Android (reading Google Wallet exports)", "Apache License 2.0"),
     OpenSourceLibrary("Material Design icons", "Apache License 2.0"),
 )
 

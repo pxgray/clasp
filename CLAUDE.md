@@ -38,6 +38,7 @@ Single `:app` module, package `io.github.pxgray.clasp`:
 - `domain/` — pure model. `WalletItem` has an `ItemKind` (`LOYALTY`, `BOARDING_PASS`, `PASS`) and a sealed `ItemDetails` (`Loyalty`, `BoardingPass`, `Pass`) that is stored as a JSON column (`WalletJson` in `data/db/Converters.kt`, `type` discriminator). Changing `ItemDetails` fields changes stored and backed-up JSON.
 - `data/` — `WalletRepository` (Room implementation + test fake), `ItemFiles` (per-item files under `filesDir/items/<id>/`), logo import, `.pkpass` import, `SettingsRepository` (DataStore), `backup/WalletBackup` (zip of `wallet.json` + item files).
 - `barcode/` (ZXing encode/decode, quiet zones), `bcbp/` (IATA boarding-pass barcode parser), `pkpass/` (zip → `PkPass` → `WalletItem`) — pure JVM, no Android UI.
+- `takeout/` — Google Takeout "Google Wallet" PDF import: `TakeoutPdfReader` (PdfBox-Android: positioned text + embedded images) → `TakeoutParser` (groups by logo; issuer/title/fields by font size and column; decodes barcode images) → `TakeoutMapping` (`WalletItem`). Tests build synthetic PDFs with PdfBox; never commit real exports.
 - `ui/` — one package per screen; each `XRoute` composable binds a ViewModel to a stateless `XScreen`.
 
 Cross-cutting patterns:
@@ -46,6 +47,7 @@ Cross-cutting patterns:
 - **Navigation**: type-safe `Destination` routes in `ClaspNavHost`, wrapped in `SharedTransitionLayout`. The card → detail transition uses `Modifier.sharedCardBounds(id)` / `sharedLogo(id)`, which are no-ops outside the nav host (previews, tests, the edit preview card passes `sharedKey = null`).
 - **Delete with undo**: Detail puts the id into the Home back-stack entry's `savedStateHandle`; `HomeViewModel` hides it as a pending delete and commits it when the snackbar is dismissed.
 - **Scan → edit**: the scanner navigates to `Destination.Edit(scannedValue, scannedFormat)`; `EditFormState.fromScan` decides boarding pass (BCBP) vs loyalty card. Scanned values are stored byte-for-byte — never trim a BCBP value.
+- **Google Wallet import**: `Destination.TakeoutImport(uri)` → `TakeoutImportViewModel` previews everything found; duplicates (same barcode) and past flights start unticked; unselected items' preview logo files are deleted.
 - **Incoming passes**: `MainActivity` (singleTop) puts `ACTION_VIEW` URIs into `ImportInbox`; `ClaspNavHost` pops to Home, whose `ImportViewModel` shows the preview sheet. pkpass item ids derive from `passTypeIdentifier`/`serialNumber`, so re-imports update rather than duplicate.
 - **Logos**: written as `items/<id>/logo-<timestamp>.png` (unique per import, cached by path in `LogoTile`); after save/cancel, `ItemFiles.pruneLogos` removes the unused ones.
 - **Theme**: `MainActivity` waits for `SettingsRepository` before drawing, resolves light/dark, and restyles the system bars. Screens with custom-colored headers use `SystemBarIconsEffect`.
