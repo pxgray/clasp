@@ -199,7 +199,7 @@ private fun DetailFields(item: WalletItem, modifier: Modifier = Modifier) {
             // The card number is already shown under the barcode.
             is ItemDetails.Loyalty -> {
                 details.memberName?.let { LabeledValue(stringResource(R.string.detail_member_name), it) }
-                details.notes?.let { LabeledValue(stringResource(R.string.detail_notes), it) }
+                details.notes?.let { LabeledValue(stringResource(R.string.detail_notes), it, linkify = true) }
             }
             is ItemDetails.BoardingPass -> BoardingPassDetails(details)
             is ItemDetails.Pass -> PassDetails(details)
