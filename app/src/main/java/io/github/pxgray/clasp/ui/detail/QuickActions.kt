@@ -35,12 +35,13 @@ fun websiteUri(raw: String): String? {
 
 /**
  * A `tel:` URI for a number as typed, or null if it has no digit. Keeps digits and `+ * # , ;`
- * (pauses and waits); letters become keypad digits, so `1-800-COSTCO` dials.
+ * (pauses and waits); letters become keypad digits, so `1-800-COSTCO` dials. An extension marker
+ * (`x`, `ext`, `ext.`) between digits becomes a pause, so `555-1234 x12` dials 5551234,12.
  */
 fun telUri(raw: String): String? {
     if (raw.none { it in '0'..'9' }) return null
     val dialable = buildString {
-        raw.forEach { c ->
+        raw.replace(EXTENSION, ",").forEach { c ->
             val upper = c.uppercaseChar()
             when {
                 c in '0'..'9' || c in "+*,;" -> append(c)
@@ -51,6 +52,8 @@ fun telUri(raw: String): String? {
     }
     return "tel:$dialable"
 }
+
+private val EXTENSION = Regex("""(?<=\d)\s*(?:ext\.?|x)\s*(?=\d)""", RegexOption.IGNORE_CASE)
 
 private const val KEYPAD = "22233344455566677778889999"
 

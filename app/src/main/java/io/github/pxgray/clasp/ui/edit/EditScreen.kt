@@ -256,7 +256,11 @@ fun EditScreen(
                 onValueChange = { value -> onUpdate { it.copy(phone = value) } },
                 label = { Text(stringResource(R.string.edit_phone)) },
                 singleLine = true,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone, imeAction = ImeAction.Next),
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Phone,
+                    autoCorrectEnabled = false,
+                    imeAction = ImeAction.Next,
+                ),
                 modifier = Modifier.fillMaxWidth().testTag("edit_phone"),
             )
 

@@ -8,7 +8,9 @@ import androidx.core.net.toUri
 
 /**
  * Opens detail-screen links in other apps: `tel:` prefills the dialer (no call permission needed),
- * anything else is viewed. [onNoApp] runs instead of a crash when nothing handles the link.
+ * anything else is viewed. [onNoApp] runs instead of a crash when nothing handles the link
+ * or the handler refuses it (a resolved but non-exported or permission-guarded activity throws
+ * [SecurityException]).
  */
 class IntentUriHandler(private val context: Context, private val onNoApp: () -> Unit) : UriHandler {
     override fun openUri(uri: String) {
@@ -16,6 +18,8 @@ class IntentUriHandler(private val context: Context, private val onNoApp: () -> 
         try {
             context.startActivity(Intent(action, uri.toUri()))
         } catch (_: ActivityNotFoundException) {
+            onNoApp()
+        } catch (_: SecurityException) {
             onNoApp()
         }
     }

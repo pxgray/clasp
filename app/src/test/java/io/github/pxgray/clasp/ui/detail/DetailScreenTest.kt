@@ -185,6 +185,7 @@ class DetailScreenTest {
     @Test
     fun `a loyalty card offers website, nearby and call`() {
         showDetail(loyaltyItem(title = "Costco", website = "costco.com", phone = "1-800-774-2678"))
+        compose.onNodeWithTag("quick_actions").assertExists()
         compose.onNodeWithContentDescription("Open website").performClick()
         compose.onNodeWithContentDescription("Find Costco nearby").performClick()
         compose.onNodeWithContentDescription("Call 1-800-774-2678").performClick()
