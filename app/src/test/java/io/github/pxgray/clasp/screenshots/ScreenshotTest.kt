@@ -5,12 +5,15 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.github.takahirom.roborazzi.RobolectricDeviceQualifiers
@@ -72,7 +75,10 @@ class ScreenshotTest {
         loading = false,
         passes = listOf(boardingItem(), concert),
         cards = listOf(
-            loyaltyItem(id = "c1", title = "Costco", cardNumber = "111222333444", programName = "Executive Membership", brandColor = 0xFFD32F2F.toInt()),
+            loyaltyItem(
+                id = "c1", title = "Costco", cardNumber = "111222333444", programName = "Executive Membership",
+                brandColor = 0xFFD32F2F.toInt(), website = "costco.com", phone = "1-800-774-2678",
+            ),
             loyaltyItem(id = "c2", title = "Blue Bottle Coffee", memberName = "Jane Doe", brandColor = 0xFF1565C0.toInt()),
             loyaltyItem(id = "c3", title = "Library card", cardNumber = "29384756"),
         ),
@@ -100,7 +106,21 @@ class ScreenshotTest {
 
     @Test fun detailLoyaltyLight() = snap("detail_loyalty") { DetailContent(wallet.cards.first()) }
     @Test fun detailLoyaltyDark() = snap("detail_loyalty_dark", dark = true) { DetailContent(wallet.cards.first()) }
-    @Test fun detailBoardingPass() = snap("detail_boarding_pass") { DetailContent(boardingItem().copy(brandColor = 0xFFC62828.toInt())) }
+    @Test fun detailLoyaltyLargeFont() = snap("detail_loyalty_large_font") {
+        val density = LocalDensity.current
+        CompositionLocalProvider(LocalDensity provides Density(density.density, fontScale = 1.5f)) {
+            DetailContent(wallet.cards.first())
+        }
+    }
+    @Test fun detailLoyaltyNoteLinks() = snap("detail_loyalty_note_links") {
+        val card = wallet.cards[1]
+        DetailContent(
+            card.copy(details = (card.details as ItemDetails.Loyalty).copy(notes = "Lost card? Call +1 415 555 0134 or visit bluebottlecoffee.com")),
+        )
+    }
+    @Test fun detailBoardingPass() = snap("detail_boarding_pass") {
+        DetailContent(boardingItem().copy(brandColor = 0xFFC62828.toInt(), website = "united.com", phone = "1-800-864-8331"))
+    }
     @Test fun detailPass() = snap("detail_pass") { DetailContent(concert) }
 
     @Test fun editLoyalty() = snap("edit_loyalty") { EditContent(EditFormState.from(wallet.cards.first())) }
