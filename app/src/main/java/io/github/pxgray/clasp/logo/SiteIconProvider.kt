@@ -9,7 +9,10 @@ import java.net.URI
 import java.net.URISyntaxException
 import kotlin.math.min
 
-/** Offers the card website's own icons: page `<link>` icons, web manifest icons, and well-known paths. */
+/**
+ * Offers the card website's own icons: page `<link>` icons, web manifest icons, and well-known paths.
+ * Throws the homepage's failure if it is offline ([isOfflineFailure]), such as a host that doesn't resolve.
+ */
 class SiteIconProvider(private val fetcher: HttpFetcher) : LogoProvider {
 
     private data class Icon(val url: String, val size: Int?, val apple: Boolean, val guessed: Boolean = false)
@@ -30,8 +33,10 @@ class SiteIconProvider(private val fetcher: HttpFetcher) : LogoProvider {
                 }
             }
             links.firstOrNull { "manifest" in it.rel }?.let { resolve(base, it.href) }?.let { icons += manifestIcons(it) }
-        } catch (_: LogoNetworkException) {
-            // The site may still serve the well-known paths below.
+        } catch (e: LogoNetworkException) {
+            // The guesses below are on the same host, so they can't work if it can't be reached.
+            if (e.isOfflineFailure()) throw e
+            // Otherwise the site may still serve the well-known paths below.
         }
         // Guesses that often 404, so they rank after every declared icon.
         resolve(base, "/apple-touch-icon.png")?.let { icons += Icon(it, null, apple = true, guessed = true) }

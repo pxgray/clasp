@@ -122,25 +122,20 @@ class LogoSearchViewModelTest {
     }
 
     @Test
-    fun `any offline preview failure means offline, even next to other failures`() {
-        results = { listOf(candidate("missing"), candidate("slow"), candidate("unreachable")) }
-        fetcher.fail("slow-preview")
-        val offline = FakeHttpFetcher().apply { this.offline = true }
-        val mixed = object : HttpFetcher {
-            override suspend fun fetch(url: String, maxBytes: Int) =
-                if ("unreachable" in url) offline.fetch(url, maxBytes) else fetcher.fetch(url, maxBytes)
-        }
-        val vm = LogoSearchViewModel(provider, mixed, importer, enabled, { }, main.dispatcher)
+    fun `a provider that says offline is offline`() {
+        results = { throw LogoOfflineException("dns", UnknownHostException("x")) }
+        val vm = viewModel()
         vm.open("item", "Tesco", null)
         assertEquals(LogoSearchStatus.Offline, vm.state.value.status)
     }
 
     @Test
-    fun `a provider failure caused by being offline is offline`() {
+    fun `a provider failure that only wraps an offline one is an error`() {
+        // The composite's own call: some failure was offline, but not all.
         results = { throw LogoNetworkException("Logo search failed", LogoOfflineException("dns", UnknownHostException("x"))) }
         val vm = viewModel()
         vm.open("item", "Tesco", null)
-        assertEquals(LogoSearchStatus.Offline, vm.state.value.status)
+        assertEquals(LogoSearchStatus.Error, vm.state.value.status)
     }
 
     @Test
@@ -176,7 +171,7 @@ class LogoSearchViewModelTest {
 
     @Test
     fun `offline with a website is offline, not empty`() {
-        // The site provider still guesses well-known icon paths when the homepage fails.
+        // Fully offline: the site and Wikidata both fail to resolve.
         val offline = FakeHttpFetcher().apply { this.offline = true }
         val real = CompositeLogoProvider(listOf(SiteIconProvider(offline), WikidataLogoProvider(offline, language = { "en" })))
         val vm = LogoSearchViewModel(real, offline, importer, enabled, { }, main.dispatcher)
@@ -195,6 +190,46 @@ class LogoSearchViewModelTest {
         vm.open("item", "Lidl", null)
         val tiles = (vm.state.value.status as LogoSearchStatus.Results).tiles
         assertEquals(listOf("touch", "other"), tiles.map { it.candidate.label })
+    }
+
+    private fun realSearch(site: FakeHttpFetcher) = LogoSearchViewModel(
+        CompositeLogoProvider(listOf(SiteIconProvider(site), WikidataLogoProvider(site, language = { "en" }))),
+        site, importer, enabled, { }, main.dispatcher,
+    )
+
+    @Test
+    fun `a website that doesn't resolve while Wikidata answers is empty, not offline`() {
+        val site = FakeHttpFetcher()
+        site.offlineHosts += "tesco.cmo"
+        site.on("action=wbsearchentities", body = """{"search":[]}""")
+        val vm = realSearch(site)
+        vm.open("item", "Tesco", "tesco.cmo")
+        assertEquals(LogoSearchStatus.Empty, vm.state.value.status)
+        assertEquals(listOf("https://tesco.cmo/"), site.requests.filter { "tesco.cmo" in it })
+    }
+
+    @Test
+    fun `a website that doesn't resolve while Wikidata fails is an error, not offline`() {
+        val site = FakeHttpFetcher()
+        site.offlineHosts += "tesco.cmo"
+        site.status("wikidata.org", status = 500)
+        val vm = realSearch(site)
+        vm.open("item", "Tesco", "tesco.cmo")
+        assertEquals(LogoSearchStatus.Error, vm.state.value.status)
+    }
+
+    @Test
+    fun `previews failing partly offline and partly otherwise are an error`() {
+        results = { listOf(candidate("slow"), candidate("unreachable")) }
+        fetcher.fail("slow-preview")
+        val offline = FakeHttpFetcher().apply { this.offline = true }
+        val mixed = object : HttpFetcher {
+            override suspend fun fetch(url: String, maxBytes: Int) =
+                if ("unreachable" in url) offline.fetch(url, maxBytes) else fetcher.fetch(url, maxBytes)
+        }
+        val vm = LogoSearchViewModel(provider, mixed, importer, enabled, { }, main.dispatcher)
+        vm.open("item", "Tesco", null)
+        assertEquals(LogoSearchStatus.Error, vm.state.value.status)
     }
 
     @Test

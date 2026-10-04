@@ -6,12 +6,13 @@ import io.github.pxgray.clasp.logo.HttpStatusException
 import io.github.pxgray.clasp.logo.LogoNetworkException
 import io.github.pxgray.clasp.logo.LogoOfflineException
 import io.github.pxgray.clasp.logo.LogoRefusedException
+import java.net.URI
 import java.net.UnknownHostException
 
 /**
  * Serves canned responses for URLs containing all of the given parts; anything else fails like a
  * reachable server's 404. With [offline] set, every fetch fails with [LogoOfflineException], as
- * if there were no network.
+ * if there were no network; hosts in [offlineHosts] fail that way alone, like a name that doesn't resolve.
  */
 class FakeHttpFetcher : HttpFetcher {
     private class Route(
@@ -26,6 +27,7 @@ class FakeHttpFetcher : HttpFetcher {
     private val routes = mutableListOf<Route>()
     val requests = mutableListOf<String>()
     var offline = false
+    val offlineHosts = mutableSetOf<String>()
 
     fun on(vararg parts: String, body: String, contentType: String = "application/json", finalUrl: String? = null) {
         routes += Route(parts.toList(), body.toByteArray(), contentType, finalUrl)
@@ -47,7 +49,7 @@ class FakeHttpFetcher : HttpFetcher {
 
     override suspend fun fetch(url: String, maxBytes: Int): HttpResponse {
         requests += url
-        if (offline) throw LogoOfflineException("offline: $url", UnknownHostException(url))
+        if (offline || URI(url).host in offlineHosts) throw LogoOfflineException("offline: $url", UnknownHostException(url))
         val route = routes.lastOrNull { route -> route.parts.all { it in url } }
             ?: throw HttpStatusException(404, url)
         if (route.fails) throw LogoNetworkException("timed out: $url")

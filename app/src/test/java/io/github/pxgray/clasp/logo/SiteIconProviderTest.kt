@@ -68,6 +68,14 @@ class SiteIconProviderTest {
     }
 
     @Test
+    fun `an unreachable homepage throws offline without guessing paths on the same host`() = runTest {
+        fetcher.offlineHosts += "tesco.cmo"
+        val e = runCatching { provider.search(LogoQuery("Tesco", "tesco.cmo")) }.exceptionOrNull()
+        assertTrue("$e", e != null && e.isOfflineFailure())
+        assertEquals(listOf("https://tesco.cmo/"), fetcher.requests)
+    }
+
+    @Test
     fun `a broken manifest is ignored`() = runTest {
         fetcher.on("https://tesco.com/", contentType = "text/html", body = """<head><link rel="manifest" href="/m.json"><link rel="icon" sizes="64x64" href="/64.png"></head>""")
         fetcher.on("https://tesco.com/m.json", body = "not json")

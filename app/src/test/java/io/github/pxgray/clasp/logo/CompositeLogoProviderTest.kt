@@ -35,14 +35,27 @@ class CompositeLogoProviderTest {
         assertTrue(CompositeLogoProvider(listOf(returning(), returning())).search(query).isEmpty())
     }
 
+    private val offline = object : LogoProvider {
+        override suspend fun search(query: LogoQuery): List<LogoCandidate> =
+            throw LogoOfflineException("no network", java.net.UnknownHostException("x"))
+    }
+
     @Test
-    fun `nothing found and any provider offline throws offline`() = runTest {
-        val offline = object : LogoProvider {
-            override suspend fun search(query: LogoQuery): List<LogoCandidate> =
-                throw LogoOfflineException("no network", java.net.UnknownHostException("x"))
-        }
-        val e = runCatching { CompositeLogoProvider(listOf(failing, offline)).search(query) }.exceptionOrNull()
+    fun `every provider offline throws offline`() = runTest {
+        val e = runCatching { CompositeLogoProvider(listOf(offline, offline)).search(query) }.exceptionOrNull()
         assertTrue("$e", e is LogoOfflineException)
+    }
+
+    @Test
+    fun `one offline provider next to one that answered empty is empty`() = runTest {
+        // A mistyped website doesn't resolve, but Wikidata answered: the phone is online.
+        assertTrue(CompositeLogoProvider(listOf(offline, returning())).search(query).isEmpty())
+    }
+
+    @Test
+    fun `mixed offline and other failures are not offline`() = runTest {
+        val e = runCatching { CompositeLogoProvider(listOf(offline, failing)).search(query) }.exceptionOrNull()
+        assertTrue("$e", e is LogoNetworkException && !e.isOfflineFailure())
     }
 
     @Test

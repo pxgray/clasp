@@ -14,6 +14,7 @@ import io.github.pxgray.clasp.data.LogoImporter
 import io.github.pxgray.clasp.logo.HttpFetcher
 import io.github.pxgray.clasp.logo.LogoCandidate
 import io.github.pxgray.clasp.logo.LogoLimits
+import io.github.pxgray.clasp.logo.LogoOfflineException
 import io.github.pxgray.clasp.logo.LogoProvider
 import io.github.pxgray.clasp.logo.LogoQuery
 import io.github.pxgray.clasp.logo.LogoUnavailableException
@@ -54,8 +55,8 @@ sealed interface LogoSearchStatus {
     data object Error : LogoSearchStatus
 
     /**
-     * Nothing to show, and at least one failure was offline (see [isOfflineFailure]): the phone has
-     * no connection, or Clasp's network access is off. Any offline failure wins over other errors.
+     * Nothing to show, and every failure was offline: the phone has no connection, or Clasp's
+     * network access is off. See [LogoSearchViewModel.search] for the rule.
      */
     data object Offline : LogoSearchStatus
     data class Results(val tiles: List<LogoTile>) : LogoSearchStatus
@@ -133,6 +134,14 @@ class LogoSearchViewModel(
         _state.update { it.copy(query = query) }
     }
 
+    /**
+     * Searches for [LogoSearchState.query] and the website, then downloads previews. With no tiles,
+     * the status is [LogoSearchStatus.Offline] only if every failure was offline: the provider threw
+     * [LogoOfflineException] (the composite does that only when every provider was offline), or every
+     * preview download failed offline. A single dead host, such as a mistyped website, therefore
+     * never reads as offline. Otherwise any real failure is [LogoSearchStatus.Error]; a missing or
+     * refused preview ([LogoUnavailableException]) just means nothing usable, so [LogoSearchStatus.Empty].
+     */
     fun search() {
         searchJob?.cancel()
         val current = _state.value
@@ -147,7 +156,7 @@ class LogoSearchViewModel(
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                val status = if (e.isOfflineFailure()) LogoSearchStatus.Offline else LogoSearchStatus.Error
+                val status = if (e is LogoOfflineException) LogoSearchStatus.Offline else LogoSearchStatus.Error
                 _state.update { it.copy(status = status) }
                 return@launch
             }
@@ -157,15 +166,11 @@ class LogoSearchViewModel(
             }
             // Sites often serve one icon at several URLs; keep the first of each identical image.
             val tiles = previews.mapNotNull { it.getOrNull() }.distinctBy { it.digest }.map { it.tile }
-            // Offline, the site provider still offers guessed URLs, so only failed downloads tell.
-            // An error status, an oversized response or a refused redirect means the server was reached and
-            // there's just no usable icon. The rule: with no tiles, any offline failure shows Offline,
-            // else any other real failure shows Error.
-            val failures = previews.mapNotNull { it.exceptionOrNull() }.filter { it !is LogoUnavailableException }
+            val failures = previews.mapNotNull { it.exceptionOrNull() }
             val status = when {
                 tiles.isNotEmpty() -> LogoSearchStatus.Results(tiles)
-                failures.any { it.isOfflineFailure() } -> LogoSearchStatus.Offline
-                failures.isNotEmpty() -> LogoSearchStatus.Error
+                failures.isNotEmpty() && failures.all { it.isOfflineFailure() } -> LogoSearchStatus.Offline
+                failures.any { it !is LogoUnavailableException } -> LogoSearchStatus.Error
                 else -> LogoSearchStatus.Empty
             }
             _state.update { it.copy(status = status) }
