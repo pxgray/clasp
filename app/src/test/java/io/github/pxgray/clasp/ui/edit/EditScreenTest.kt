@@ -3,6 +3,7 @@ package io.github.pxgray.clasp.ui.edit
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.ui.test.assertIsFocused
 import androidx.compose.ui.test.assertIsNotFocused
+import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -62,5 +63,24 @@ class EditScreenTest {
         compose.onNodeWithText("Change image").performClick()
         assertEquals(1, picks)
         compose.onNodeWithTag("edit_website").assertIsNotFocused()
+    }
+
+    @Test
+    fun `loyalty form shows the program name field`() {
+        compose.setContent {
+            ClaspTheme(dynamicColor = false) {
+                EditScreen(
+                    state = EditFormState.from(loyaltyItem(programName = "Executive Membership")),
+                    snackbarHostState = SnackbarHostState(),
+                    onUpdate = {},
+                    onFindLogo = {},
+                    onPickLogo = {},
+                    onSave = {},
+                    onCancel = {},
+                )
+            }
+        }
+        compose.onNodeWithText("Program name (optional)").assertExists()
+        compose.onNodeWithTag("edit_program_name").assertTextContains("Executive Membership")
     }
 }

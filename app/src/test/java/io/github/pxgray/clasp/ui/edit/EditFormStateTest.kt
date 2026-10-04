@@ -40,13 +40,21 @@ class EditFormStateTest {
         assertEquals("123", item.barcode!!.value)
         assertEquals(BarcodeFormat.CODE_128, item.barcode!!.format)
         assertEquals(ItemDetails.Loyalty("123", memberName = null, notes = "Gate code 9"), item.details)
+        assertNull(item.subtitle)
+    }
+
+    @Test
+    fun `toWalletItem trims the program name into the subtitle`() {
+        val item = blank.copy(title = "Shop", cardNumber = "123", programName = " Gold Club ").toWalletItem()
+        assertEquals("Gold Club", item.subtitle)
     }
 
     @Test
     fun `from round-trips an existing loyalty item`() {
-        val item = loyaltyItem(memberName = "Jane", brandColor = 0xFF00FF00.toInt(), logoPath = "items/id-1/logo-1.png", isFavorite = true, website = "https://costco.com")
+        val item = loyaltyItem(memberName = "Jane", programName = "Executive Membership", brandColor = 0xFF00FF00.toInt(), logoPath = "items/id-1/logo-1.png", isFavorite = true, website = "https://costco.com")
         val form = EditFormState.from(item)
         assertFalse(form.isNew)
+        assertEquals("Executive Membership", form.programName)
         assertEquals(item, form.toWalletItem())
     }
 

@@ -90,6 +90,7 @@ data class EditFormState(
     val website: String = "",
     val cardNumber: String = "",
     val format: BarcodeFormat = BarcodeFormat.CODE_128,
+    val programName: String = "",
     val memberName: String = "",
     val notes: String = "",
     val brandColor: Int? = null,
@@ -132,6 +133,7 @@ data class EditFormState(
             id = id,
             kind = ItemKind.LOYALTY,
             title = title.trim(),
+            subtitle = programName.trim().ifEmpty { null },
             barcode = Barcode(number, format),
             brandColor = brandColor,
             logoPath = logoPath,
@@ -164,6 +166,7 @@ data class EditFormState(
                 is ItemDetails.Loyalty -> base.copy(
                     cardNumber = details.cardNumber,
                     format = item.barcode?.format ?: BarcodeFormat.CODE_128,
+                    programName = item.subtitle.orEmpty(),
                     memberName = details.memberName.orEmpty(),
                     notes = details.notes.orEmpty(),
                 )
