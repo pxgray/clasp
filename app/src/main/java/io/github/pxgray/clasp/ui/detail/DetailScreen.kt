@@ -1,5 +1,22 @@
 package io.github.pxgray.clasp.ui.detail
 
+import android.content.ClipData
+import android.os.Build
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.ClipEntry
+import androidx.compose.ui.platform.LocalClipboard
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.semantics.onLongClick
+import androidx.compose.ui.semantics.semantics
+import kotlinx.coroutines.launch
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -63,9 +80,18 @@ fun DetailRoute(
     viewModel: DetailViewModel = viewModel(factory = DetailViewModel.Factory),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
+    val context = LocalContext.current
+    val noApp = stringResource(R.string.detail_no_app)
+    val uriHandler = remember(context, noApp) {
+        IntentUriHandler(context) { scope.launch { snackbarHostState.showSnackbar(noApp) } }
+    }
     val item = state.item
     if (item != null) {
-        DetailScreen(item, onBack, onEdit, onDelete, maxBrightness = state.maxBrightness)
+        CompositionLocalProvider(LocalUriHandler provides uriHandler) {
+            DetailScreen(item, onBack, onEdit, onDelete, maxBrightness = state.maxBrightness, snackbarHostState = snackbarHostState)
+        }
     } else if (!state.loading) {
         LaunchedEffect(Unit) { onBack() }
     }
@@ -78,6 +104,7 @@ fun DetailScreen(
     onEdit: (String) -> Unit,
     onDelete: (String) -> Unit,
     maxBrightness: Boolean = false,
+    snackbarHostState: SnackbarHostState = remember { SnackbarHostState() },
 ) {
     if (maxBrightness) MaxBrightnessEffect()
     val brand = item.brandColor?.let(::Color) ?: MaterialTheme.colorScheme.primaryContainer
@@ -90,56 +117,87 @@ fun DetailScreen(
         contentColor = onBrand,
         modifier = Modifier.fillMaxSize().sharedCardBounds(item.id),
     ) {
-        Column(
-            Modifier
-                .verticalScroll(rememberScrollState())
-                .statusBarsPadding()
-                .navigationBarsPadding(),
-        ) {
-            DetailTopBar(item, onBrand, onBack, onEdit, onDelete)
-            Row(Modifier.padding(horizontal = 24.dp), verticalAlignment = Alignment.CenterVertically) {
-                LogoTile(
-                    monogram = item.monogram(),
-                    brandColor = item.brandColor,
-                    logoPath = item.logoPath,
-                    size = 72.dp,
-                    modifier = Modifier.sharedLogo(item.id),
-                    invertMonogram = true,
-                    logoOutline = onBrand.copy(alpha = 0.6f),
-                )
-                Spacer(Modifier.width(16.dp))
-                Column {
-                    Text(item.title, style = MaterialTheme.typography.headlineMedium, color = onBrand)
-                    item.secondaryLine()?.let {
-                        Text(it, style = MaterialTheme.typography.bodyLarge, color = onBrand.copy(alpha = 0.8f))
+        Box {
+            Column(
+                Modifier
+                    .verticalScroll(rememberScrollState())
+                    .statusBarsPadding()
+                    .navigationBarsPadding(),
+            ) {
+                DetailTopBar(item, onBrand, onBack, onEdit, onDelete)
+                Row(Modifier.padding(horizontal = 24.dp), verticalAlignment = Alignment.CenterVertically) {
+                    LogoTile(
+                        monogram = item.monogram(),
+                        brandColor = item.brandColor,
+                        logoPath = item.logoPath,
+                        size = 72.dp,
+                        modifier = Modifier.sharedLogo(item.id),
+                        invertMonogram = true,
+                        logoOutline = onBrand.copy(alpha = 0.6f),
+                    )
+                    Spacer(Modifier.width(16.dp))
+                    Column {
+                        Text(item.title, style = MaterialTheme.typography.headlineMedium, color = onBrand)
+                        item.secondaryLine()?.let {
+                            Text(it, style = MaterialTheme.typography.bodyLarge, color = onBrand.copy(alpha = 0.8f))
+                        }
                     }
                 }
-            }
 
-            item.barcode?.let { barcode ->
-                Column(
-                    modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 32.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                ) {
-                    BarcodePanel(barcode)
-                    // Card numbers are worth reading out; a boarding pass's raw BCBP text is not.
-                    val caption = barcode.altText ?: barcode.value.takeIf { item.kind == ItemKind.LOYALTY }
-                    if (caption != null) {
-                        Spacer(Modifier.height(16.dp))
-                        Text(
-                            text = caption,
-                            style = MaterialTheme.typography.titleLarge,
-                            letterSpacing = 2.sp,
-                            textAlign = TextAlign.Center,
-                        )
+                val actions = item.quickActions()
+                if (actions.isNotEmpty()) {
+                    QuickActionRow(actions, onBrand, Modifier.fillMaxWidth().padding(top = 24.dp))
+                }
+
+                item.barcode?.let { barcode ->
+                    Column(
+                        modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 32.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                    ) {
+                        BarcodePanel(barcode)
+                        // Card numbers are worth reading out; a boarding pass's raw BCBP text is not.
+                        val caption = barcode.altText ?: barcode.value.takeIf { item.kind == ItemKind.LOYALTY }
+                        if (caption != null) {
+                            Spacer(Modifier.height(16.dp))
+                            BarcodeCaption(caption, copyable = item.kind == ItemKind.LOYALTY, snackbarHostState)
+                        }
                     }
                 }
-            }
 
-            DetailFields(item, Modifier.padding(start = 24.dp, end = 24.dp, top = 32.dp))
-            Spacer(Modifier.height(24.dp))
+                DetailFields(item, Modifier.padding(start = 24.dp, end = 24.dp, top = 32.dp))
+                Spacer(Modifier.height(24.dp))
+            }
+            SnackbarHost(snackbarHostState, Modifier.align(Alignment.BottomCenter).navigationBarsPadding())
         }
     }
+}
+
+/** The number under the barcode. On loyalty cards a long press copies it. */
+@Composable
+private fun BarcodeCaption(caption: String, copyable: Boolean, snackbarHostState: SnackbarHostState) {
+    val clipboard = LocalClipboard.current
+    val haptics = LocalHapticFeedback.current
+    val scope = rememberCoroutineScope()
+    val copyLabel = stringResource(R.string.detail_copy_number)
+    val copied = stringResource(R.string.detail_number_copied)
+    val copy = {
+        haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+        scope.launch {
+            clipboard.setClipEntry(ClipEntry(ClipData.newPlainText(copyLabel, caption)))
+            // Android 13+ shows its own confirmation for clipboard writes.
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) snackbarHostState.showSnackbar(copied)
+        }
+        Unit
+    }
+    Text(
+        text = caption,
+        style = MaterialTheme.typography.titleLarge,
+        letterSpacing = 2.sp,
+        textAlign = TextAlign.Center,
+        modifier = if (!copyable) Modifier else Modifier
+            .pointerInput(caption) { detectTapGestures(onLongPress = { copy() }) }
+            .semantics { onLongClick(label = copyLabel) { copy(); true } },
+    )
 }
 
 @Composable

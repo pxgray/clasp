@@ -1,6 +1,15 @@
 package io.github.pxgray.clasp.ui.detail
 
+import android.content.ClipboardManager
+import android.content.Context
 import androidx.activity.ComponentActivity
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.platform.UriHandler
+import androidx.compose.ui.test.longClick
+import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.performTouchInput
+import io.github.pxgray.clasp.domain.WalletItem
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasTestTag
@@ -159,5 +168,50 @@ class DetailScreenTest {
         maxBrightness = true
         compose.waitForIdle()
         assertEquals(1f, window.attributes.screenBrightness)
+    }
+
+    private val opened = mutableListOf<String>()
+
+    private fun showDetail(item: WalletItem) {
+        compose.setContent {
+            CompositionLocalProvider(LocalUriHandler provides object : UriHandler {
+                override fun openUri(uri: String) { opened += uri }
+            }) {
+                ClaspTheme(dynamicColor = false) { DetailScreen(item, onBack = {}, onEdit = {}, onDelete = {}) }
+            }
+        }
+    }
+
+    @Test
+    fun `a loyalty card offers website, nearby and call`() {
+        showDetail(loyaltyItem(title = "Costco", website = "costco.com", phone = "1-800-774-2678"))
+        compose.onNodeWithContentDescription("Open website").performClick()
+        compose.onNodeWithContentDescription("Find Costco nearby").performClick()
+        compose.onNodeWithContentDescription("Call 1-800-774-2678").performClick()
+        assertEquals(listOf("https://costco.com", "geo:0,0?q=Costco", "tel:18007742678"), opened)
+    }
+
+    @Test
+    fun `a boarding pass offers no nearby`() {
+        showDetail(boardingItem().copy(website = "united.com"))
+        compose.onNodeWithContentDescription("Open website").assertExists()
+        compose.onNodeWithContentDescription("Find UA 1234 nearby").assertDoesNotExist()
+    }
+
+    @Test
+    fun `no actions means no row`() {
+        showDetail(boardingItem())
+        compose.onNodeWithTag("quick_actions").assertDoesNotExist()
+    }
+
+    @Test
+    fun `long-pressing the card number copies it`() {
+        showDetail(loyaltyItem(cardNumber = "123456789"))
+        compose.onNodeWithText("123456789").performTouchInput { longClick() }
+        compose.waitForIdle()
+        val clipboard = compose.activity.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+        assertEquals("123456789", clipboard.primaryClip?.getItemAt(0)?.text?.toString())
+        // Android 13+ confirms copies itself; Robolectric runs SDK 36.
+        compose.onNodeWithText("Card number copied").assertDoesNotExist()
     }
 }

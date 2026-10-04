@@ -70,6 +70,15 @@
     <string name="detail_barcode_unrenderable">This code can’t be shown as a barcode</string>
     <string name="detail_member_name">Member</string>
     <string name="detail_notes">Notes</string>
+    <string name="detail_action_website">Website</string>
+    <string name="detail_action_nearby">Nearby</string>
+    <string name="detail_action_call">Call</string>
+    <string name="detail_action_website_desc">Open website</string>
+    <string name="detail_action_nearby_desc">Find %1$s nearby</string>
+    <string name="detail_action_call_desc">Call %1$s</string>
+    <string name="detail_no_app">No app found to open this</string>
+    <string name="detail_copy_number">Copy card number</string>
+    <string name="detail_number_copied">Card number copied</string>
     <string name="edit_title_new_pass">Add boarding pass</string>
     <string name="edit_title_existing_pass">Edit boarding pass</string>
     <string name="edit_from">From</string>
