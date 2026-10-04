@@ -3,7 +3,10 @@ package io.github.pxgray.clasp.data.db
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import io.github.pxgray.clasp.domain.Barcode
+import io.github.pxgray.clasp.domain.BarcodeFormat
 import io.github.pxgray.clasp.domain.ItemDetails
+import io.github.pxgray.clasp.takeout.takeoutWalletId
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -75,6 +78,53 @@ class ClaspDatabaseMigrationTest {
             assertEquals("Costco", item.title)
             assertTrue(item.isFavorite)
             assertNull(item.website)
+        } finally {
+            database.close()
+            context.deleteDatabase(name)
+        }
+    }
+
+    @Test
+    fun `migrating from v3 moves Takeout program names out of notes`() = runTest {
+        val name = "migration-v3-test.db"
+        val converters = Converters()
+        fun loyalty(number: String, notes: String) = converters.detailsToJson(ItemDetails.Loyalty(cardNumber = number, notes = notes))
+        fun barcode(value: String) = converters.barcodeToJson(Barcode(value, BarcodeFormat.CODE_128))
+        val takeout = takeoutWalletId("Giant Eagle", "4200000001112")
+        val takeoutNoBarcode = takeoutWalletId("REI", "777")
+        val alreadyNamed = takeoutWalletId("Sheetz", "555")
+
+        context.deleteDatabase(name)
+        context.openOrCreateDatabase(name, Context.MODE_PRIVATE, null).use { db ->
+            db.execSQL(
+                "CREATE TABLE IF NOT EXISTS `wallet_items` (`id` TEXT NOT NULL, `kind` TEXT NOT NULL, " +
+                    "`title` TEXT NOT NULL, `subtitle` TEXT, `barcode` TEXT, `brandColor` INTEGER, `logoPath` TEXT, " +
+                    "`details` TEXT NOT NULL, `createdAt` INTEGER NOT NULL, `lastUsedAt` INTEGER, " +
+                    "`isFavorite` INTEGER NOT NULL DEFAULT 0, `website` TEXT, PRIMARY KEY(`id`))",
+            )
+            db.execSQL("CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)")
+            db.execSQL("INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '820b29b6c6085141a12784602886e734')")
+            val insert = "INSERT INTO wallet_items (id, kind, title, subtitle, barcode, details, createdAt) VALUES (?, 'LOYALTY', ?, ?, ?, ?, 1000)"
+            db.execSQL(insert, arrayOf(takeout, "Giant Eagle", null, barcode("4200000001112"), loyalty("4200000001112", "fuelperks!")))
+            db.execSQL(insert, arrayOf(takeoutNoBarcode, "REI", null, null, loyalty("777", "Co-op Member")))
+            db.execSQL(insert, arrayOf(alreadyNamed, "Sheetz", "My Sheetz", barcode("555"), loyalty("555", "Sheetz Rewards")))
+            db.execSQL(insert, arrayOf("manual", "Costco", null, barcode("123"), loyalty("123", "Gate code 9")))
+            db.version = 3
+        }
+
+        val database = ClaspDatabase.build(context, name)
+        try {
+            val items = database.walletDao().observeAll().first().map { it.toDomain() }.associateBy { it.id }
+            fun notes(id: String) = (items.getValue(id).details as ItemDetails.Loyalty).notes
+
+            assertEquals("fuelperks!", items.getValue(takeout).subtitle)
+            assertNull(notes(takeout))
+            assertEquals("Co-op Member", items.getValue(takeoutNoBarcode).subtitle)
+            assertNull(notes(takeoutNoBarcode))
+            assertEquals("My Sheetz", items.getValue(alreadyNamed).subtitle)
+            assertEquals("Sheetz Rewards", notes(alreadyNamed))
+            assertNull(items.getValue("manual").subtitle)
+            assertEquals("Gate code 9", notes("manual"))
         } finally {
             database.close()
             context.deleteDatabase(name)
