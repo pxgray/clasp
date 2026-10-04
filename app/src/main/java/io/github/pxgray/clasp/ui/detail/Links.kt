@@ -14,6 +14,7 @@ data class FoundLink(val start: Int, val end: Int, val uri: String)
 private val EMAIL = Regex("""(?<![\w.+-])[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,}""")
 private val WEB = Regex("""(?<![\w@.-])(?:https?://)?(?:[A-Za-z0-9-]+\.)+[A-Za-z]{2,}(?::\d+)?(?:/\S*)?""", RegexOption.IGNORE_CASE)
 private val PHONE = Regex("""(?<![\w+])\+?\(?\d[\d  ().-]{5,}\d(?!\w)""")
+private val CARD_GROUPS = Regex("""\d{4}(?:[ -]\d{4}){2,}""")
 private val DATE = Regex("""\d{4}[-./]\d{1,2}[-./]\d{1,2}|\d{1,2}[-./]\d{1,2}[-./]\d{2,4}""")
 private val TIME_RANGE = Regex("""\d{1,2}[.:]\d{2}\s*-\s*\d{1,2}[.:]\d{2}""")
 private val IPV4 = Regex("""\d{1,3}(?:\.\d{1,3}){3}""")
@@ -52,7 +53,11 @@ private fun webUri(value: String): String? {
     val uri = websiteUri(value) ?: return null
     if ("://" in value) return uri
     val host = websiteHost(value) ?: return null
-    return uri.takeIf { host.startsWith("www.") || host.substringAfterLast('.') in BARE_TLDS }
+    if (host.startsWith("www.")) return uri
+    if (host.substringAfterLast('.') !in BARE_TLDS) return null
+    // For addresses without a scheme and without www., the TLD must be lowercase in the source
+    val tld = value.substringBefore('/').substringBefore(':').substringAfterLast('.')
+    return uri.takeIf { tld.all { !it.isUpperCase() } }
 }
 
 private fun phoneUri(value: String): String? {
@@ -60,5 +65,6 @@ private fun phoneUri(value: String): String? {
     // A bare run of digits is more likely a member or order number than a phone number.
     if (!value.startsWith('+') && value.none { it in "  -.()" }) return null
     if (DATE.matches(value) || IPV4.matches(value) || TIME_RANGE.containsMatchIn(value)) return null
+    if (CARD_GROUPS.matches(value)) return null
     return telUri(value)
 }

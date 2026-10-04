@@ -41,14 +41,22 @@ class LinksTest {
             "Price $48.00",
             "Gift card 6006 4912 3456 7890",
             "Member 4200000001112",
+            "Card 1234-5678-9012",
+            "Card 1234 5678 9012",
             "e.g. this, a.m. that, Mr.Smith",
             "Ask at the desk.",
+            "We are closed.It reopens soon",
         ).forEach { assertEquals(it, emptyList<Pair<String, String>>(), links(it)) }
     }
 
     @Test
     fun `local and numeric hosts are not links`() {
         assertEquals(emptyList<Pair<String, String>>(), links("router at 192.168.1.1 or printer.local"))
+    }
+
+    @Test
+    fun `capitalised names with a lowercase ending still link`() {
+        assertEquals(listOf("Costco.com" to "https://Costco.com"), links("Visit Costco.com"))
     }
 
     @Test
