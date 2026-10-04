@@ -5,8 +5,8 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
-import okhttp3.mockwebserver.MockResponse
-import okhttp3.mockwebserver.MockWebServer
+import mockwebserver3.MockResponse
+import mockwebserver3.MockWebServer
 import okhttp3.tls.HandshakeCertificates
 import okhttp3.tls.HeldCertificate
 import org.junit.After
@@ -36,7 +36,7 @@ class UrlConnectionHttpFetcherTest {
         val certificate = HeldCertificate.Builder().addSubjectAlternativeName("localhost").build()
         val serverCerts = HandshakeCertificates.Builder().heldCertificate(certificate).build()
         val clientCerts = HandshakeCertificates.Builder().addTrustedCertificate(certificate.certificate).build()
-        server.useHttps(serverCerts.sslSocketFactory(), false)
+        server.useHttps(serverCerts.sslSocketFactory())
         server.start(InetAddress.getByName("localhost"), 0)
         clientSockets = TrackingSocketFactory(clientCerts.sslSocketFactory())
         fetcher = fetcher()
@@ -56,23 +56,23 @@ class UrlConnectionHttpFetcherTest {
     )
 
     @After
-    fun tearDown() = server.shutdown()
+    fun tearDown() = server.close()
 
     private fun url(path: String) = server.url(path).toString()
 
     @Test
     fun `fetches a body over https with the user agent`() {
-        server.enqueue(MockResponse().setBody("hello").setHeader("Content-Type", "text/plain"))
+        server.enqueue(MockResponse.Builder().body("hello").addHeader("Content-Type", "text/plain").build())
         val response = runBlocking { fetcher.fetch(url("/a"), maxBytes = 100) }
         assertArrayEquals("hello".toByteArray(), response.body)
         assertEquals("text/plain", response.contentType)
-        assertEquals("Clasp-test", server.takeRequest().getHeader("User-Agent"))
+        assertEquals("Clasp-test", server.takeRequest().headers["User-Agent"])
     }
 
     @Test
     fun `follows https redirects and reports the final url`() {
-        server.enqueue(MockResponse().setResponseCode(302).setHeader("Location", "/b"))
-        server.enqueue(MockResponse().setBody("done"))
+        server.enqueue(MockResponse.Builder().code(302).addHeader("Location", "/b").build())
+        server.enqueue(MockResponse.Builder().body("done").build())
         val response = runBlocking { fetcher.fetch(url("/a"), maxBytes = 100) }
         assertEquals(url("/b"), response.url)
         assertArrayEquals("done".toByteArray(), response.body)
@@ -85,33 +85,33 @@ class UrlConnectionHttpFetcherTest {
 
     @Test
     fun `refuses a redirect to plain http`() {
-        server.enqueue(MockResponse().setResponseCode(302).setHeader("Location", "http://localhost:${server.port}/b"))
+        server.enqueue(MockResponse.Builder().code(302).addHeader("Location", "http://localhost:${server.port}/b").build())
         assertThrows(LogoNetworkException::class.java) { runBlocking { fetcher.fetch(url("/a"), 100) } }
         assertEquals(1, server.requestCount)
     }
 
     @Test
     fun `gives up after five redirects`() {
-        repeat(7) { server.enqueue(MockResponse().setResponseCode(302).setHeader("Location", "/again")) }
+        repeat(7) { server.enqueue(MockResponse.Builder().code(302).addHeader("Location", "/again").build()) }
         assertThrows(LogoNetworkException::class.java) { runBlocking { fetcher.fetch(url("/a"), 100) } }
         assertEquals(6, server.requestCount)
     }
 
     @Test
     fun `stops reading past the size cap`() {
-        server.enqueue(MockResponse().setBody("x".repeat(2_000)))
+        server.enqueue(MockResponse.Builder().body("x".repeat(2_000)).build())
         assertThrows(LogoNetworkException::class.java) { runBlocking { fetcher.fetch(url("/a"), 1_000) } }
     }
 
     @Test
     fun `http errors throw`() {
-        server.enqueue(MockResponse().setResponseCode(500))
+        server.enqueue(MockResponse.Builder().code(500).build())
         assertThrows(LogoNetworkException::class.java) { runBlocking { fetcher.fetch(url("/a"), 100) } }
     }
 
     @Test
     fun `a 404 throws a status exception with its code`() {
-        server.enqueue(MockResponse().setResponseCode(404))
+        server.enqueue(MockResponse.Builder().code(404).build())
         val e = assertThrows(HttpStatusException::class.java) { runBlocking { fetcher.fetch(url("/a"), 100) } }
         assertEquals(404, e.code)
     }
@@ -125,20 +125,20 @@ class UrlConnectionHttpFetcherTest {
 
     @Test
     fun `a redirect without a location throws`() {
-        server.enqueue(MockResponse().setResponseCode(302))
+        server.enqueue(MockResponse.Builder().code(302).build())
         assertThrows(LogoNetworkException::class.java) { runBlocking { fetcher.fetch(url("/a"), 100) } }
     }
 
     @Test
     fun `a body of exactly the cap is fine`() {
-        server.enqueue(MockResponse().setBody("x".repeat(1_000)))
+        server.enqueue(MockResponse.Builder().body("x".repeat(1_000)).build())
         val response = runBlocking { fetcher.fetch(url("/a"), 1_000) }
         assertEquals(1_000, response.body.size)
     }
 
     @Test
     fun `a slow body hits the overall deadline`() {
-        server.enqueue(MockResponse().setBody("x".repeat(100)).throttleBody(1, 1_500, TimeUnit.MILLISECONDS))
+        server.enqueue(MockResponse.Builder().body("x".repeat(100)).throttleBody(1, 1_500, TimeUnit.MILLISECONDS).build())
         val elapsed = measureTime {
             assertThrows(LogoNetworkException::class.java) { runBlocking { fetcher.fetch(url("/a"), 1_000) } }
         }
@@ -148,7 +148,7 @@ class UrlConnectionHttpFetcherTest {
 
     @Test
     fun `cancelling the caller closes the connection promptly`() {
-        server.enqueue(MockResponse().setBody("x".repeat(100)).throttleBody(1, 1_500, TimeUnit.MILLISECONDS))
+        server.enqueue(MockResponse.Builder().body("x".repeat(100)).throttleBody(1, 1_500, TimeUnit.MILLISECONDS).build())
         val slow = UrlConnectionHttpFetcher(
             isAllowed = { true },
             userAgent = "Clasp-test",
@@ -185,7 +185,7 @@ class UrlConnectionHttpFetcherTest {
 
     @Test
     fun `by default refuses localhost without connecting`() {
-        server.enqueue(MockResponse().setBody("secret"))
+        server.enqueue(MockResponse.Builder().body("secret").build())
         // Built without hostAllowed, so this checks the real default wiring.
         val strict = UrlConnectionHttpFetcher(isAllowed = { true }, userAgent = "Clasp-test", sslSocketFactory = clientSockets)
         assertThrows(LogoNetworkException::class.java) { runBlocking { strict.fetch("https://localhost:${server.port}/", 100) } }
@@ -195,7 +195,7 @@ class UrlConnectionHttpFetcherTest {
 
     @Test
     fun `by default refuses a redirect to a private address`() {
-        server.enqueue(MockResponse().setResponseCode(302).setHeader("Location", "https://192.168.1.1/"))
+        server.enqueue(MockResponse.Builder().code(302).addHeader("Location", "https://192.168.1.1/").build())
         // Let the first hop reach the mock server; the shared rule must still catch the redirect.
         val strict = fetcher(hostAllowed = { it == "localhost" || isPublicHostName(it) })
         assertThrows(LogoNetworkException::class.java) { runBlocking { strict.fetch(url("/a"), 100) } }
