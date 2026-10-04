@@ -30,13 +30,15 @@ class TakeoutMappingTest {
         val item = pass().toWalletItem(now, today)
         assertEquals(ItemKind.LOYALTY, item.kind)
         assertEquals("Giant Eagle", item.title)
+        assertEquals("fuelperks!", item.subtitle)
         assertEquals(Barcode("4200000001112", BarcodeFormat.CODE_128), item.barcode)
-        assertEquals(ItemDetails.Loyalty(cardNumber = "4200000001112", notes = "fuelperks!"), item.details)
+        assertEquals(ItemDetails.Loyalty(cardNumber = "4200000001112"), item.details)
     }
 
     @Test
-    fun `a program title that just repeats the issuer is not kept as a note`() {
+    fun `a program title that just repeats the issuer is not kept`() {
         val item = pass(issuer = "IKEA", title = "ikea").toWalletItem(now, today)
+        assertNull(item.subtitle)
         assertNull((item.details as ItemDetails.Loyalty).notes)
     }
 
@@ -105,6 +107,11 @@ class TakeoutMappingTest {
     fun `ids are stable per pass and distinct between passes`() {
         assertEquals(pass().toWalletItem(now, today).id, pass().toWalletItem(now, today).id)
         assertNotEquals(pass().toWalletItem(now, today).id, pass(issuer = "Sheetz").toWalletItem(now, today).id)
+    }
+
+    @Test
+    fun `ids come from the issuer and the barcode`() {
+        assertEquals(takeoutWalletId("Giant Eagle", "4200000001112"), pass().toWalletItem(now, today).id)
     }
 
     @Test
