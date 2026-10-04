@@ -1,5 +1,10 @@
 package io.github.pxgray.clasp.ui.edit
 
+import android.content.ActivityNotFoundException
+import android.content.Context
+import android.content.Intent
+import android.net.Uri
+import android.provider.Settings
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
@@ -40,6 +45,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
@@ -64,6 +70,7 @@ fun EditRoute(
     val searchEnabled by logoSearch.enabled.collectAsStateWithLifecycle()
     var askConsent by rememberSaveable { mutableStateOf(false) }
     val snackbarHostState = remember { SnackbarHostState() }
+    val context = LocalContext.current
     val logoFailed = stringResource(R.string.edit_logo_failed)
     val pickLogo = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
         uri?.let(viewModel::onLogoPicked)
@@ -115,8 +122,19 @@ fun EditRoute(
         onQueryChange = logoSearch::onQueryChange,
         onSearch = logoSearch::search,
         onChoose = logoSearch::choose,
+        onOpenAppSettings = { context.openAppSettings() },
         onDismiss = logoSearch::close,
     )
+}
+
+/** Opens this app's system settings page, where network access and other permissions live. */
+private fun Context.openAppSettings() {
+    val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.fromParts("package", packageName, null))
+    try {
+        startActivity(intent)
+    } catch (_: ActivityNotFoundException) {
+        // Some stripped-down builds have no app details screen; there's nothing better to open.
+    }
 }
 
 @StringRes

@@ -31,6 +31,9 @@
     <string name="logo_search_empty">No logos found. Try a shorter name, or add the card’s website.</string>
     <string name="logo_search_error">Couldn’t search right now</string>
     <string name="logo_search_retry">Retry</string>
+    <string name="logo_search_offline_title">Can’t reach the internet</string>
+    <string name="logo_search_offline_text">Check your connection. If you’ve limited Clasp’s network access, allow it in app settings.</string>
+    <string name="logo_search_app_settings">App settings</string>
     <string name="logo_search_download_failed">Couldn’t download that logo</string>
     <string name="logo_search_footer">Logos from Wikidata and company websites.</string>
     <string name="logo_search_downloading">Downloading</string>

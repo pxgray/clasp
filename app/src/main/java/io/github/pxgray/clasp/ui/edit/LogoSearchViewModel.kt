@@ -17,6 +17,7 @@ import io.github.pxgray.clasp.logo.LogoLimits
 import io.github.pxgray.clasp.logo.LogoProvider
 import io.github.pxgray.clasp.logo.LogoQuery
 import io.github.pxgray.clasp.logo.LogoUnavailableException
+import io.github.pxgray.clasp.logo.isOfflineFailure
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
@@ -47,7 +48,14 @@ sealed interface LogoSearchStatus {
     data object Idle : LogoSearchStatus
     data object Loading : LogoSearchStatus
     data object Empty : LogoSearchStatus
+    /** The search or every preview failed for some reason other than being [Offline]. */
     data object Error : LogoSearchStatus
+
+    /**
+     * Nothing to show, and at least one failure was offline (see [isOfflineFailure]): the phone has
+     * no connection, or Clasp's network access is off. Any offline failure wins over other errors.
+     */
+    data object Offline : LogoSearchStatus
     data class Results(val tiles: List<LogoTile>) : LogoSearchStatus
 }
 
@@ -136,8 +144,9 @@ class LogoSearchViewModel(
                 provider.search(LogoQuery(current.query.trim(), current.websiteHost))
             } catch (e: CancellationException) {
                 throw e
-            } catch (_: Exception) {
-                _state.update { it.copy(status = LogoSearchStatus.Error) }
+            } catch (e: Exception) {
+                val status = if (e.isOfflineFailure()) LogoSearchStatus.Offline else LogoSearchStatus.Error
+                _state.update { it.copy(status = status) }
                 return@launch
             }
             val gate = Semaphore(PREVIEW_PARALLELISM)
@@ -147,11 +156,13 @@ class LogoSearchViewModel(
             val tiles = previews.mapNotNull { it.getOrNull() }
             // Offline, the site provider still offers guessed URLs, so only failed downloads tell.
             // An error status, an oversized response or a refused redirect means the server was reached and
-            // there's just no usable icon.
+            // there's just no usable icon. The rule: with no tiles, any offline failure shows Offline,
+            // else any other real failure shows Error.
+            val failures = previews.mapNotNull { it.exceptionOrNull() }.filter { it !is LogoUnavailableException }
             val status = when {
                 tiles.isNotEmpty() -> LogoSearchStatus.Results(tiles)
-                previews.any { it.exceptionOrNull().let { e -> e != null && e !is LogoUnavailableException } } ->
-                    LogoSearchStatus.Error
+                failures.any { it.isOfflineFailure() } -> LogoSearchStatus.Offline
+                failures.isNotEmpty() -> LogoSearchStatus.Error
                 else -> LogoSearchStatus.Empty
             }
             _state.update { it.copy(status = status) }

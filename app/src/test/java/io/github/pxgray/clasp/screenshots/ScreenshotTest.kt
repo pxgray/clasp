@@ -114,6 +114,7 @@ class ScreenshotTest {
     @Test fun logoSearchResultsDark() = snap("logo_search_results_dark", dark = true) { LogoSearchContent(searchResults) }
     @Test fun logoSearchEmpty() = snap("logo_search_empty") { LogoSearchContent(searchState.copy(status = LogoSearchStatus.Empty)) }
     @Test fun logoSearchError() = snap("logo_search_error") { LogoSearchContent(searchState.copy(status = LogoSearchStatus.Error)) }
+    @Test fun logoSearchOffline() = snap("logo_search_offline") { LogoSearchContent(searchState.copy(status = LogoSearchStatus.Offline)) }
 
     /** The dialog is its own window, so capture the whole screen. Robolectric lays the dialog window out edge to edge, so its width isn't representative of a device. */
     @Test fun logoConsent() {
@@ -163,7 +164,7 @@ class ScreenshotTest {
     /** The sheet's content on a surface; the ModalBottomSheet window itself isn't captured. */
     @Composable
     private fun LogoSearchContent(state: LogoSearchState) = Surface {
-        FindLogoContent(state, onQueryChange = {}, onSearch = {}, onChoose = {}, modifier = Modifier.padding(top = 16.dp))
+        FindLogoContent(state, onQueryChange = {}, onSearch = {}, onChoose = {}, onOpenAppSettings = {}, modifier = Modifier.padding(top = 16.dp))
     }
 
     private val searchState = LogoSearchState(visible = true, query = "Costco", websiteHost = "costco.com")

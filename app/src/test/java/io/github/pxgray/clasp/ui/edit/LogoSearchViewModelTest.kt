@@ -8,9 +8,11 @@ import app.cash.turbine.test
 import io.github.pxgray.clasp.data.ImportedLogo
 import io.github.pxgray.clasp.data.LogoImporter
 import io.github.pxgray.clasp.logo.CompositeLogoProvider
+import io.github.pxgray.clasp.logo.HttpFetcher
 import io.github.pxgray.clasp.logo.LogoCandidate
 import io.github.pxgray.clasp.logo.LogoLimits
 import io.github.pxgray.clasp.logo.LogoNetworkException
+import io.github.pxgray.clasp.logo.LogoOfflineException
 import io.github.pxgray.clasp.logo.LogoProvider
 import io.github.pxgray.clasp.logo.LogoQuery
 import io.github.pxgray.clasp.logo.LogoSource
@@ -31,6 +33,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.annotation.GraphicsMode
 import java.io.ByteArrayOutputStream
+import java.net.UnknownHostException
 
 @RunWith(AndroidJUnit4::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -103,10 +106,41 @@ class LogoSearchViewModelTest {
     @Test
     fun `previews that all fail to download are an error`() {
         results = { listOf(candidate("missing")) }
-        fetcher.offline = true
+        fetcher.fail("missing-preview")
         val vm = viewModel()
         vm.open("item", "Tesco", null)
         assertEquals(LogoSearchStatus.Error, vm.state.value.status)
+    }
+
+    @Test
+    fun `previews that fail because the network is unreachable are offline`() {
+        results = { listOf(candidate("missing")) }
+        fetcher.offline = true
+        val vm = viewModel()
+        vm.open("item", "Tesco", null)
+        assertEquals(LogoSearchStatus.Offline, vm.state.value.status)
+    }
+
+    @Test
+    fun `any offline preview failure means offline, even next to other failures`() {
+        results = { listOf(candidate("missing"), candidate("slow"), candidate("unreachable")) }
+        fetcher.fail("slow-preview")
+        val offline = FakeHttpFetcher().apply { this.offline = true }
+        val mixed = object : HttpFetcher {
+            override suspend fun fetch(url: String, maxBytes: Int) =
+                if ("unreachable" in url) offline.fetch(url, maxBytes) else fetcher.fetch(url, maxBytes)
+        }
+        val vm = LogoSearchViewModel(provider, mixed, importer, enabled, { }, main.dispatcher)
+        vm.open("item", "Tesco", null)
+        assertEquals(LogoSearchStatus.Offline, vm.state.value.status)
+    }
+
+    @Test
+    fun `a provider failure caused by being offline is offline`() {
+        results = { throw LogoNetworkException("Logo search failed", LogoOfflineException("dns", UnknownHostException("x"))) }
+        val vm = viewModel()
+        vm.open("item", "Tesco", null)
+        assertEquals(LogoSearchStatus.Offline, vm.state.value.status)
     }
 
     @Test
@@ -141,13 +175,13 @@ class LogoSearchViewModelTest {
     }
 
     @Test
-    fun `offline with a website is an error, not empty`() {
+    fun `offline with a website is offline, not empty`() {
         // The site provider still guesses well-known icon paths when the homepage fails.
         val offline = FakeHttpFetcher().apply { this.offline = true }
         val real = CompositeLogoProvider(listOf(SiteIconProvider(offline), WikidataLogoProvider(offline, language = { "en" })))
         val vm = LogoSearchViewModel(real, offline, importer, enabled, { }, main.dispatcher)
         vm.open("item", "Tesco", "tesco.com")
-        assertEquals(LogoSearchStatus.Error, vm.state.value.status)
+        assertEquals(LogoSearchStatus.Offline, vm.state.value.status)
     }
 
     @Test
@@ -178,7 +212,7 @@ class LogoSearchViewModelTest {
 
     @Test
     fun `failures show an error and retrying searches the edited query`() {
-        results = { throw LogoNetworkException("offline") }
+        results = { throw LogoNetworkException("timed out") }
         val vm = viewModel()
         vm.open("item", "Tesco", null)
         assertEquals(LogoSearchStatus.Error, vm.state.value.status)

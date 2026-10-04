@@ -21,6 +21,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import java.net.InetAddress
+import java.net.ServerSocket
 import java.net.Socket
 import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.Executors
@@ -120,6 +121,34 @@ class UrlConnectionHttpFetcherTest {
         server.enqueue(MockResponse.Builder().code(404).build())
         val e = assertThrows(HttpStatusException::class.java) { runBlocking { fetcher.fetch(url("/a"), 100) } }
         assertEquals(404, e.code)
+    }
+
+    @Test
+    fun `an unresolvable host is offline`() {
+        // .invalid never resolves (RFC 6761), so this fails at DNS without touching the network.
+        val patient = UrlConnectionHttpFetcher(
+            isAllowed = { true },
+            userAgent = "Clasp-test",
+            sslSocketFactory = clientSockets,
+            readTimeout = 5.seconds,
+            deadline = 5.seconds,
+            hostAllowed = { true },
+        )
+        assertThrows(LogoOfflineException::class.java) { runBlocking { patient.fetch("https://nonexistent.invalid/", 100) } }
+    }
+
+    @Test
+    fun `a refused connection is offline`() {
+        val port = ServerSocket(0, 1, InetAddress.getByName("localhost")).use { it.localPort }
+        assertThrows(LogoOfflineException::class.java) { runBlocking { fetcher.fetch("https://localhost:$port/", 100) } }
+    }
+
+    @Test
+    fun `an http error is not offline`() {
+        server.enqueue(MockResponse.Builder().code(500).build())
+        val e = assertThrows(LogoNetworkException::class.java) { runBlocking { fetcher.fetch(url("/a"), 100) } }
+        assertFalse(e is LogoOfflineException)
+        assertFalse(e.isOfflineFailure())
     }
 
     @Test
