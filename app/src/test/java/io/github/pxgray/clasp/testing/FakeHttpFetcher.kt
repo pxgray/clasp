@@ -4,6 +4,7 @@ import io.github.pxgray.clasp.logo.HttpFetcher
 import io.github.pxgray.clasp.logo.HttpResponse
 import io.github.pxgray.clasp.logo.HttpStatusException
 import io.github.pxgray.clasp.logo.LogoNetworkException
+import io.github.pxgray.clasp.logo.LogoRefusedException
 
 /**
  * Serves canned responses for URLs containing all of the given parts; anything else fails like a
@@ -35,7 +36,7 @@ class FakeHttpFetcher : HttpFetcher {
         val route = routes.lastOrNull { route -> route.parts.all { it in url } }
             ?: throw HttpStatusException(404, url)
         route.status?.let { throw HttpStatusException(it, url) }
-        if (route.body.size > maxBytes) throw LogoNetworkException("too large: $url")
+        if (route.body.size > maxBytes) throw LogoRefusedException("too large: $url")
         return HttpResponse(route.body, route.contentType, route.finalUrl ?: url)
     }
 }

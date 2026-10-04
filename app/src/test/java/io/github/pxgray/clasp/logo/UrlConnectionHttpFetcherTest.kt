@@ -86,7 +86,7 @@ class UrlConnectionHttpFetcherTest {
     @Test
     fun `refuses a redirect to plain http`() {
         server.enqueue(MockResponse.Builder().code(302).addHeader("Location", "http://localhost:${server.port}/b").build())
-        assertThrows(LogoNetworkException::class.java) { runBlocking { fetcher.fetch(url("/a"), 100) } }
+        assertThrows(LogoRefusedException::class.java) { runBlocking { fetcher.fetch(url("/a"), 100) } }
         assertEquals(1, server.requestCount)
     }
 
@@ -100,7 +100,7 @@ class UrlConnectionHttpFetcherTest {
     @Test
     fun `stops reading past the size cap`() {
         server.enqueue(MockResponse.Builder().body("x".repeat(2_000)).build())
-        assertThrows(LogoNetworkException::class.java) { runBlocking { fetcher.fetch(url("/a"), 1_000) } }
+        assertThrows(LogoRefusedException::class.java) { runBlocking { fetcher.fetch(url("/a"), 1_000) } }
     }
 
     @Test

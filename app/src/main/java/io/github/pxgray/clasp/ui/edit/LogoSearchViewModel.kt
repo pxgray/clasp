@@ -12,11 +12,11 @@ import io.github.pxgray.clasp.ClaspApplication
 import io.github.pxgray.clasp.data.ImportedLogo
 import io.github.pxgray.clasp.data.LogoImporter
 import io.github.pxgray.clasp.logo.HttpFetcher
-import io.github.pxgray.clasp.logo.HttpStatusException
 import io.github.pxgray.clasp.logo.LogoCandidate
 import io.github.pxgray.clasp.logo.LogoLimits
 import io.github.pxgray.clasp.logo.LogoProvider
 import io.github.pxgray.clasp.logo.LogoQuery
+import io.github.pxgray.clasp.logo.LogoUnavailableException
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
@@ -146,10 +146,11 @@ class LogoSearchViewModel(
             }
             val tiles = previews.mapNotNull { it.getOrNull() }
             // Offline, the site provider still offers guessed URLs, so only failed downloads tell.
-            // An error status means the server was reached and the icon just isn't there.
+            // An error status, an oversized response or a refused redirect means the server was reached and
+            // there's just no usable icon.
             val status = when {
                 tiles.isNotEmpty() -> LogoSearchStatus.Results(tiles)
-                previews.any { it.exceptionOrNull().let { e -> e != null && e !is HttpStatusException } } ->
+                previews.any { it.exceptionOrNull().let { e -> e != null && e !is LogoUnavailableException } } ->
                     LogoSearchStatus.Error
                 else -> LogoSearchStatus.Empty
             }
@@ -188,7 +189,7 @@ class LogoSearchViewModel(
         _state.update { it.copy(visible = false, downloading = null) }
     }
 
-    /** A failure if the preview couldn't be downloaded (an [HttpStatusException] if it's missing); null if it isn't usable. */
+    /** A failure if the preview couldn't be downloaded (a [LogoUnavailableException] if it's missing or refused); null if it isn't usable. */
     private suspend fun tile(candidate: LogoCandidate): Result<LogoTile?> {
         val body = try {
             fetcher.fetch(candidate.previewUrl, LogoLimits.PREVIEW).body

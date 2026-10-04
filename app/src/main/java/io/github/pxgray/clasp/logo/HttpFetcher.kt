@@ -46,8 +46,17 @@ class HttpResponse(val body: ByteArray, val contentType: String?, val url: Strin
 
 open class LogoNetworkException(message: String, cause: Throwable? = null) : IOException(message, cause)
 
-/** The server was reached but answered with an error status, such as 404 for a missing icon. */
-class HttpStatusException(val code: Int, url: String) : LogoNetworkException("HTTP $code for $url")
+/**
+ * The server can be reached (or the URL was refused before connecting), but there is no usable
+ * answer, so retrying won't help. Unlike a plain [LogoNetworkException] this isn't "offline".
+ */
+open class LogoUnavailableException(message: String) : LogoNetworkException(message)
+
+/** The server answered with an error status, such as 404 for a missing icon. */
+class HttpStatusException(val code: Int, url: String) : LogoUnavailableException("HTTP $code for $url")
+
+/** The response was too large, or a URL (such as a redirect target) was refused by policy. */
+class LogoRefusedException(message: String) : LogoUnavailableException(message)
 
 /** The only way Clasp talks to the network. */
 interface HttpFetcher {
@@ -156,9 +165,9 @@ class UrlConnectionHttpFetcher(
         try {
             val uri = URI(raw)
             if (!uri.scheme.equals("https", ignoreCase = true) || uri.host.isNullOrEmpty()) {
-                throw LogoNetworkException("Only https is allowed: $raw")
+                throw LogoRefusedException("Only https is allowed: $raw")
             }
-            if (!hostAllowed(uri.host)) throw LogoNetworkException("Not a public host: $raw")
+            if (!hostAllowed(uri.host)) throw LogoRefusedException("Not a public host: $raw")
             return uri.toURL()
         } catch (e: LogoNetworkException) {
             throw e
@@ -176,7 +185,7 @@ class UrlConnectionHttpFetcher(
             val read = read(buffer)
             if (read < 0) break
             total += read
-            if (total > maxBytes) throw LogoNetworkException("Response larger than $maxBytes bytes")
+            if (total > maxBytes) throw LogoRefusedException("Response larger than $maxBytes bytes")
             out.write(buffer, 0, read)
         }
         return out.toByteArray()
