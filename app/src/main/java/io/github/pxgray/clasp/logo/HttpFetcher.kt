@@ -103,6 +103,9 @@ interface HttpFetcher {
  * DNS lookup and the TCP connect can't be aborted that way; they are bounded only by the connect
  * timeout (= [readTimeout]), so [fetch] may return up to that long after the deadline or a cancel.
  *
+ * [ioDispatcher] must have at least 2 threads: while one is blocked in a download, the abort needs
+ * another free thread to close its sockets ([Dispatchers.IO] is fine).
+ *
  * [hostAllowed] checks host names only: it gives no protection against a public name that
  * resolves to a private address (DNS rebinding).
  */
@@ -187,7 +190,11 @@ class UrlConnectionHttpFetcher(
                 if (e.isOfflineFailure()) throw LogoOfflineException("Couldn't reach $current", e)
                 throw LogoNetworkException("Couldn't fetch $current", e)
             } finally {
-                connection?.disconnect()
+                // A throw here would replace the LogoNetworkException (or the response) above.
+                try {
+                    connection?.disconnect()
+                } catch (_: Exception) {
+                }
             }
         }
         throw LogoNetworkException("Too many redirects from $url")
