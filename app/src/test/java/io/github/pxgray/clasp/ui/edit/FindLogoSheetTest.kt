@@ -3,6 +3,7 @@ package io.github.pxgray.clasp.ui.edit
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertHasClickAction
@@ -12,6 +13,7 @@ import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasStateDescription
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -54,10 +56,21 @@ class FindLogoSheetTest {
         compose.onAllNodes(hasContentDescription("Tesco")).assertCountEquals(1)
         compose.onAllNodes(hasText("Wikidata")).assertCountEquals(1)
         compose.onAllNodes(isButton and hasContentDescription("Tesco") and hasText("Wikidata")).assertCountEquals(1)
-        compose.onAllNodes(isButton and hasContentDescription("lidl.com") and hasText("lidl.com")).assertCountEquals(1)
+        compose.onAllNodes(isButton and hasContentDescription("lidl.com")).assertCountEquals(1)
+
+        compose.onAllNodes(hasText("lidl.com")).assertCountEquals(0)
 
         compose.onNodeWithContentDescription("Tesco").assertHasClickAction().assertIsEnabled().performClick()
         assertEquals(tesco, chosen)
+    }
+
+    @Test
+    fun `a website tile reads its host once`() {
+        show()
+        val config = compose.onAllNodes(isButton and hasContentDescription("lidl.com")).onFirst().fetchSemanticsNode().config
+        val spoken = (config.getOrNull(SemanticsProperties.ContentDescription).orEmpty() +
+            config.getOrNull(SemanticsProperties.Text).orEmpty().map { it.text }).filter { it == "lidl.com" }
+        assertEquals(1, spoken.size)
     }
 
     @Test
