@@ -72,7 +72,7 @@ class ScreenshotTest {
         loading = false,
         passes = listOf(boardingItem(), concert),
         cards = listOf(
-            loyaltyItem(id = "c1", title = "Costco", cardNumber = "111222333444", brandColor = 0xFFD32F2F.toInt()),
+            loyaltyItem(id = "c1", title = "Costco", cardNumber = "111222333444", programName = "Executive Membership", brandColor = 0xFFD32F2F.toInt()),
             loyaltyItem(id = "c2", title = "Blue Bottle Coffee", memberName = "Jane Doe", brandColor = 0xFF1565C0.toInt()),
             loyaltyItem(id = "c3", title = "Library card", cardNumber = "29384756"),
         ),
