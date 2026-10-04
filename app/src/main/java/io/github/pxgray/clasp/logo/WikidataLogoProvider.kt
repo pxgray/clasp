@@ -65,7 +65,7 @@ class WikidataLogoProvider(
         val claims = mutableMapOf<String, Claims>()
         for (row in bindings) {
             row as? JsonObject ?: continue
-            val id = row.value("item")?.substringAfter(ENTITY_PREFIX, "") ?: continue
+            val id = row.value("item")?.substringAfter(ENTITY_PREFIX, "")?.takeIf { it.isNotEmpty() } ?: continue
             val item = claims.getOrPut(id) { Claims() }
             if (item.logo == null) item.logo = row.value("logo")?.let(::fileName)
             if (item.icon == null) item.icon = row.value("icon")?.let(::fileName)
