@@ -172,4 +172,35 @@ class ClaspDatabaseMigrationTest {
             context.deleteDatabase(name)
         }
     }
+
+    @Test
+    fun `migrating from v4 keeps items and gives them no phone`() = runTest {
+        val name = "migration-v4-test.db"
+        context.deleteDatabase(name)
+        context.openOrCreateDatabase(name, Context.MODE_PRIVATE, null).use { db ->
+            db.execSQL(
+                "CREATE TABLE IF NOT EXISTS `wallet_items` (`id` TEXT NOT NULL, `kind` TEXT NOT NULL, " +
+                    "`title` TEXT NOT NULL, `subtitle` TEXT, `barcode` TEXT, `brandColor` INTEGER, `logoPath` TEXT, " +
+                    "`details` TEXT NOT NULL, `createdAt` INTEGER NOT NULL, `lastUsedAt` INTEGER, " +
+                    "`isFavorite` INTEGER NOT NULL DEFAULT 0, `website` TEXT, PRIMARY KEY(`id`))",
+            )
+            db.execSQL("CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)")
+            db.execSQL("INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '820b29b6c6085141a12784602886e734')")
+            db.execSQL(
+                "INSERT INTO wallet_items (id, kind, title, details, createdAt, website) VALUES ('c', 'LOYALTY', 'Costco', ?, 1000, 'costco.com')",
+                arrayOf(Converters().detailsToJson(ItemDetails.Loyalty(cardNumber = "123"))),
+            )
+            db.version = 4
+        }
+
+        val database = ClaspDatabase.build(context, name)
+        try {
+            val item = database.walletDao().observeAll().first().single().toDomain()
+            assertEquals("costco.com", item.website)
+            assertNull(item.phone)
+        } finally {
+            database.close()
+            context.deleteDatabase(name)
+        }
+    }
 }

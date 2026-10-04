@@ -47,6 +47,7 @@ private data class BackupItem(
     val lastUsedAt: Long? = null,
     val isFavorite: Boolean = false,
     val website: String? = null,
+    val phone: String? = null,
 )
 
 /**
@@ -149,6 +150,7 @@ private fun WalletItem.toBackup() = BackupItem(
     lastUsedAt = lastUsedAt?.toEpochMilliseconds(),
     isFavorite = isFavorite,
     website = website,
+    phone = phone,
 )
 
 private fun BackupItem.toDomain() = WalletItem(
@@ -164,4 +166,5 @@ private fun BackupItem.toDomain() = WalletItem(
     lastUsedAt = lastUsedAt?.let(Instant::fromEpochMilliseconds),
     isFavorite = isFavorite,
     website = website,
+    phone = phone,
 )

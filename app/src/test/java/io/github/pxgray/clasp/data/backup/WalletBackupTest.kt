@@ -43,7 +43,7 @@ class WalletBackupTest {
     @Test
     fun `export then import restores items and their files`() = runTest {
         sourceFiles.write("items/c/logo-1.png", byteArrayOf(7, 7, 7))
-        val card = loyaltyItem(id = "c", logoPath = "items/c/logo-1.png", brandColor = 0xFF123456.toInt(), isFavorite = true, website = "https://costco.com")
+        val card = loyaltyItem(id = "c", logoPath = "items/c/logo-1.png", brandColor = 0xFF123456.toInt(), isFavorite = true, website = "https://costco.com", phone = "1-800-774-2678")
         val pass = boardingItem(id = "b")
         sourceRepo.items.value = listOf(card, pass)
 
@@ -117,5 +117,12 @@ class WalletBackupTest {
         val json = """{"version":1,"items":[{"id":"c","kind":"LOYALTY","title":"X","details":{"type":"loyalty","cardNumber":"1"},"createdAt":0}]}"""
         backupOf(targetRepo, targetFiles).import(zip("wallet.json" to json.toByteArray()).inputStream())
         assertNull(targetRepo.items.value.single().website)
+    }
+
+    @Test
+    fun `a backup without phone imports with none`() = runTest {
+        val json = """{"version":1,"items":[{"id":"c","kind":"LOYALTY","title":"X","details":{"type":"loyalty","cardNumber":"1"},"createdAt":0}]}"""
+        backupOf(targetRepo, targetFiles).import(zip("wallet.json" to json.toByteArray()).inputStream())
+        assertNull(targetRepo.items.value.single().phone)
     }
 }

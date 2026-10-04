@@ -114,4 +114,19 @@ class EditFormStateTest {
         val item = boardingItem().copy(website = "https://united.com")
         assertEquals(item, EditFormState.from(item).toWalletItem())
     }
+
+    @Test
+    fun `phone is trimmed and blank becomes null`() {
+        val form = EditFormState(id = "n", isNew = true, createdAt = Instant.fromEpochMilliseconds(0), title = "A", cardNumber = "1")
+        assertEquals("1-800-774-2678", form.copy(phone = " 1-800-774-2678 ").toWalletItem().phone)
+        assertNull(form.copy(phone = "  ").toWalletItem().phone)
+    }
+
+    @Test
+    fun `loyalty cards and boarding passes keep their phone`() {
+        val card = loyaltyItem(phone = "+44 20 7946 0958")
+        assertEquals(card, EditFormState.from(card).toWalletItem())
+        val pass = boardingItem().copy(phone = "1-800-864-8331")
+        assertEquals(pass, EditFormState.from(pass).toWalletItem())
+    }
 }
