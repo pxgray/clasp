@@ -187,14 +187,14 @@ fun EditScreen(
                 sharedKey = null,
             )
 
+            // The logo sheet and the photo picker are other windows: coming back hands focus to the
+            // last focused field, which would bring the keyboard back up. Clear it before leaving.
+            val focusManager = LocalFocusManager.current
             FlowRow(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
                 itemVerticalAlignment = Alignment.CenterVertically,
             ) {
-                // The sheet is its own window: closing it hands focus back to the last focused field,
-                // which would bring the keyboard back up. Nothing should be focused after a search.
-                val focusManager = LocalFocusManager.current
                 FilledTonalButton(
                     onClick = {
                         focusManager.clearFocus()
@@ -205,7 +205,12 @@ fun EditScreen(
                     Icon(Icons.Default.Search, contentDescription = null, modifier = Modifier.size(ButtonDefaults.IconSize))
                     Text(stringResource(R.string.edit_logo_find), modifier = Modifier.padding(start = ButtonDefaults.IconSpacing))
                 }
-                OutlinedButton(onClick = onPickLogo) {
+                OutlinedButton(
+                    onClick = {
+                        focusManager.clearFocus()
+                        onPickLogo()
+                    },
+                ) {
                     Text(stringResource(if (state.logoPath == null) R.string.edit_logo_choose else R.string.edit_logo_change))
                 }
                 if (state.logoPath != null) {
