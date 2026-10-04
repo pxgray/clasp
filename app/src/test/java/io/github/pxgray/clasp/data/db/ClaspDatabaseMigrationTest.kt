@@ -130,4 +130,46 @@ class ClaspDatabaseMigrationTest {
             context.deleteDatabase(name)
         }
     }
+
+    @Test
+    fun `migrating from v3 skips rows it cannot read`() = runTest {
+        val name = "migration-v3-bad-test.db"
+        val converters = Converters()
+        val takeout = takeoutWalletId("Giant Eagle", "4200000001112")
+        context.deleteDatabase(name)
+        context.openOrCreateDatabase(name, Context.MODE_PRIVATE, null).use { db ->
+            db.execSQL(
+                "CREATE TABLE IF NOT EXISTS `wallet_items` (`id` TEXT NOT NULL, `kind` TEXT NOT NULL, " +
+                    "`title` TEXT NOT NULL, `subtitle` TEXT, `barcode` TEXT, `brandColor` INTEGER, `logoPath` TEXT, " +
+                    "`details` TEXT NOT NULL, `createdAt` INTEGER NOT NULL, `lastUsedAt` INTEGER, " +
+                    "`isFavorite` INTEGER NOT NULL DEFAULT 0, `website` TEXT, PRIMARY KEY(`id`))",
+            )
+            db.execSQL("CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)")
+            db.execSQL("INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '820b29b6c6085141a12784602886e734')")
+            val insert = "INSERT INTO wallet_items (id, kind, title, barcode, details, createdAt) VALUES (?, 'LOYALTY', ?, ?, ?, 1000)"
+            db.execSQL(insert, arrayOf("bad", "Broken", "not json", "{not json"))
+            db.execSQL(
+                insert,
+                arrayOf(
+                    takeout, "Giant Eagle", "not json",
+                    converters.detailsToJson(ItemDetails.Loyalty(cardNumber = "4200000001112", notes = "fuelperks!")),
+                ),
+            )
+            db.version = 3
+        }
+
+        val database = ClaspDatabase.build(context, name)
+        try {
+            // Read raw: the DAO can't decode the broken row either.
+            val rows = database.openHelper.readableDatabase.query("SELECT id, subtitle, details FROM wallet_items").use { c ->
+                buildMap { while (c.moveToNext()) put(c.getString(0), c.getString(1) to c.getString(2)) }
+            }
+            assertEquals(null to "{not json", rows.getValue("bad"))
+            // An unreadable barcode still leaves the card number to match on.
+            assertEquals("fuelperks!", rows.getValue(takeout).first)
+        } finally {
+            database.close()
+            context.deleteDatabase(name)
+        }
+    }
 }
