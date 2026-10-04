@@ -1,5 +1,10 @@
 package io.github.pxgray.clasp.ui.detail
 
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.platform.UriHandler
+import androidx.compose.ui.test.performClick
+import org.junit.Assert.assertEquals
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -30,5 +35,23 @@ class PassDetailsTest {
         listOf("Nov 22, 2026", "The Band", "SECTION", "$25.50", "Pass details", "No refunds.", "TICKET-42").forEach {
             compose.onNodeWithText(it).assertExists()
         }
+    }
+
+    @Test
+    fun `phone numbers in back fields open the dialer`() {
+        val opened = mutableListOf<String>()
+        val pass = ItemDetails.Pass(
+            style = PkPassStyle.GENERIC,
+            backFields = listOf(PassField("phone", "CUSTOMER SERVICE", "+1 415 555 0134")),
+        )
+        compose.setContent {
+            CompositionLocalProvider(LocalUriHandler provides object : UriHandler {
+                override fun openUri(uri: String) { opened += uri }
+            }) {
+                ClaspTheme(dynamicColor = false) { PassDetails(pass) }
+            }
+        }
+        compose.onNodeWithText("+1 415 555 0134").performClick()
+        assertEquals(listOf("tel:+14155550134"), opened)
     }
 }

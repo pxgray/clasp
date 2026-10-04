@@ -34,7 +34,7 @@ fun PassDetails(pass: ItemDetails.Pass, modifier: Modifier = Modifier) {
         if (pass.backFields.isNotEmpty()) {
             HorizontalDivider(color = LocalContentColor.current.copy(alpha = 0.24f))
             Text(stringResource(R.string.detail_pass_details), style = MaterialTheme.typography.titleMedium)
-            pass.backFields.forEach { LabeledValue(it.label, it.value) }
+            pass.backFields.forEach { LabeledValue(it.label, it.value, linkify = true) }
         }
     }
 }

@@ -51,7 +51,7 @@ fun BoardingPassDetails(pass: ItemDetails.BoardingPass, modifier: Modifier = Mod
             pass.departureTime?.let { LabeledValue(stringResource(R.string.detail_departs), it.formatShort()) }
             pass.seat?.let { LabeledValue(stringResource(R.string.detail_seat), it) }
             pass.sequence?.let { LabeledValue(stringResource(R.string.detail_sequence), it) }
-            pass.extraFields.forEach { LabeledValue(it.displayLabel(), it.value) }
+            pass.extraFields.forEach { LabeledValue(it.displayLabel(), it.value, linkify = true) }
         }
 
         LabeledValue(stringResource(R.string.detail_passenger), pass.passenger)
