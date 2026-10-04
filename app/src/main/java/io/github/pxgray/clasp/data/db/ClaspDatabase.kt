@@ -39,7 +39,8 @@ val MIGRATION_2_3 = object : Migration(2, 3) {
 
 /**
  * v4 moves the program name that Takeout import used to keep in a loyalty card's notes into its subtitle.
- * Only cards whose id is the one Takeout import would have given them are touched, so notes typed by hand stay.
+ * Only cards whose id is the one Takeout import would have given them are touched, so notes on cards added by
+ * hand stay. A note typed later on an imported card is moved too, as it can't be told apart.
  */
 val MIGRATION_3_4 = object : Migration(3, 4) {
     override fun migrate(db: SupportSQLiteDatabase) {
@@ -51,7 +52,8 @@ val MIGRATION_3_4 = object : Migration(3, 4) {
         ).use { row ->
             while (row.moveToNext()) {
                 val id = row.getString(0)
-                val details = runCatching { converters.jsonToDetails(row.getString(3)) }.getOrNull() as? ItemDetails.Loyalty ?: continue
+                val decoded = runCatching { converters.jsonToDetails(row.getString(3)) }.getOrNull()
+                val details = decoded as? ItemDetails.Loyalty ?: continue
                 val notes = details.notes?.takeIf { it.isNotBlank() } ?: continue
                 val barcode = runCatching { converters.jsonToBarcode(row.getString(2)) }.getOrNull()
                 val identities = setOfNotNull(barcode?.value, details.cardNumber)
