@@ -20,27 +20,47 @@ import org.junit.runner.RunWith
 class EditScreenTest {
     @get:Rule val compose = createComposeRule()
 
-    @Test
-    fun `find logo clears focus so the keyboard doesn't come back when the sheet closes`() {
-        var finds = 0
+    private var finds = 0
+    private var picks = 0
+
+    private fun show(logoPath: String? = null) {
         compose.setContent {
             ClaspTheme(dynamicColor = false) {
                 EditScreen(
-                    state = EditFormState.from(loyaltyItem()),
+                    state = EditFormState.from(loyaltyItem(logoPath = logoPath)),
                     snackbarHostState = SnackbarHostState(),
                     onUpdate = {},
                     onFindLogo = { finds++ },
-                    onPickLogo = {},
+                    onPickLogo = { picks++ },
                     onSave = {},
                     onCancel = {},
                 )
             }
         }
         compose.onNodeWithTag("edit_website").requestFocus().assertIsFocused()
+    }
 
+    @Test
+    fun `find logo clears focus so the keyboard doesn't come back when the sheet closes`() {
+        show()
         compose.onNodeWithText("Find logo").performClick()
-
         assertEquals(1, finds)
+        compose.onNodeWithTag("edit_website").assertIsNotFocused()
+    }
+
+    @Test
+    fun `choose image clears focus so the keyboard doesn't come back from the picker`() {
+        show()
+        compose.onNodeWithText("Choose image").performClick()
+        assertEquals(1, picks)
+        compose.onNodeWithTag("edit_website").assertIsNotFocused()
+    }
+
+    @Test
+    fun `change image clears focus too`() {
+        show(logoPath = "items/x/logo-1.png")
+        compose.onNodeWithText("Change image").performClick()
+        assertEquals(1, picks)
         compose.onNodeWithTag("edit_website").assertIsNotFocused()
     }
 }
