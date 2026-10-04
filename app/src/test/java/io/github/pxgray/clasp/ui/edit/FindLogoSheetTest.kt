@@ -15,6 +15,7 @@ import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import io.github.pxgray.clasp.logo.LogoCandidate
@@ -44,7 +45,7 @@ class FindLogoSheetTest {
             downloading = downloading,
         )
         compose.setContent {
-            ClaspTheme(dynamicColor = false) { FindLogoContent(state, onQueryChange = {}, onSearch = {}, onChoose = onChoose) }
+            ClaspTheme(dynamicColor = false) { FindLogoContent(state, onQueryChange = {}, onSearch = {}, onChoose = onChoose, onOpenAppSettings = {}) }
         }
     }
 
@@ -82,5 +83,27 @@ class FindLogoSheetTest {
         compose.onAllNodes(hasStateDescription("Downloading")).assertCountEquals(1)
         compose.onNodeWithContentDescription("Tesco").assertIsNotEnabled()
         compose.onNodeWithContentDescription("lidl.com").assertIsNotEnabled()
+    }
+
+    @Test
+    fun `offline offers retry and the app settings`() {
+        var searches = 0
+        var settings = 0
+        compose.setContent {
+            ClaspTheme(dynamicColor = false) {
+                FindLogoContent(
+                    LogoSearchState(visible = true, query = "Tesco", status = LogoSearchStatus.Offline),
+                    onQueryChange = {},
+                    onSearch = { searches++ },
+                    onChoose = {},
+                    onOpenAppSettings = { settings++ },
+                )
+            }
+        }
+        compose.onNodeWithText("Can’t reach the internet").assertExists()
+        compose.onNodeWithText("Retry").performClick()
+        compose.onNodeWithText("App settings").performClick()
+        assertEquals(1, searches)
+        assertEquals(1, settings)
     }
 }

@@ -9,6 +9,7 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -26,6 +27,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ContainedLoadingIndicator
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.MaterialTheme
@@ -78,6 +80,7 @@ fun FindLogoSheet(
     onQueryChange: (String) -> Unit,
     onSearch: () -> Unit,
     onChoose: (LogoCandidate) -> Unit,
+    onOpenAppSettings: () -> Unit,
     onDismiss: () -> Unit,
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -98,7 +101,14 @@ fun FindLogoSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
     ) {
-        FindLogoContent(state, onQueryChange, onSearch, onChoose, Modifier.navigationBarsPadding().imePadding())
+        FindLogoContent(
+            state = state,
+            onQueryChange = onQueryChange,
+            onSearch = onSearch,
+            onChoose = onChoose,
+            onOpenAppSettings = onOpenAppSettings,
+            modifier = Modifier.navigationBarsPadding().imePadding(),
+        )
     }
 }
 
@@ -108,6 +118,7 @@ fun FindLogoContent(
     onQueryChange: (String) -> Unit,
     onSearch: () -> Unit,
     onChoose: (LogoCandidate) -> Unit,
+    onOpenAppSettings: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -142,6 +153,7 @@ fun FindLogoContent(
                     Text(stringResource(R.string.logo_search_error), style = MaterialTheme.typography.bodyLarge)
                     TextButton(onClick = onSearch) { Text(stringResource(R.string.logo_search_retry)) }
                 }
+                LogoSearchStatus.Offline -> OfflineMessage(onRetry = onSearch, onOpenAppSettings = onOpenAppSettings)
                 is LogoSearchStatus.Results -> LogoGrid(status.tiles, state.downloading, onChoose)
             }
         }
@@ -158,6 +170,31 @@ fun FindLogoContent(
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
+    }
+}
+
+@Composable
+private fun OfflineMessage(onRetry: () -> Unit, onOpenAppSettings: () -> Unit) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(
+            stringResource(R.string.logo_search_offline_title),
+            style = MaterialTheme.typography.titleMedium,
+            textAlign = TextAlign.Center,
+        )
+        Text(
+            stringResource(R.string.logo_search_offline_text),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.padding(top = 8.dp),
+        )
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier.padding(top = 16.dp),
+        ) {
+            TextButton(onClick = onRetry) { Text(stringResource(R.string.logo_search_retry)) }
+            FilledTonalButton(onClick = onOpenAppSettings) { Text(stringResource(R.string.logo_search_app_settings)) }
+        }
     }
 }
 

@@ -11,10 +11,13 @@ import kotlinx.coroutines.withTimeoutOrNull
 import java.io.ByteArrayOutputStream
 import java.io.IOException
 import java.io.InputStream
+import java.net.ConnectException
 import java.net.InetAddress
+import java.net.NoRouteToHostException
 import java.net.Socket
 import java.net.URI
 import java.net.URL
+import java.net.UnknownHostException
 import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.atomic.AtomicBoolean
 import javax.net.ssl.HttpsURLConnection
@@ -49,6 +52,25 @@ class HttpResponse(val body: ByteArray, val contentType: String?, val url: Strin
 open class LogoNetworkException(message: String, cause: Throwable? = null) : IOException(message, cause)
 
 /**
+ * The network can't be reached at all: the host name didn't resolve, or the connection was refused
+ * or had no route. That is what an offline phone sees, and also one where the user has denied Clasp
+ * network access (a per-app permission on GrapheneOS, for example).
+ */
+class LogoOfflineException(message: String, cause: Throwable) : LogoNetworkException(message, cause)
+
+/**
+ * Whether this failure, or anything in its cause chain, means the network couldn't be reached:
+ * a [LogoOfflineException], or the low-level [UnknownHostException], [ConnectException] or
+ * [NoRouteToHostException] behind one.
+ */
+fun Throwable.isOfflineFailure(): Boolean = generateSequence(this) { it.cause }.take(MAX_CAUSES).any {
+    it is LogoOfflineException || it is UnknownHostException || it is ConnectException || it is NoRouteToHostException
+}
+
+/** Guards [isOfflineFailure] against a (malformed) cyclic cause chain. */
+private const val MAX_CAUSES = 32
+
+/**
  * The server can be reached (or the URL was refused before connecting), but there is no usable
  * answer, so retrying won't help. Unlike a plain [LogoNetworkException] this isn't "offline".
  */
@@ -62,7 +84,10 @@ class LogoRefusedException(message: String) : LogoUnavailableException(message)
 
 /** The only way Clasp talks to the network. */
 interface HttpFetcher {
-    /** Throws [LogoNetworkException] on any failure, including logo search being turned off. */
+    /**
+     * Throws [LogoNetworkException] on any failure, including logo search being turned off, and
+     * [LogoOfflineException] when the network can't be reached at all.
+     */
     suspend fun fetch(url: String, maxBytes: Int): HttpResponse
 }
 
@@ -159,6 +184,7 @@ class UrlConnectionHttpFetcher(
             } catch (e: LogoNetworkException) {
                 throw e
             } catch (e: Exception) {
+                if (e.isOfflineFailure()) throw LogoOfflineException("Couldn't reach $current", e)
                 throw LogoNetworkException("Couldn't fetch $current", e)
             } finally {
                 connection?.disconnect()
