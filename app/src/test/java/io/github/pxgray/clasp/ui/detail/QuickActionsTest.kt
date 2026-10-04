@@ -77,6 +77,13 @@ class QuickActionsTest {
     }
 
     @Test
+    fun `extensions become a pause`() {
+        assertEquals("tel:5551234567,12", telUri("555-123-4567 x12"))
+        assertEquals("tel:5551234567,12", telUri("555-123-4567 ext. 12"))
+        assertEquals("tel:5551234,9", telUri("555 1234 EXT 9"))
+    }
+
+    @Test
     fun `a phone value with no digit gives no Call`() {
         assertNull(telUri("call us"))
         assertEquals(listOf("Nearby"), loyaltyItem(phone = "call us").quickActions().map { it::class.simpleName })
