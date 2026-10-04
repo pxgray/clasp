@@ -185,6 +185,19 @@ class LogoSearchViewModelTest {
     }
 
     @Test
+    fun `previews with identical bytes show only the first`() {
+        // lidl.com served the same icon from two URLs.
+        results = { listOf(candidate("touch"), candidate("other"), candidate("favicon")) }
+        fetcher.on("touch-preview", bytes = png)
+        fetcher.on("other-preview", bytes = pngOf(64, 64))
+        fetcher.on("favicon-preview", bytes = png.copyOf())
+        val vm = viewModel()
+        vm.open("item", "Lidl", null)
+        val tiles = (vm.state.value.status as LogoSearchStatus.Results).tiles
+        assertEquals(listOf("touch", "other"), tiles.map { it.candidate.label })
+    }
+
+    @Test
     fun `a tiny preview is dropped`() {
         results = { listOf(candidate("tiny")) }
         fetcher.on("tiny-preview", bytes = pngOf(16, 16))

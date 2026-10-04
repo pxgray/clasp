@@ -39,6 +39,8 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.withContext
+import java.nio.ByteBuffer
+import java.security.MessageDigest
 import kotlin.math.max
 import kotlin.math.min
 
@@ -153,7 +155,8 @@ class LogoSearchViewModel(
             val previews = coroutineScope {
                 candidates.map { candidate -> async { gate.withPermit { tile(candidate) } } }.awaitAll()
             }
-            val tiles = previews.mapNotNull { it.getOrNull() }
+            // Sites often serve one icon at several URLs; keep the first of each identical image.
+            val tiles = previews.mapNotNull { it.getOrNull() }.distinctBy { it.digest }.map { it.tile }
             // Offline, the site provider still offers guessed URLs, so only failed downloads tell.
             // An error status, an oversized response or a refused redirect means the server was reached and
             // there's just no usable icon. The rule: with no tiles, any offline failure shows Offline,
@@ -200,8 +203,11 @@ class LogoSearchViewModel(
         _state.update { it.copy(visible = false, downloading = null) }
     }
 
+    /** A tile with the SHA-256 of its downloaded bytes; [ByteBuffer] compares by content. */
+    private class Preview(val tile: LogoTile, val digest: ByteBuffer)
+
     /** A failure if the preview couldn't be downloaded (a [LogoUnavailableException] if it's missing or refused); null if it isn't usable. */
-    private suspend fun tile(candidate: LogoCandidate): Result<LogoTile?> {
+    private suspend fun tile(candidate: LogoCandidate): Result<Preview?> {
         val body = try {
             fetcher.fetch(candidate.previewUrl, LogoLimits.PREVIEW).body
         } catch (e: CancellationException) {
@@ -210,13 +216,14 @@ class LogoSearchViewModel(
             return Result.failure(e)
         }
         val preview = withContext(decodeDispatcher) {
-            try {
+            val image = try {
                 decodePreview(body)
             } catch (_: Exception) {
                 null
             }
+            image?.let { Preview(LogoTile(candidate, it), ByteBuffer.wrap(MessageDigest.getInstance("SHA-256").digest(body))) }
         }
-        return Result.success(preview?.let { LogoTile(candidate, it) })
+        return Result.success(preview)
     }
 
     companion object {
