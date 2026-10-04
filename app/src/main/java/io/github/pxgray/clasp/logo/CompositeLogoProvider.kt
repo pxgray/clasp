@@ -7,8 +7,12 @@ import kotlinx.coroutines.coroutineScope
 
 /**
  * Asks every provider at once and merges their candidates in provider order. A failing provider
- * contributes nothing; the search only fails if nothing was found and some provider failed. It
- * then throws [LogoOfflineException] if any provider failed for being offline.
+ * contributes nothing. When nothing was found:
+ * - no provider failed: empty;
+ * - every provider failed and every failure is offline ([isOfflineFailure]): [LogoOfflineException];
+ * - some provider answered and the only failures are offline: empty, because the network works and
+ *   the offline one is a dead host, such as a mistyped website;
+ * - any other failure: [LogoNetworkException].
  */
 class CompositeLogoProvider(private val providers: List<LogoProvider>) : LogoProvider {
 
@@ -26,12 +30,10 @@ class CompositeLogoProvider(private val providers: List<LogoProvider>) : LogoPro
         }.awaitAll()
         val candidates = results.flatMap { it.getOrDefault(emptyList()) }.distinctBy { it.imageUrl }
         val failures = results.mapNotNull { it.exceptionOrNull() }
-        if (candidates.isEmpty() && failures.isNotEmpty()) {
-            // Any offline failure wins, matching how the search screen reads failures.
-            val offline = failures.firstOrNull { it.isOfflineFailure() }
-            if (offline != null) throw LogoOfflineException("Logo search failed: offline", offline)
-            throw LogoNetworkException("Logo search failed", failures.first())
-        }
-        candidates
+        if (candidates.isNotEmpty() || failures.isEmpty()) return@coroutineScope candidates
+        val other = failures.firstOrNull { !it.isOfflineFailure() }
+        if (other == null && failures.size < results.size) return@coroutineScope candidates
+        if (other == null) throw LogoOfflineException("Logo search failed: offline", failures.first())
+        throw LogoNetworkException("Logo search failed", other)
     }
 }
