@@ -24,6 +24,8 @@ class WikidataLogoProvider(
     private val language: () -> String = { Locale.getDefault().language },
 ) : LogoProvider {
 
+    override fun appliesTo(query: LogoQuery): Boolean = query.name.isNotBlank()
+
     override suspend fun search(query: LogoQuery): List<LogoCandidate> {
         val name = query.name.trim()
         if (name.isEmpty()) return emptyList()
