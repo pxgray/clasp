@@ -46,6 +46,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
@@ -191,7 +192,16 @@ fun EditScreen(
                 verticalArrangement = Arrangement.spacedBy(8.dp),
                 itemVerticalAlignment = Alignment.CenterVertically,
             ) {
-                FilledTonalButton(onClick = onFindLogo, contentPadding = ButtonDefaults.ButtonWithIconContentPadding) {
+                // The sheet is its own window: closing it hands focus back to the last focused field,
+                // which would bring the keyboard back up. Nothing should be focused after a search.
+                val focusManager = LocalFocusManager.current
+                FilledTonalButton(
+                    onClick = {
+                        focusManager.clearFocus()
+                        onFindLogo()
+                    },
+                    contentPadding = ButtonDefaults.ButtonWithIconContentPadding,
+                ) {
                     Icon(Icons.Default.Search, contentDescription = null, modifier = Modifier.size(ButtonDefaults.IconSize))
                     Text(stringResource(R.string.edit_logo_find), modifier = Modifier.padding(start = ButtonDefaults.IconSpacing))
                 }
