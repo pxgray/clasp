@@ -3,8 +3,10 @@ package io.github.pxgray.clasp.logo
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import java.io.ByteArrayOutputStream
 import java.io.IOException
@@ -115,7 +117,12 @@ class UrlConnectionHttpFetcher(
                 withTimeoutOrNull(deadline) { download.await() }?.getOrThrow()
                     ?: throw LogoNetworkException("Timed out fetching $url")
             } finally {
-                abort() // Unblocks the child on timeout or cancellation; after success, just tidies up.
+                // Unblocks the child on timeout or cancellation; after success, just tidies up.
+                // Closing a TLS socket sends close_notify, which is network I/O: on the caller's
+                // (often main) thread Android throws NetworkOnMainThreadException, so close on
+                // ioDispatcher. NonCancellable keeps this running while the caller is cancelled,
+                // which is exactly when the child needs unblocking.
+                withContext(NonCancellable + ioDispatcher) { abort() }
             }
         }
     }
@@ -196,6 +203,9 @@ class UrlConnectionHttpFetcher(
      * thread, which makes a blocked read fail at once. `disconnect()` isn't enough: on
      * the JVM it can wait for the blocked read, or keep the socket for reuse. Sockets created after
      * the abort are closed straight away, so a redirect hop can't slip past.
+     *
+     * Every close runs on the IO dispatcher: [invoke] is called there by [fetch], and [track] runs on
+     * the downloading thread.
      */
     private class Abort(delegate: SSLSocketFactory) {
         private val aborted = AtomicBoolean(false)
@@ -233,10 +243,11 @@ class UrlConnectionHttpFetcher(
             closeAll()
         }
 
+        /** Closes every socket; a failing close never stops the rest or escapes. */
         private fun closeAll() = sockets.forEach {
             try {
                 it.close()
-            } catch (_: IOException) {
+            } catch (_: Exception) {
             }
         }
     }

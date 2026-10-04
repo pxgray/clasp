@@ -1,7 +1,10 @@
 package io.github.pxgray.clasp.logo
 
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
+import kotlinx.coroutines.asCoroutineDispatcher
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
@@ -12,6 +15,7 @@ import okhttp3.tls.HeldCertificate
 import org.junit.After
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -19,7 +23,9 @@ import org.junit.Test
 import java.net.InetAddress
 import java.net.Socket
 import java.util.concurrent.CopyOnWriteArrayList
+import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicInteger
 import javax.net.ssl.SSLSocketFactory
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
@@ -200,6 +206,96 @@ class UrlConnectionHttpFetcherTest {
         val strict = fetcher(hostAllowed = { it == "localhost" || isPublicHostName(it) })
         assertThrows(LogoNetworkException::class.java) { runBlocking { strict.fetch(url("/a"), 100) } }
         assertEquals(1, server.requestCount)
+    }
+
+    @Test
+    fun `closes sockets off the caller thread after a successful fetch`() {
+        server.enqueue(MockResponse.Builder().body("hello").build())
+        val sockets = RecordingSocketFactory(clientSockets)
+        val closes = withIoThreads { io ->
+            runBlocking { fetcherOn(sockets, io).fetch(url("/a"), 100) }
+            sockets.closedOn
+        }
+        assertClosedOnlyOnIoThreads(closes)
+    }
+
+    @Test
+    fun `closes sockets off the caller thread when the deadline passes`() {
+        server.enqueue(MockResponse.Builder().body("x".repeat(100)).throttleBody(1, 1_500, TimeUnit.MILLISECONDS).build())
+        val sockets = RecordingSocketFactory(clientSockets)
+        val closes = withIoThreads { io ->
+            assertThrows(LogoNetworkException::class.java) { runBlocking { fetcherOn(sockets, io).fetch(url("/a"), 1_000) } }
+            sockets.closedOn
+        }
+        assertClosedOnlyOnIoThreads(closes)
+        assertTrue(clientSockets.allClosed())
+    }
+
+    @Test
+    fun `a socket that fails to close doesn't fail a successful fetch`() {
+        server.enqueue(MockResponse.Builder().body("hello").build())
+        val sockets = RecordingSocketFactory(clientSockets, failClose = true)
+        val response = runBlocking { fetcherOn(sockets).fetch(url("/a"), 100) }
+        assertArrayEquals("hello".toByteArray(), response.body)
+        assertTrue(sockets.closedOn.isNotEmpty())
+    }
+
+    private fun fetcherOn(sockets: SSLSocketFactory, io: CoroutineDispatcher = Dispatchers.IO) =
+        UrlConnectionHttpFetcher(
+            isAllowed = { true },
+            userAgent = "Clasp-test",
+            sslSocketFactory = sockets,
+            ioDispatcher = io,
+            readTimeout = 2.seconds,
+            deadline = 500.milliseconds,
+            hostAllowed = { true },
+        )
+
+    /** Runs [block] with a dispatcher whose threads are named `logo-io-N`. */
+    private fun <T> withIoThreads(block: (CoroutineDispatcher) -> T): T {
+        val count = AtomicInteger()
+        val executor = Executors.newFixedThreadPool(4) { Thread(it, "logo-io-${count.incrementAndGet()}") }
+        try {
+            return block(executor.asCoroutineDispatcher())
+        } finally {
+            executor.shutdownNow()
+        }
+    }
+
+    private fun assertClosedOnlyOnIoThreads(closes: List<Thread>) {
+        val caller = Thread.currentThread()
+        assertFalse("closed on the caller thread: $closes", closes.any { it === caller })
+        assertTrue("never closed on an IO thread: $closes", closes.any { it.name.startsWith("logo-io-") })
+    }
+
+    /**
+     * Hands out plain sockets that record which thread closed them (and, if [failClose], then throw),
+     * so the TLS layer [delegate] puts on top of them is closed through them.
+     */
+    private class RecordingSocketFactory(
+        private val delegate: SSLSocketFactory,
+        private val failClose: Boolean = false,
+    ) : SSLSocketFactory() {
+        val closedOn = CopyOnWriteArrayList<Thread>()
+
+        override fun getDefaultCipherSuites(): Array<String> = delegate.defaultCipherSuites
+        override fun getSupportedCipherSuites(): Array<String> = delegate.supportedCipherSuites
+        override fun createSocket(): Socket = object : Socket() {
+            override fun close() {
+                closedOn += Thread.currentThread()
+                super.close()
+                if (failClose) throw IllegalStateException("close failed")
+            }
+        }
+        override fun createSocket(s: Socket?, host: String?, port: Int, autoClose: Boolean): Socket =
+            delegate.createSocket(s, host, port, autoClose)
+        override fun createSocket(host: String?, port: Int): Socket = unsupported()
+        override fun createSocket(host: String?, port: Int, localHost: InetAddress?, localPort: Int): Socket = unsupported()
+        override fun createSocket(host: InetAddress?, port: Int): Socket = unsupported()
+        override fun createSocket(address: InetAddress?, port: Int, localAddress: InetAddress?, localPort: Int): Socket =
+            unsupported()
+
+        private fun unsupported(): Nothing = throw UnsupportedOperationException()
     }
 
     /** Records every socket the fetcher opens so tests can check that aborting closed them. */
