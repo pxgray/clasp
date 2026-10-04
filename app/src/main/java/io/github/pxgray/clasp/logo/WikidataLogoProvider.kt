@@ -6,12 +6,18 @@ import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
+import java.net.URLDecoder
 import java.net.URLEncoder
 import java.util.Locale
 
 /**
- * Searches Wikidata by name and offers each matching entity's logo (P154, else P8972) from
- * Wikimedia Commons, which renders SVG logos to PNG at the requested width.
+ * Searches Wikidata by name, then asks the Wikidata Query Service (one SPARQL query for every hit)
+ * for each entity's logo (P154, else P8972) and official website (P856). Images come from
+ * Wikimedia Commons `Special:FilePath`, which renders SVG logos to PNG at the requested width.
+ *
+ * `wbgetentities` would return every claim of every entity, which easily exceeds [LogoLimits.JSON]
+ * for big companies; the SPARQL result holds only the three properties, already filtered to their
+ * best rank by `wdt:`.
  */
 class WikidataLogoProvider(
     private val fetcher: HttpFetcher,
@@ -24,22 +30,61 @@ class WikidataLogoProvider(
         val lang = language().ifEmpty { "en" }
         var hits = searchEntities(name, lang)
         if (hits.isEmpty() && lang != "en") hits = searchEntities(name, "en")
+        // Only plain item ids reach the SPARQL text, so a search result can't inject into it.
+        hits = hits.filter { ITEM_ID.matches(it.id) }.distinctBy { it.id }
         if (hits.isEmpty()) return emptyList()
 
-        val entities = fetchJson("$API?action=wbgetentities&ids=${encode(hits.joinToString("|") { it.id })}&props=claims&format=json")
-            .obj("entities") ?: return emptyList()
+        val claims = fetchClaims(hits.map { it.id })
         return hits.mapNotNull { hit ->
-            val claims = entities.obj(hit.id)?.obj("claims") ?: return@mapNotNull null
-            val file = claims.claimValue("P154") ?: claims.claimValue("P8972") ?: return@mapNotNull null
+            val item = claims[hit.id] ?: return@mapNotNull null
+            val file = item.logo ?: item.icon ?: return@mapNotNull null
             LogoCandidate(
                 previewUrl = filePath(file, PREVIEW_WIDTH),
                 imageUrl = filePath(file, IMAGE_WIDTH),
                 source = LogoSource.WIKIDATA,
                 label = hit.label,
-                website = claims.claimValue("P856"),
+                website = item.site,
             )
         }
     }
+
+    /** The first value of each property over an item's result rows; logo and icon are file names. */
+    private class Claims(var logo: String? = null, var icon: String? = null, var site: String? = null)
+
+    private suspend fun fetchClaims(ids: List<String>): Map<String, Claims> {
+        val sparql = """
+            SELECT ?item ?logo ?icon ?site WHERE {
+              VALUES ?item { ${ids.joinToString(" ") { "wd:$it" }} }
+              OPTIONAL { ?item wdt:P154 ?logo }
+              OPTIONAL { ?item wdt:P8972 ?icon }
+              OPTIONAL { ?item wdt:P856 ?site }
+            }
+        """.trimIndent()
+        val bindings = fetchJson("$SPARQL?format=json&query=${encode(sparql)}").obj("results")?.get("bindings")
+            as? JsonArray ?: throw LogoNetworkException("Wikidata sent unexpected JSON")
+        val claims = mutableMapOf<String, Claims>()
+        for (row in bindings) {
+            row as? JsonObject ?: continue
+            val id = row.value("item")?.substringAfter(ENTITY_PREFIX, "") ?: continue
+            val item = claims.getOrPut(id) { Claims() }
+            if (item.logo == null) item.logo = row.value("logo")?.let(::fileName)
+            if (item.icon == null) item.icon = row.value("icon")?.let(::fileName)
+            if (item.site == null) item.site = row.value("site")
+        }
+        return claims
+    }
+
+    /** The decoded file name of a Commons `Special:FilePath` URI, or null if it isn't one. */
+    private fun fileName(uri: String): String? {
+        val encoded = uri.substringAfter(FILE_PATH_MARKER, "").ifEmpty { return null }
+        return try {
+            URLDecoder.decode(encoded.replace("+", "%2B"), "UTF-8")
+        } catch (_: IllegalArgumentException) {
+            null
+        }
+    }
+
+    private fun JsonObject.value(key: String): String? = obj(key)?.string("value")
 
     private class Hit(val id: String, val label: String)
 
@@ -63,15 +108,6 @@ class WikidataLogoProvider(
         } ?: throw LogoNetworkException("Wikidata sent unexpected JSON")
     }
 
-    /** The first non-deprecated value of [property], preferring statements ranked "preferred". */
-    private fun JsonObject.claimValue(property: String): String? {
-        val claims = (this[property] as? JsonArray)?.mapNotNull { it as? JsonObject } ?: return null
-        return claims
-            .filter { it.string("rank") != "deprecated" }
-            .sortedByDescending { it.string("rank") == "preferred" }
-            .firstNotNullOfOrNull { it.obj("mainsnak")?.obj("datavalue")?.string("value") }
-    }
-
     private fun JsonObject.obj(key: String): JsonObject? = this[key] as? JsonObject
 
     private fun JsonObject.string(key: String): String? = this[key].asString()
@@ -83,6 +119,10 @@ class WikidataLogoProvider(
 
     private companion object {
         const val API = "https://www.wikidata.org/w/api.php"
+        const val SPARQL = "https://query.wikidata.org/sparql"
+        const val ENTITY_PREFIX = "http://www.wikidata.org/entity/"
+        const val FILE_PATH_MARKER = "/wiki/Special:FilePath/"
+        val ITEM_ID = Regex("^Q[1-9][0-9]*$")
         const val LIMIT = 7
         // Commons rounds widths up to standard thumbnail sizes; these are two of them.
         const val PREVIEW_WIDTH = 250
