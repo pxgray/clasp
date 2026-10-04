@@ -22,4 +22,5 @@ data class WalletItemEntity(
     // Matches the DEFAULT in MIGRATION_1_2; Room checks the two agree.
     @ColumnInfo(defaultValue = "0") val isFavorite: Boolean,
     val website: String?,
+    val phone: String?,
 )

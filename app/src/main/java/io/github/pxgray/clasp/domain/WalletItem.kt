@@ -20,6 +20,8 @@ data class WalletItem(
     val isFavorite: Boolean = false,
     /** The card's website as the user typed it; used to look up logos. */
     val website: String? = null,
+    /** A customer-service number as the user typed it; the detail screen's Call button dials it. */
+    val phone: String? = null,
 )
 
 enum class ItemKind { LOYALTY, BOARDING_PASS, PASS }

@@ -8,6 +8,7 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.requestFocus
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import io.github.pxgray.clasp.testing.loyaltyItem
@@ -82,5 +83,25 @@ class EditScreenTest {
         }
         compose.onNodeWithText("Program name (optional)").assertExists()
         compose.onNodeWithTag("edit_program_name").assertTextContains("Executive Membership")
+    }
+
+    @Test
+    fun `phone field updates the form`() {
+        var state = EditFormState.from(loyaltyItem())
+        compose.setContent {
+            ClaspTheme(dynamicColor = false) {
+                EditScreen(
+                    state = state,
+                    snackbarHostState = SnackbarHostState(),
+                    onUpdate = { state = it(state) },
+                    onFindLogo = {},
+                    onPickLogo = {},
+                    onSave = {},
+                    onCancel = {},
+                )
+            }
+        }
+        compose.onNodeWithTag("edit_phone").performTextInput("555 0100")
+        assertEquals("555 0100", state.phone)
     }
 }

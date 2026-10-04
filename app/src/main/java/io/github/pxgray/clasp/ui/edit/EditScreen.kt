@@ -251,6 +251,14 @@ fun EditScreen(
                 ),
                 modifier = Modifier.fillMaxWidth().testTag("edit_website"),
             )
+            OutlinedTextField(
+                value = state.phone,
+                onValueChange = { value -> onUpdate { it.copy(phone = value) } },
+                label = { Text(stringResource(R.string.edit_phone)) },
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone, imeAction = ImeAction.Next),
+                modifier = Modifier.fillMaxWidth().testTag("edit_phone"),
+            )
 
             val boarding = state.boarding
             if (boarding != null) {

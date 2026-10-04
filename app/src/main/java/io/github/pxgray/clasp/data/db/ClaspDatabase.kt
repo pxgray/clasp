@@ -10,7 +10,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 import io.github.pxgray.clasp.domain.ItemDetails
 import io.github.pxgray.clasp.takeout.takeoutWalletId
 
-@Database(entities = [WalletItemEntity::class], version = 4, exportSchema = true)
+@Database(entities = [WalletItemEntity::class], version = 5, exportSchema = true)
 @TypeConverters(Converters::class)
 abstract class ClaspDatabase : RoomDatabase() {
     abstract fun walletDao(): WalletDao
@@ -18,7 +18,7 @@ abstract class ClaspDatabase : RoomDatabase() {
     companion object {
         fun build(context: Context, name: String = "clasp.db"): ClaspDatabase =
             Room.databaseBuilder(context, ClaspDatabase::class.java, name)
-                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
                 .build()
     }
 }
@@ -62,5 +62,12 @@ val MIGRATION_3_4 = object : Migration(3, 4) {
             }
         }
         moves.forEach { db.execSQL("UPDATE wallet_items SET subtitle = ?, details = ? WHERE id = ?", it) }
+    }
+}
+
+/** v5 adds a customer-service phone number. */
+val MIGRATION_4_5 = object : Migration(4, 5) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE wallet_items ADD COLUMN phone TEXT")
     }
 }
