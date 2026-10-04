@@ -17,6 +17,8 @@ class SiteIconProvider(private val fetcher: HttpFetcher) : LogoProvider {
 
     private data class Icon(val url: String, val size: Int?, val apple: Boolean, val guessed: Boolean = false)
 
+    override fun appliesTo(query: LogoQuery): Boolean = query.websiteHost != null
+
     override suspend fun search(query: LogoQuery): List<LogoCandidate> {
         val host = query.websiteHost ?: return emptyList()
         var base = "https://$host/"

@@ -209,6 +209,27 @@ class LogoSearchViewModelTest {
     }
 
     @Test
+    fun `offline with no website is offline`() {
+        val vm = realSearch(FakeHttpFetcher().apply { offline = true })
+        vm.open("item", "Tesco", null)
+        assertEquals(LogoSearchStatus.Offline, vm.state.value.status)
+    }
+
+    @Test
+    fun `offline with a blank name and a website is offline`() {
+        val vm = realSearch(FakeHttpFetcher().apply { offline = true })
+        vm.open("item", "", "tesco.com")
+        assertEquals(LogoSearchStatus.Offline, vm.state.value.status)
+    }
+
+    @Test
+    fun `Wikidata failing with no website is an error`() {
+        val vm = realSearch(FakeHttpFetcher().apply { status("wikidata.org", status = 500) })
+        vm.open("item", "Tesco", null)
+        assertEquals(LogoSearchStatus.Error, vm.state.value.status)
+    }
+
+    @Test
     fun `a website that doesn't resolve while Wikidata fails is an error, not offline`() {
         val site = FakeHttpFetcher()
         site.offlineHosts += "tesco.cmo"

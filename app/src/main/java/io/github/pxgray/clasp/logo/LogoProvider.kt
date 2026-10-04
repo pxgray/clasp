@@ -21,6 +21,13 @@ data class LogoCandidate(
  * one would earn the app F-Droid's NonFreeNet anti-feature.
  */
 interface LogoProvider {
+    /**
+     * Whether [query] gives this provider anything to look up, such as a website for a site-based
+     * provider. [CompositeLogoProvider] neither asks nor counts a provider that doesn't apply, so an
+     * empty answer that needed no request can't hide that every real lookup failed offline.
+     */
+    fun appliesTo(query: LogoQuery): Boolean = true
+
     /** Throws on network failure; returns empty when nothing matches or the query doesn't apply. */
     suspend fun search(query: LogoQuery): List<LogoCandidate>
 }
