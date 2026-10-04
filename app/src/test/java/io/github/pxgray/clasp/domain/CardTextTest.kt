@@ -15,6 +15,22 @@ class CardTextTest {
     }
 
     @Test
+    fun `loyalty shows program name ahead of member name`() {
+        val item = loyaltyItem(memberName = "Jane Doe", programName = "Executive Membership")
+        assertEquals("Executive Membership", item.secondaryLine(Locale.US))
+    }
+
+    @Test
+    fun `loyalty with a blank program name falls back to member name`() {
+        assertEquals("Jane Doe", loyaltyItem(memberName = "Jane Doe", programName = "  ").secondaryLine(Locale.US))
+    }
+
+    @Test
+    fun `loyalty with a blank member name falls back to masked last four digits`() {
+        assertEquals("•••• 6789", loyaltyItem(cardNumber = "123456789", memberName = " ").secondaryLine(Locale.US))
+    }
+
+    @Test
     fun `loyalty falls back to masked last four digits`() {
         assertEquals("•••• 6789", loyaltyItem(cardNumber = "123456789").secondaryLine(Locale.US))
     }

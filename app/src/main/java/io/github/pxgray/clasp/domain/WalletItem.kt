@@ -6,6 +6,7 @@ data class WalletItem(
     val id: String,
     val kind: ItemKind,
     val title: String,
+    /** A loyalty card's program name (e.g. "Executive Membership"); a pass's description. */
     val subtitle: String? = null,
     val barcode: Barcode? = null,
     /** ARGB. Null means "use the theme's color". */

@@ -9,7 +9,8 @@ import java.util.Locale
 /** The line shown under the title on the home card and detail header. */
 fun WalletItem.secondaryLine(locale: Locale = Locale.getDefault()): String? = when (val d = details) {
     is ItemDetails.Loyalty ->
-        d.memberName?.takeIf { it.isNotBlank() }
+        subtitle?.takeIf { it.isNotBlank() }
+            ?: d.memberName?.takeIf { it.isNotBlank() }
             ?: d.cardNumber.trim().takeIf { it.isNotEmpty() }?.let { "•••• ${it.takeLast(4)}" }
 
     is ItemDetails.BoardingPass -> buildList {
