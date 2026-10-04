@@ -49,6 +49,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.res.stringResource
@@ -230,6 +231,8 @@ private fun LogoTileButton(tile: LogoTile, busy: Boolean, enabled: Boolean, onCl
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
+            // A website tile's caption is its label again, which the image already announces.
+            modifier = if (tile.candidate.source == LogoSource.WEBSITE) Modifier.clearAndSetSemantics { } else Modifier,
         )
     }
 }
