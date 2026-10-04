@@ -9,6 +9,7 @@ import io.github.pxgray.clasp.data.ImportedLogo
 import io.github.pxgray.clasp.data.LogoImporter
 import io.github.pxgray.clasp.logo.CompositeLogoProvider
 import io.github.pxgray.clasp.logo.LogoCandidate
+import io.github.pxgray.clasp.logo.LogoLimits
 import io.github.pxgray.clasp.logo.LogoNetworkException
 import io.github.pxgray.clasp.logo.LogoProvider
 import io.github.pxgray.clasp.logo.LogoQuery
@@ -106,6 +107,15 @@ class LogoSearchViewModelTest {
         val vm = viewModel()
         vm.open("item", "Tesco", null)
         assertEquals(LogoSearchStatus.Error, vm.state.value.status)
+    }
+
+    @Test
+    fun `previews that are all refused or oversized are empty, not an error`() {
+        results = { listOf(candidate("huge")) }
+        fetcher.on("huge-preview", bytes = ByteArray(LogoLimits.PREVIEW + 1))
+        val vm = viewModel()
+        vm.open("item", "Tesco", null)
+        assertEquals(LogoSearchStatus.Empty, vm.state.value.status)
     }
 
     @Test
