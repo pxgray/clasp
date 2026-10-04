@@ -24,10 +24,11 @@ private val SHOWN_BY_BOARDING_PASS = Regex("(?i)confirmation|flight number|city|
 private const val SHORT_FIELD_LENGTH = 40
 
 /** Stable per pass, so importing the same export again updates rather than duplicates. */
-fun TakeoutPass.walletId(): String {
-    val identity = barcode?.value ?: fields.firstOrNull()?.value ?: title.orEmpty()
-    return UUID.nameUUIDFromBytes("google-wallet:$issuer:$identity".toByteArray()).toString()
-}
+fun TakeoutPass.walletId(): String = takeoutWalletId(issuer, barcode?.value ?: fields.firstOrNull()?.value ?: title.orEmpty())
+
+/** The id Takeout import gives a pass from [issuer] identified by [identity]. The database migration to v4 relies on it too. */
+fun takeoutWalletId(issuer: String, identity: String): String =
+    UUID.nameUUIDFromBytes("google-wallet:$issuer:$identity".toByteArray()).toString()
 
 /** Maps a Takeout pass to a wallet item. The logo is attached by the importer. */
 fun TakeoutPass.toWalletItem(createdAt: Instant, today: LocalDate): WalletItem {
@@ -54,11 +55,9 @@ fun TakeoutPass.toWalletItem(createdAt: Instant, today: LocalDate): WalletItem {
             id = id,
             kind = ItemKind.LOYALTY,
             title = issuer,
+            subtitle = title?.takeUnless { it.equals(issuer, ignoreCase = true) },
             barcode = barcode ?: Barcode(cardNumber, BarcodeFormat.CODE_128).takeIf { BarcodeEncoder.canEncode(cardNumber, BarcodeFormat.CODE_128) },
-            details = ItemDetails.Loyalty(
-                cardNumber = cardNumber,
-                notes = title?.takeUnless { it.equals(issuer, ignoreCase = true) },
-            ),
+            details = ItemDetails.Loyalty(cardNumber = cardNumber),
             createdAt = createdAt,
         )
     }
