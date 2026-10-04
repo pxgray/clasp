@@ -302,6 +302,15 @@ private fun LoyaltyFields(state: EditFormState, onUpdate: ((EditFormState) -> Ed
     )
 
     OutlinedTextField(
+        value = state.programName,
+        onValueChange = { value -> onUpdate { it.copy(programName = value) } },
+        label = { Text(stringResource(R.string.edit_program_name)) },
+        singleLine = true,
+        keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words, imeAction = ImeAction.Next),
+        modifier = Modifier.fillMaxWidth().testTag("edit_program_name"),
+    )
+
+    OutlinedTextField(
         value = state.memberName,
         onValueChange = { value -> onUpdate { it.copy(memberName = value) } },
         label = { Text(stringResource(R.string.edit_member_name)) },
