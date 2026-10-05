@@ -124,7 +124,10 @@ fun DetailScreen(
                     .statusBarsPadding()
                     .navigationBarsPadding(),
             ) {
-                DetailTopBar(item, onBrand, onBack, onEdit, onDelete)
+                val actions = item.quickActions()
+                // A lone button isn't worth pushing the barcode down for; it goes in the menu instead.
+                val menuAction = actions.singleOrNull()
+                DetailTopBar(item, onBrand, menuAction, onBack, onEdit, onDelete)
                 Row(Modifier.padding(horizontal = 24.dp), verticalAlignment = Alignment.CenterVertically) {
                     LogoTile(
                         monogram = item.monogram(),
@@ -144,8 +147,7 @@ fun DetailScreen(
                     }
                 }
 
-                val actions = item.quickActions()
-                if (actions.isNotEmpty()) {
+                if (actions.size >= 2) {
                     QuickActionRow(actions, onBrand, Modifier.fillMaxWidth().padding(top = 24.dp))
                 }
 
@@ -204,11 +206,13 @@ private fun BarcodeCaption(caption: String, copyable: Boolean, snackbarHostState
 private fun DetailTopBar(
     item: WalletItem,
     onBrand: Color,
+    menuAction: QuickAction?,
     onBack: () -> Unit,
     onEdit: (String) -> Unit,
     onDelete: (String) -> Unit,
 ) {
     var menuOpen by remember { mutableStateOf(false) }
+    val uriHandler = LocalUriHandler.current
     TopAppBar(
         title = {},
         windowInsets = WindowInsets(0),
@@ -228,6 +232,15 @@ private fun DetailTopBar(
                     Icon(Icons.Default.MoreVert, contentDescription = stringResource(R.string.action_more))
                 }
                 DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+                    if (menuAction != null) {
+                        DropdownMenuItem(
+                            text = { Text(quickActionDescription(menuAction)) },
+                            onClick = {
+                                menuOpen = false
+                                uriHandler.openUri(menuAction.uri)
+                            },
+                        )
+                    }
                     if (item.kind != ItemKind.PASS) {
                         DropdownMenuItem(
                             text = { Text(stringResource(R.string.action_edit)) },

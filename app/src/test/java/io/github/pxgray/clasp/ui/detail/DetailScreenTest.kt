@@ -194,9 +194,18 @@ class DetailScreenTest {
 
     @Test
     fun `a boarding pass offers no nearby`() {
-        showDetail(boardingItem().copy(website = "united.com"))
+        showDetail(boardingItem().copy(website = "united.com", phone = "1-800-864-8331"))
         compose.onNodeWithContentDescription("Open website").assertExists()
         compose.onNodeWithContentDescription("Find UA 1234 nearby").assertDoesNotExist()
+    }
+
+    @Test
+    fun `a single action goes in the menu instead of a row`() {
+        showDetail(loyaltyItem(title = "Costco"))
+        compose.onNodeWithTag("quick_actions").assertDoesNotExist()
+        compose.onNodeWithContentDescription("More options").performClick()
+        compose.onNodeWithText("Find Costco nearby").performClick()
+        assertEquals(listOf("geo:0,0?q=Costco"), opened)
     }
 
     @Test
