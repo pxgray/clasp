@@ -1,5 +1,6 @@
 package io.github.pxgray.clasp.ui.home
 
+import android.annotation.SuppressLint
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -166,7 +167,9 @@ fun HomeScreen(
     val shownFavoriteIds = remember { arrayOf(state.favorites.map { it.id }) }
     val favoriteIds = state.favorites.map { it.id }
     val favoritesChanged = shownFavoriteIds[0] != favoriteIds
-    // Read without observation so scrolling does not recompose the whole screen.
+    // Read without observation so scrolling does not recompose the whole screen. Lint can't see through
+    // withoutReadObservation, so it still flags the read.
+    @SuppressLint("FrequentlyChangingValue")
     val atTop = favoritesChanged && Snapshot.withoutReadObservation {
         listState.firstVisibleItemIndex == 0 && listState.firstVisibleItemScrollOffset == 0
     }
