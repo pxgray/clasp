@@ -44,25 +44,29 @@ internal fun QuickActionRow(actions: List<QuickAction>, contentColor: Color, mod
     }
 }
 
+/** What the button announces, and the menu item's text when an action is alone. */
+@Composable
+internal fun quickActionDescription(action: QuickAction): String = when (action) {
+    is QuickAction.Website -> stringResource(R.string.detail_action_website_desc)
+    is QuickAction.Nearby -> stringResource(R.string.detail_action_nearby_desc, action.query)
+    is QuickAction.Call -> stringResource(R.string.detail_action_call_desc, action.number)
+}
+
 @Composable
 private fun QuickActionButton(action: QuickAction, contentColor: Color, onClick: () -> Unit) {
     val label: String
-    val description: String
     val icon: Painter
     when (action) {
         is QuickAction.Website -> {
             label = stringResource(R.string.detail_action_website)
-            description = stringResource(R.string.detail_action_website_desc)
             icon = painterResource(R.drawable.ic_language)
         }
         is QuickAction.Nearby -> {
             label = stringResource(R.string.detail_action_nearby)
-            description = stringResource(R.string.detail_action_nearby_desc, action.query)
             icon = rememberVectorPainter(Icons.Outlined.Place)
         }
         is QuickAction.Call -> {
             label = stringResource(R.string.detail_action_call)
-            description = stringResource(R.string.detail_action_call_desc, action.number)
             icon = rememberVectorPainter(Icons.Outlined.Phone)
         }
     }
@@ -75,7 +79,7 @@ private fun QuickActionButton(action: QuickAction, contentColor: Color, onClick:
                 contentColor = contentColor,
             ),
         ) {
-            Icon(icon, contentDescription = description)
+            Icon(icon, contentDescription = quickActionDescription(action))
         }
         Spacer(Modifier.height(8.dp))
         // The button already announces the fuller description.
