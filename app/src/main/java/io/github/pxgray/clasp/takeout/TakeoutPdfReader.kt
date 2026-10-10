@@ -37,6 +37,8 @@ class TakeoutPdfReader(
         }
     } catch (_: IOException) {
         null
+    } catch (_: RuntimeException) {
+        null // PdfBox reports some damaged structures by throwing unchecked exceptions
     } catch (_: LinkageError) {
         null // e.g. an encrypted PDF needing the excluded BouncyCastle classes
     }
@@ -109,7 +111,14 @@ private class ImageCollector(
             is PDImageXObject -> {
                 if (xObject.width > maxImagePixels || xObject.height > maxImagePixels) return
                 val ctm = graphicsState.currentTransformationMatrix
-                val bitmap = xObject.image
+                // A damaged image only loses that image (often a decorative one), not the whole page.
+                val bitmap = try {
+                    xObject.image
+                } catch (_: IOException) {
+                    null
+                } catch (_: RuntimeException) {
+                    null // e.g. undecodable JPEG data, or less pixel data than the image's size needs
+                } ?: return
                 val pixels = IntArray(bitmap.width * bitmap.height)
                 bitmap.getPixels(pixels, 0, bitmap.width, 0, 0, bitmap.width, bitmap.height)
                 images += PdfImage(
