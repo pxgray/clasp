@@ -15,6 +15,7 @@ import io.github.pxgray.clasp.data.LogoImporter
 import io.github.pxgray.clasp.data.WalletRepository
 import io.github.pxgray.clasp.domain.Barcode
 import io.github.pxgray.clasp.domain.BarcodeFormat
+import io.github.pxgray.clasp.domain.ItemDetails
 import io.github.pxgray.clasp.logo.websiteHost
 import io.github.pxgray.clasp.ui.navigation.Destination
 import kotlinx.coroutines.CoroutineDispatcher
@@ -62,6 +63,9 @@ class EditViewModel(
 
     private var originalLogoPath: String? = null
 
+    /** Set once a save or cancel starts; the screen is leaving, so later taps are ignored. */
+    private var finishing = false
+
     init {
         if (itemId == null) {
             val now = clock.now()
@@ -71,7 +75,8 @@ class EditViewModel(
         } else {
             viewModelScope.launch {
                 val item = repository.observeItem(itemId).first()
-                if (item == null) {
+                // Imported passes aren't editable; a stale or restored route can still point at one.
+                if (item == null || item.details is ItemDetails.Pass) {
                     _events.send(EditEvent.Closed)
                 } else {
                     originalLogoPath = item.logoPath
@@ -110,11 +115,13 @@ class EditViewModel(
     }
 
     fun save() {
+        if (finishing) return
         val form = _state.value ?: return
         if (!form.isValid) {
             update { it.copy(showErrors = true) }
             return
         }
+        finishing = true
         viewModelScope.launch {
             repository.upsert(form.toWalletItem())
             withContext(ioDispatcher) { itemFiles.pruneLogos(form.id, keep = form.logoPath) }
@@ -124,6 +131,8 @@ class EditViewModel(
 
     /** Discards changes, including any logo files written during this edit. */
     fun cancel() {
+        if (finishing) return
+        finishing = true
         val form = _state.value
         viewModelScope.launch {
             if (form != null) {
