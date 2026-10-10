@@ -12,6 +12,8 @@ import io.github.pxgray.clasp.data.SettingsRepository
 import io.github.pxgray.clasp.data.ThemeMode
 import io.github.pxgray.clasp.data.backup.DocumentStreams
 import io.github.pxgray.clasp.data.backup.WalletBackup
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -21,6 +23,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.io.IOException
 
 sealed interface SettingsEvent {
@@ -34,6 +37,7 @@ class SettingsViewModel(
     private val settingsRepository: SettingsRepository,
     private val backup: WalletBackup,
     private val documents: DocumentStreams,
+    private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
 ) : ViewModel() {
 
     /** Null until the stored settings have loaded. */
@@ -63,25 +67,27 @@ class SettingsViewModel(
     }
 
     fun export(uri: Uri) = runExclusive {
-        val count = try {
-            documents.openOutput(uri)?.use { backup.export(it) }
-        } catch (_: IOException) {
-            null
-        } catch (_: SecurityException) {
-            null
-        }
+        val count = onDocument { documents.openOutput(uri)?.use { backup.export(it) } }
         _events.send(count?.let { SettingsEvent.Exported(it) } ?: SettingsEvent.ExportFailed)
     }
 
     fun import(uri: Uri) = runExclusive {
-        val count = try {
-            documents.openInput(uri)?.use { backup.import(it) }
+        val count = onDocument { documents.openInput(uri)?.use { backup.import(it) } }
+        _events.send(count?.let { SettingsEvent.Imported(it) } ?: SettingsEvent.ImportFailed)
+    }
+
+    /**
+     * Runs [block] on [ioDispatcher]: opening, reading, writing and closing a document can block on its
+     * provider (a cloud drive, say), which must not happen on the main thread. Null if it fails.
+     */
+    private suspend fun <T> onDocument(block: suspend () -> T?): T? = withContext(ioDispatcher) {
+        try {
+            block()
         } catch (_: IOException) {
             null
         } catch (_: SecurityException) {
             null
         }
-        _events.send(count?.let { SettingsEvent.Imported(it) } ?: SettingsEvent.ImportFailed)
     }
 
     /** One backup operation at a time; the buttons are disabled while [busy]. */

@@ -12,6 +12,8 @@ import io.github.pxgray.clasp.data.backup.WalletBackup
 import io.github.pxgray.clasp.testing.FakeWalletRepository
 import io.github.pxgray.clasp.testing.MainDispatcherRule
 import io.github.pxgray.clasp.testing.loyaltyItem
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.asCoroutineDispatcher
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
@@ -24,6 +26,7 @@ import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.InputStream
 import java.io.OutputStream
+import java.util.concurrent.Executors
 
 @RunWith(AndroidJUnit4::class)
 class SettingsViewModelTest {
@@ -45,10 +48,14 @@ class SettingsViewModelTest {
         override fun openOutput(uri: Uri): OutputStream? = if (uri == exportUri) written else null
     }
 
-    private fun kotlinx.coroutines.test.TestScope.viewModel() = SettingsViewModel(
+    private fun kotlinx.coroutines.test.TestScope.viewModel(
+        documents: DocumentStreams = this@SettingsViewModelTest.documents,
+        ioDispatcher: CoroutineDispatcher = main.dispatcher,
+    ) = SettingsViewModel(
         SettingsRepository(PreferenceDataStoreFactory.create(scope = backgroundScope) { File(tmp.root, "s.preferences_pb") }),
         WalletBackup(repository, files, main.dispatcher),
         documents,
+        ioDispatcher,
     )
 
     @Test
@@ -78,5 +85,38 @@ class SettingsViewModelTest {
             vm.export(Uri.parse("content://docs/read-only"))
             assertEquals(SettingsEvent.ExportFailed, awaitItem())
         }
+    }
+
+    @Test
+    fun `backup documents are opened, used and closed off the main thread`() = runTest {
+        val threads = mutableListOf<String>()
+        fun record(what: String) = synchronized(threads) { threads += "$what on ${Thread.currentThread().name}" }
+        val recording = object : DocumentStreams {
+            val written = object : ByteArrayOutputStream() {
+                override fun write(b: ByteArray, off: Int, len: Int) = record("write").also { super.write(b, off, len) }
+                override fun close() = record("close output")
+            }
+            override fun openInput(uri: Uri): InputStream {
+                record("open input")
+                return object : InputStream() {
+                    val data = written.toByteArray().inputStream()
+                    override fun read(): Int = data.read()
+                    override fun read(b: ByteArray, off: Int, len: Int): Int = record("read").let { data.read(b, off, len) }
+                    override fun close() = record("close input")
+                }
+            }
+            override fun openOutput(uri: Uri): OutputStream = record("open output").let { written }
+        }
+        val io = Executors.newSingleThreadExecutor { Thread(it, "backup-io") }.asCoroutineDispatcher()
+        val vm = viewModel(recording, io)
+        vm.events.test {
+            vm.export(exportUri)
+            assertEquals(SettingsEvent.Exported(2), awaitItem())
+            vm.import(exportUri)
+            assertEquals(SettingsEvent.Imported(2), awaitItem())
+        }
+        io.close()
+        val offIo = threads.filterNot { " on backup-io" in it }
+        assertEquals(emptyList<String>(), offIo)
     }
 }
