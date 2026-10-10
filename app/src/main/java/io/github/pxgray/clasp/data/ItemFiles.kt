@@ -1,5 +1,6 @@
 package io.github.pxgray.clasp.data
 
+import io.github.pxgray.clasp.domain.WalletItem
 import java.io.File
 
 /**
@@ -24,6 +25,21 @@ class ItemFiles(private val filesDir: File) {
         itemDir(itemId).listFiles { file -> file.name.startsWith(LOGO_PREFIX) }
             ?.filter { "$ITEMS_DIR/$itemId/${it.name}" != keep }
             ?.forEach { it.delete() }
+    }
+
+    /**
+     * Removes files written to preview an import of [itemId] that won't be saved. [saved] is the item
+     * already in the wallet, if any: its logo stays; with none, the item's whole directory goes.
+     */
+    fun discardPreview(itemId: String, saved: WalletItem?) {
+        if (saved == null) deleteAll(itemId) else pruneLogos(itemId, keep = saved.logoPath)
+    }
+
+    /** Deletes one logo file, and its item's directory if that leaves it empty. */
+    fun deleteLogo(relativePath: String) {
+        val file = resolve(relativePath)
+        file.delete()
+        file.parentFile?.takeIf { it.list()?.isEmpty() == true }?.delete()
     }
 
     fun deleteAll(itemId: String) {

@@ -14,6 +14,7 @@ import io.github.pxgray.clasp.data.PassImporter
 import io.github.pxgray.clasp.data.WalletRepository
 import io.github.pxgray.clasp.domain.WalletItem
 import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -33,6 +34,8 @@ class ImportViewModel(
     private val importer: PassImporter,
     private val repository: WalletRepository,
     private val files: ItemFiles,
+    /** Outlives this ViewModel, for cleanup that [onCleared] starts. */
+    private val cleanupScope: CoroutineScope,
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
 ) : ViewModel() {
 
@@ -42,11 +45,22 @@ class ImportViewModel(
     /** The saved version of the pass being previewed, if this import would update it. */
     private var existing: WalletItem? = null
 
+    /** Bumped by every [open] and [dismiss], so a read that finishes after it was superseded is dropped. */
+    private var generation = 0
+
     fun open(uri: Uri) {
         discardPreview()
+        val current = ++generation
         _state.value = ImportState.Loading
         viewModelScope.launch {
-            _state.value = when (val result = importer.read(uri)) {
+            val result = importer.read(uri)
+            if (current != generation) {
+                // Another pass was opened, or the sheet dismissed, while this one was read. Remove only
+                // this read's own logo: a newer preview of the same pass may share its directory.
+                (result as? ImportResult.Success)?.item?.logoPath?.let { path -> withContext(ioDispatcher) { files.deleteLogo(path) } }
+                return@launch
+            }
+            _state.value = when (result) {
                 is ImportResult.Failure -> ImportState.Failed(result.error)
                 is ImportResult.Success -> {
                     existing = repository.observeItem(result.item.id).first()
@@ -76,26 +90,28 @@ class ImportViewModel(
 
     fun dismiss() {
         discardPreview()
+        generation++
         _state.value = ImportState.Idle
     }
 
     /** Removes files written for a preview that won't be saved, without touching an existing pass's logo. */
-    private fun discardPreview() {
+    private fun discardPreview(scope: CoroutineScope = viewModelScope) {
         val ready = _state.value as? ImportState.Ready ?: return
         val previous = existing
         existing = null
-        viewModelScope.launch {
-            withContext(ioDispatcher) {
-                if (previous == null) files.deleteAll(ready.item.id) else files.pruneLogos(ready.item.id, keep = previous.logoPath)
-            }
-        }
+        scope.launch(ioDispatcher) { files.discardPreview(ready.item.id, previous) }
+    }
+
+    override fun onCleared() {
+        // Left with the sheet open (e.g. the activity finishing): don't leave preview files behind.
+        discardPreview(cleanupScope)
     }
 
     companion object {
         val Factory = viewModelFactory {
             initializer {
                 val container = (this[APPLICATION_KEY] as ClaspApplication).container
-                ImportViewModel(container.passImporter, container.repository, container.itemFiles)
+                ImportViewModel(container.passImporter, container.repository, container.itemFiles, container.backgroundScope)
             }
         }
     }
