@@ -15,7 +15,6 @@ import kotlinx.coroutines.withContext
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import java.io.ByteArrayInputStream
-import java.io.ByteArrayOutputStream
 import java.io.IOException
 import java.time.ZoneId
 import java.util.zip.ZipInputStream
@@ -38,11 +37,12 @@ interface TakeoutImporter {
 
 class AndroidTakeoutImporter(
     private val context: Context,
-    private val files: ItemFiles,
+    files: ItemFiles,
     private val clock: Clock = Clock.System,
     private val zone: () -> ZoneId = ZoneId::systemDefault,
     private val maxBytes: Int = 20 * 1024 * 1024,
 ) : TakeoutImporter {
+    private val logos = LogoWriter(files, clock)
 
     override suspend fun read(uri: Uri): TakeoutResult = withContext(Dispatchers.IO) { readBlocking(uri) }
 
@@ -74,13 +74,8 @@ class AndroidTakeoutImporter(
         if (logo == null) return this
         val source = Bitmap.createBitmap(logo.argb, logo.pixelWidth, logo.pixelHeight, Bitmap.Config.ARGB_8888)
         val square = squareLogo(source, LOGO_SIZE)
-        val bytes = ByteArrayOutputStream().use { out ->
-            square.compress(Bitmap.CompressFormat.PNG, 100, out)
-            out.toByteArray()
-        }
-        val path = files.newLogoPath(id, clock.now().toEpochMilliseconds())
-        files.write(path, bytes)
-        return copy(logoPath = path, brandColor = brandColor ?: pickBrandColor(square))
+        val saved = logos.write(id, square)
+        return copy(logoPath = saved.path, brandColor = brandColor ?: saved.brandColor)
     }
 
     /** PDFs anywhere in the zip; a Takeout export keeps Google Wallet's under "Takeout/Google Wallet/". */
