@@ -19,6 +19,7 @@ import io.github.pxgray.clasp.domain.ItemDetails
 import io.github.pxgray.clasp.domain.WalletItem
 import io.github.pxgray.clasp.ui.navigation.Destination
 import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
@@ -65,6 +66,8 @@ class TakeoutImportViewModel(
     private val repository: WalletRepository,
     private val files: ItemFiles,
     private val clock: Clock,
+    /** Outlives this ViewModel, for cleanup that [onCleared] starts. */
+    private val cleanupScope: CoroutineScope,
     private val timeZone: TimeZone = TimeZone.currentSystemDefault(),
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
 ) : ViewModel() {
@@ -150,14 +153,13 @@ class TakeoutImportViewModel(
     }
 
     /** Removes logo files written for the preview without touching an existing item's logo. */
-    private fun discardFiles(item: WalletItem) {
-        val previous = existingById[item.id]
-        if (previous == null) files.deleteAll(item.id) else files.pruneLogos(item.id, keep = previous.logoPath)
-    }
+    private fun discardFiles(item: WalletItem) = files.discardPreview(item.id, existingById[item.id])
 
     override fun onCleared() {
         // Left without adding or cancelling (e.g. the process is finishing): don't leave preview files behind.
-        if (!finished) (_state.value as? TakeoutImportState.Ready)?.rows?.forEach { discardFiles(it.item) }
+        if (finished) return
+        val rows = (_state.value as? TakeoutImportState.Ready)?.rows.orEmpty()
+        cleanupScope.launch(ioDispatcher) { rows.forEach { discardFiles(it.item) } }
     }
 
     companion object {
@@ -171,6 +173,7 @@ class TakeoutImportViewModel(
                     repository = container.repository,
                     files = container.itemFiles,
                     clock = container.clock,
+                    cleanupScope = container.backgroundScope,
                 )
             }
         }

@@ -12,6 +12,12 @@ import io.github.pxgray.clasp.domain.PkPassStyle
 import io.github.pxgray.clasp.domain.WalletItem
 import io.github.pxgray.clasp.testing.FakeWalletRepository
 import io.github.pxgray.clasp.testing.MainDispatcherRule
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.ViewModelStore
+import androidx.lifecycle.viewmodel.initializer
+import androidx.lifecycle.viewmodel.viewModelFactory
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.CoroutineScope
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -49,7 +55,21 @@ class ImportViewModelTest {
         }
     }
 
-    private fun viewModel(importer: PassImporter = importer()) = ImportViewModel(importer, repository, files, main.dispatcher)
+    private fun viewModel(importer: PassImporter = importer()) =
+        ImportViewModel(importer, repository, files, CoroutineScope(main.dispatcher), main.dispatcher)
+
+    /** Each uri's read waits until its gate opens, then writes a logo for the item named by the uri's last segment. */
+    private val gates = mutableMapOf<Uri, CompletableDeferred<Unit>>()
+    private fun gate(uri: Uri) = gates.getOrPut(uri) { CompletableDeferred() }
+    private val gatedImporter = object : PassImporter {
+        override suspend fun read(uri: Uri): ImportResult {
+            gate(uri).await()
+            val id = uri.lastPathSegment!!
+            val path = files.newLogoPath(id, nextLogo++)
+            files.write(path, byteArrayOf(1))
+            return ImportResult.Success(passItem().copy(id = id, logoPath = path))
+        }
+    }
 
     @Test
     fun `a new pass is previewed, then added`() {
@@ -116,5 +136,61 @@ class ImportViewModelTest {
 
         assertTrue(files.resolve("items/pass-1/logo-0.png").exists())
         assertFalse(files.resolve("items/pass-1/logo-1.png").exists())
+    }
+
+    @Test
+    fun `a pass opened while another loads replaces it and the first one's files are removed`() {
+        val first = Uri.parse("content://test/pass-a")
+        val second = Uri.parse("content://test/pass-b")
+        val vm = viewModel(gatedImporter)
+
+        vm.open(first)
+        vm.open(second)
+        gate(second).complete(Unit)
+        gate(first).complete(Unit)
+
+        assertEquals("pass-b", (vm.state.value as ImportState.Ready).item.id)
+        assertFalse(files.resolve("items/pass-a").exists())
+        assertTrue(files.resolve("items/pass-b").exists())
+    }
+
+    @Test
+    fun `opening the same pass twice keeps the newer preview's logo`() {
+        val vm = viewModel(gatedImporter)
+        val gate = gate(uri)
+        vm.open(uri)
+        gates[uri] = CompletableDeferred()
+        vm.open(uri)
+        gate(uri).complete(Unit) // the second read writes logo-1
+        gate.complete(Unit) // the first, superseded read writes logo-2
+
+        val ready = vm.state.value as ImportState.Ready
+        assertEquals("items/pass.pkpass/logo-1.png", ready.item.logoPath)
+        assertTrue(files.resolve(ready.item.logoPath!!).exists())
+        assertFalse(files.resolve("items/pass.pkpass/logo-2.png").exists())
+    }
+
+    @Test
+    fun `dismissing while a pass loads keeps the sheet closed and removes its files`() {
+        val vm = viewModel(gatedImporter)
+
+        vm.open(uri)
+        vm.dismiss()
+        gate(uri).complete(Unit)
+
+        assertEquals(ImportState.Idle, vm.state.value)
+        assertFalse(files.resolve("items/pass.pkpass").exists())
+    }
+
+    @Test
+    fun `leaving with a preview open removes its files`() {
+        val store = ViewModelStore()
+        val vm = ViewModelProvider.create(store, viewModelFactory { initializer { viewModel() } })[ImportViewModel::class]
+        vm.open(uri)
+        assertTrue(files.resolve("items/pass-1").exists())
+
+        store.clear()
+
+        assertFalse(files.resolve("items/pass-1").exists())
     }
 }

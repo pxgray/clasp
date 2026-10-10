@@ -22,6 +22,9 @@ import io.github.pxgray.clasp.logo.LogoProvider
 import io.github.pxgray.clasp.logo.SiteIconProvider
 import io.github.pxgray.clasp.logo.UrlConnectionHttpFetcher
 import io.github.pxgray.clasp.logo.WikidataLogoProvider
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.first
 import kotlin.time.Clock
 
@@ -35,6 +38,9 @@ class AppContainer(context: Context) {
     val passImporter: PassImporter = PkPassImporter(context.contentResolver, itemFiles, clock)
     val takeoutImporter: TakeoutImporter = AndroidTakeoutImporter(context, itemFiles, clock)
     val importInbox = ImportInbox()
+
+    /** For work that must finish after the screen that started it is gone, such as deleting preview files. */
+    val backgroundScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     val walletBackup = WalletBackup(repository, itemFiles)
     val documents: DocumentStreams = AndroidDocumentStreams(context.contentResolver)
 

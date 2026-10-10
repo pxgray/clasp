@@ -14,6 +14,11 @@ import io.github.pxgray.clasp.testing.FixedClock
 import io.github.pxgray.clasp.testing.MainDispatcherRule
 import io.github.pxgray.clasp.testing.boardingItem
 import io.github.pxgray.clasp.testing.loyaltyItem
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.ViewModelStore
+import androidx.lifecycle.viewmodel.initializer
+import androidx.lifecycle.viewmodel.viewModelFactory
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
@@ -56,7 +61,7 @@ class TakeoutImportViewModelTest {
     private fun viewModel(
         repository: FakeWalletRepository,
         importer: TakeoutImporter = importer(listOf(newCard, knownCard, sameBarcode, pastFlight)),
-    ) = TakeoutImportViewModel(uri, importer, repository, files, clock, TimeZone.UTC, main.dispatcher)
+    ) = TakeoutImportViewModel(uri, importer, repository, files, clock, CoroutineScope(main.dispatcher), TimeZone.UTC, main.dispatcher)
 
     private fun walletWithKnownCards() = FakeWalletRepository(
         listOf(
@@ -109,6 +114,18 @@ class TakeoutImportViewModelTest {
             assertEquals(TakeoutImportEvent.Done(added = 0), awaitItem())
         }
         listOf("new", "known", "other-id", "flight").forEach { assertFalse(files.resolve("items/$it").exists()) }
+    }
+
+    @Test
+    fun `leaving without adding or cancelling deletes the preview's logos`() {
+        val store = ViewModelStore()
+        ViewModelProvider.create(store, viewModelFactory { initializer { viewModel(walletWithKnownCards()) } })[TakeoutImportViewModel::class]
+        assertTrue(files.resolve("items/new/logo-9.png").exists())
+
+        store.clear()
+
+        assertFalse(files.resolve("items/new").exists())
+        assertFalse(files.resolve("items/known/logo-9.png").exists())
     }
 
     @Test
