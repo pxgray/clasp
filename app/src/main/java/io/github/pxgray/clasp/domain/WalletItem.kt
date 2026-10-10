@@ -25,3 +25,18 @@ data class WalletItem(
 )
 
 enum class ItemKind { LOYALTY, BOARDING_PASS, PASS }
+
+/**
+ * This freshly imported item, keeping what the user added to [saved], the version already in the
+ * wallet: its history, its star, and the website and phone number (unless only the import has one).
+ */
+fun WalletItem.keepingUserFields(saved: WalletItem?): WalletItem {
+    if (saved == null) return this
+    return copy(
+        createdAt = saved.createdAt,
+        lastUsedAt = saved.lastUsedAt,
+        isFavorite = saved.isFavorite,
+        website = saved.website ?: website,
+        phone = saved.phone ?: phone,
+    )
+}

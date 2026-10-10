@@ -17,6 +17,7 @@ import io.github.pxgray.clasp.data.TakeoutResult
 import io.github.pxgray.clasp.data.WalletRepository
 import io.github.pxgray.clasp.domain.ItemDetails
 import io.github.pxgray.clasp.domain.WalletItem
+import io.github.pxgray.clasp.domain.keepingUserFields
 import io.github.pxgray.clasp.ui.navigation.Destination
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
@@ -121,17 +122,7 @@ class TakeoutImportViewModel(
         finished = true
         viewModelScope.launch {
             val (chosen, skipped) = ready.rows.partition { it.item.id in ready.selected }
-            repository.upsertAll(
-                chosen.map { row ->
-                    val previous = existingById[row.item.id]
-                    row.item.copy(
-                        createdAt = previous?.createdAt ?: row.item.createdAt,
-                        lastUsedAt = previous?.lastUsedAt,
-                        isFavorite = previous?.isFavorite ?: false,
-                        website = previous?.website ?: row.item.website,
-                    )
-                },
-            )
+            repository.upsertAll(chosen.map { it.item.keepingUserFields(existingById[it.item.id]) })
             withContext(ioDispatcher) {
                 chosen.forEach { files.pruneLogos(it.item.id, keep = it.item.logoPath) }
                 skipped.forEach { discardFiles(it.item) }

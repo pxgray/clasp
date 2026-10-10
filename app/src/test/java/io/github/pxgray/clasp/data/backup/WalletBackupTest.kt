@@ -3,6 +3,7 @@ package io.github.pxgray.clasp.data.backup
 import io.github.pxgray.clasp.data.ItemFiles
 import io.github.pxgray.clasp.testing.FakeWalletRepository
 import io.github.pxgray.clasp.testing.boardingItem
+import io.github.pxgray.clasp.testing.fullItem
 import io.github.pxgray.clasp.testing.loyaltyItem
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.test.runTest
@@ -53,6 +54,19 @@ class WalletBackupTest {
 
         assertEquals(setOf(card, pass), targetRepo.items.value.toSet())
         assertArrayEquals(byteArrayOf(7, 7, 7), targetFiles.resolve("items/c/logo-1.png").readBytes())
+    }
+
+    @Test
+    fun `every field survives export and import`() = runTest {
+        val item = fullItem(id = "f")
+        sourceFiles.write(item.logoPath!!, byteArrayOf(1))
+        sourceRepo.items.value = listOf(item)
+
+        val out = ByteArrayOutputStream()
+        backupOf(sourceRepo, sourceFiles).export(out)
+        backupOf(targetRepo, targetFiles).import(out.toByteArray().inputStream())
+
+        assertEquals(listOf(item), targetRepo.items.value)
     }
 
     @Test

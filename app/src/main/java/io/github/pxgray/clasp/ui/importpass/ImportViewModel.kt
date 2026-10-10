@@ -13,6 +13,7 @@ import io.github.pxgray.clasp.data.ItemFiles
 import io.github.pxgray.clasp.data.PassImporter
 import io.github.pxgray.clasp.data.WalletRepository
 import io.github.pxgray.clasp.domain.WalletItem
+import io.github.pxgray.clasp.domain.keepingUserFields
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -62,14 +63,7 @@ class ImportViewModel(
         existing = null
         _state.value = ImportState.Idle
         viewModelScope.launch {
-            repository.upsert(
-                ready.item.copy(
-                    createdAt = previous?.createdAt ?: ready.item.createdAt,
-                    lastUsedAt = previous?.lastUsedAt,
-                    isFavorite = previous?.isFavorite ?: false,
-                    website = previous?.website ?: ready.item.website,
-                ),
-            )
+            repository.upsert(ready.item.keepingUserFields(previous))
             withContext(ioDispatcher) { files.pruneLogos(ready.item.id, keep = ready.item.logoPath) }
         }
     }
