@@ -65,7 +65,7 @@ class TakeoutImportViewModelTest {
 
     private fun walletWithKnownCards() = FakeWalletRepository(
         listOf(
-            knownCard.copy(title = "REI (old)", createdAt = Instant.fromEpochMilliseconds(5), lastUsedAt = Instant.fromEpochMilliseconds(6), isFavorite = true, website = "https://rei.com"),
+            knownCard.copy(title = "REI (old)", createdAt = Instant.fromEpochMilliseconds(5), lastUsedAt = Instant.fromEpochMilliseconds(6), isFavorite = true, website = "https://rei.com", phone = "800-426-4840"),
             loyaltyItem(id = "mine", title = "My Sheetz", cardNumber = "62000000009360"),
         ),
     )
@@ -101,6 +101,7 @@ class TakeoutImportViewModelTest {
         assertEquals(Instant.fromEpochMilliseconds(6), saved.getValue("known").lastUsedAt)
         assertTrue(saved.getValue("known").isFavorite)
         assertEquals("https://rei.com", saved.getValue("known").website)
+        assertEquals("800-426-4840", saved.getValue("known").phone)
         assertFalse(saved.getValue("new").isFavorite)
         assertTrue(files.resolve("items/new/logo-9.png").exists())
         assertFalse(files.resolve("items/other-id").exists())
