@@ -14,7 +14,6 @@ import androidx.palette.graphics.Palette
 import io.github.pxgray.clasp.logo.LogoLimits
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import java.io.ByteArrayOutputStream
 import java.io.IOException
 import kotlin.math.max
 import kotlin.math.min
@@ -32,9 +31,10 @@ interface LogoImporter {
 
 class AndroidLogoImporter(
     private val resolver: ContentResolver,
-    private val files: ItemFiles,
-    private val clock: Clock = Clock.System,
+    files: ItemFiles,
+    clock: Clock = Clock.System,
 ) : LogoImporter {
+    private val logos = LogoWriter(files, clock)
 
     override suspend fun import(itemId: String, uri: Uri): ImportedLogo? = withContext(Dispatchers.IO) {
         val source = try {
@@ -45,28 +45,14 @@ class AndroidLogoImporter(
             null
         } ?: return@withContext null
 
-        save(itemId, squareLogo(source, LOGO_SIZE))
+        logos.write(itemId, squareLogo(source, LOGO_SIZE))
     }
 
     override suspend fun importBytes(itemId: String, bytes: ByteArray): ImportedLogo? = withContext(Dispatchers.IO) {
-        val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
-        BitmapFactory.decodeByteArray(bytes, 0, bytes.size, bounds)
-        val (width, height) = bounds.outWidth to bounds.outHeight
-        if (width <= 0 || height <= 0 || max(width, height) > LogoLimits.MAX_SIDE) return@withContext null
-        if (LogoLimits.isTooSmall(width, height)) return@withContext null
-        val options = BitmapFactory.Options().apply { inSampleSize = sampleSize(width, height, LOGO_SIZE) }
-        val source = BitmapFactory.decodeByteArray(bytes, 0, bytes.size, options) ?: return@withContext null
-        save(itemId, webLogo(source, LOGO_SIZE))
-    }
-
-    private fun save(itemId: String, logo: Bitmap): ImportedLogo {
-        val bytes = ByteArrayOutputStream().use { out ->
-            logo.compress(Bitmap.CompressFormat.PNG, 100, out)
-            out.toByteArray()
-        }
-        val path = files.newLogoPath(itemId, clock.now().toEpochMilliseconds())
-        files.write(path, bytes)
-        return ImportedLogo(path, pickBrandColor(logo))
+        val source = decodeBounded(bytes, minSide = LOGO_SIZE) ?: return@withContext null
+        // Only images with a short side of 2 × LOGO_SIZE or more are subsampled, so this sees the original size.
+        if (LogoLimits.isTooSmall(source.width, source.height)) return@withContext null
+        logos.write(itemId, webLogo(source, LOGO_SIZE))
     }
 
     /** Decodes with the largest power-of-two subsampling that keeps the short side ≥ [minSide]. */
@@ -78,12 +64,6 @@ class AndroidLogoImporter(
         if (bounds.outWidth <= 0 || bounds.outHeight <= 0) return null
         val options = BitmapFactory.Options().apply { inSampleSize = sampleSize(bounds.outWidth, bounds.outHeight, minSide) }
         return resolver.openInputStream(uri)?.use { BitmapFactory.decodeStream(it, null, options) }
-    }
-
-    private fun sampleSize(width: Int, height: Int, minSide: Int): Int {
-        var sample = 1
-        while (min(width, height) / (sample * 2) >= minSide) sample *= 2
-        return sample
     }
 
     private companion object {

@@ -7,11 +7,13 @@ import android.net.Uri
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import io.github.pxgray.clasp.domain.ItemKind
+import io.github.pxgray.clasp.logo.LogoLimits
 import io.github.pxgray.clasp.testing.EVENT_TICKET_JSON
 import io.github.pxgray.clasp.testing.FixedClock
 import io.github.pxgray.clasp.testing.pkpassZip
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -58,6 +60,15 @@ class PkPassImporterTest {
         val uri = serve("ticket.pkpass", pkpassZip(EVENT_TICKET_JSON, mapOf("logo.png" to png(160, 50, Color.WHITE))))
         val item = (importer().read(uri) as ImportResult.Success).item
         assertTrue(files.resolve(item.logoPath!!).exists())
+    }
+
+    @Test
+    fun `an icon too large to decode safely is skipped`() = runTest {
+        val tooWide = LogoLimits.MAX_SIDE + 1
+        val uri = serve("ticket.pkpass", pkpassZip(EVENT_TICKET_JSON, mapOf("icon.png" to png(tooWide, 1, Color.BLUE))))
+        val item = (importer().read(uri) as ImportResult.Success).item
+        assertNull(item.logoPath)
+        assertFalse(files.resolve("items/${item.id}").exists())
     }
 
     @Test

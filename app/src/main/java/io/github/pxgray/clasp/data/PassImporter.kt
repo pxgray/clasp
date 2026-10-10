@@ -1,8 +1,6 @@
 package io.github.pxgray.clasp.data
 
 import android.content.ContentResolver
-import android.graphics.Bitmap
-import android.graphics.BitmapFactory
 import android.graphics.Color
 import android.net.Uri
 import io.github.pxgray.clasp.domain.WalletItem
@@ -15,7 +13,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
-import java.io.ByteArrayOutputStream
 import java.io.IOException
 import java.time.ZoneId
 import java.util.Locale
@@ -37,12 +34,13 @@ interface PassImporter {
 
 class PkPassImporter(
     private val resolver: ContentResolver,
-    private val files: ItemFiles,
+    files: ItemFiles,
     private val clock: Clock = Clock.System,
     private val zone: () -> ZoneId = ZoneId::systemDefault,
     private val locale: () -> Locale = Locale::getDefault,
     private val maxBytes: Int = 10 * 1024 * 1024,
 ) : PassImporter {
+    private val logos = LogoWriter(files, clock)
 
     override suspend fun read(uri: Uri): ImportResult = withContext(Dispatchers.IO) { readBlocking(uri) }
 
@@ -63,20 +61,15 @@ class PkPassImporter(
     }
 
     private fun withLogo(item: WalletItem, pass: PkPass): WalletItem {
-        val source = (pass.icon ?: pass.logo)?.let { BitmapFactory.decodeByteArray(it, 0, it.size) } ?: return item
+        val source = (pass.icon ?: pass.logo)?.let { decodeBounded(it, minSide = LOGO_SIZE) } ?: return item
         val nearlySquare = abs(source.width - source.height) <= max(source.width, source.height) / 10
         val logo = if (nearlySquare) {
             squareLogo(source, LOGO_SIZE)
         } else {
             fitSquare(source, LOGO_SIZE, background = item.brandColor ?: Color.WHITE)
         }
-        val bytes = ByteArrayOutputStream().use { out ->
-            logo.compress(Bitmap.CompressFormat.PNG, 100, out)
-            out.toByteArray()
-        }
-        val path = files.newLogoPath(item.id, clock.now().toEpochMilliseconds())
-        files.write(path, bytes)
-        return item.copy(logoPath = path, brandColor = item.brandColor ?: pickBrandColor(logo))
+        val saved = logos.write(item.id, logo)
+        return item.copy(logoPath = saved.path, brandColor = item.brandColor ?: saved.brandColor)
     }
 
     private companion object {
