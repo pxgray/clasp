@@ -9,14 +9,20 @@ import app.cash.turbine.test
 import io.github.pxgray.clasp.data.ImportedLogo
 import io.github.pxgray.clasp.data.ItemFiles
 import io.github.pxgray.clasp.data.LogoImporter
+import io.github.pxgray.clasp.data.WalletRepository
 import io.github.pxgray.clasp.domain.ItemDetails
+import io.github.pxgray.clasp.domain.ItemKind
+import io.github.pxgray.clasp.domain.PkPassStyle
+import io.github.pxgray.clasp.domain.WalletItem
 import io.github.pxgray.clasp.testing.FakeWalletRepository
 import io.github.pxgray.clasp.testing.FixedClock
 import io.github.pxgray.clasp.testing.MainDispatcherRule
 import io.github.pxgray.clasp.testing.loyaltyItem
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -73,6 +79,62 @@ class EditViewModelTest {
         val saved = repository.items.value.single()
         assertEquals("Costco", saved.title)
         assertEquals(ItemDetails.Loyalty("123456789"), saved.details)
+    }
+
+    /** [repository], except that saves wait for [gate], so a test can act while a save is running. */
+    private val gate = CompletableDeferred<Unit>()
+    private val slowRepository = object : WalletRepository by repository {
+        override suspend fun upsert(item: WalletItem) {
+            gate.await()
+            repository.upsert(item)
+        }
+    }
+
+    @Test
+    fun `saving twice while the first save runs finishes once`() = runTest {
+        val vm = EditViewModel(null, slowRepository, importer, files, clock, main.dispatcher, newId = { "new-id" })
+        vm.update { it.copy(title = "Costco", cardNumber = "123456789") }
+        vm.events.test {
+            vm.save()
+            vm.save()
+            gate.complete(Unit)
+            assertEquals(EditEvent.Saved("new-id"), awaitItem())
+            expectNoEvents()
+        }
+        assertEquals(1, repository.items.value.size)
+    }
+
+    @Test
+    fun `going back while a save runs neither closes nor deletes the new item's logo`() = runTest {
+        val vm = EditViewModel(null, slowRepository, importer, files, clock, main.dispatcher, newId = { "new-id" })
+        vm.update { it.copy(title = "Costco", cardNumber = "123456789") }
+        vm.onLogoPicked(Uri.parse("content://picked"))
+        vm.events.test {
+            vm.save()
+            vm.cancel()
+            gate.complete(Unit)
+            assertEquals(EditEvent.Saved("new-id"), awaitItem())
+            expectNoEvents()
+        }
+        assertTrue(files.resolve(repository.items.value.single().logoPath!!).exists())
+    }
+
+    @Test
+    fun `editing an imported pass closes instead of crashing`() = runTest {
+        repository.upsert(
+            WalletItem(
+                id = "pass-1",
+                kind = ItemKind.PASS,
+                title = "Example Arena",
+                details = ItemDetails.Pass(PkPassStyle.EVENT_TICKET),
+                createdAt = clock.now,
+            ),
+        )
+        val vm = viewModel(itemId = "pass-1")
+        vm.events.test {
+            assertEquals(EditEvent.Closed, awaitItem())
+        }
+        assertNull(vm.state.value)
     }
 
     @Test
