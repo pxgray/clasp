@@ -1,6 +1,9 @@
 package io.github.pxgray.clasp.data.backup
 
+import android.database.sqlite.SQLiteException
 import io.github.pxgray.clasp.data.ItemFiles
+import io.github.pxgray.clasp.data.WalletRepository
+import io.github.pxgray.clasp.domain.WalletItem
 import io.github.pxgray.clasp.testing.FakeWalletRepository
 import io.github.pxgray.clasp.testing.boardingItem
 import io.github.pxgray.clasp.testing.loyaltyItem
@@ -124,5 +127,36 @@ class WalletBackupTest {
         val json = """{"version":1,"items":[{"id":"c","kind":"LOYALTY","title":"X","details":{"type":"loyalty","cardNumber":"1"},"createdAt":0}]}"""
         backupOf(targetRepo, targetFiles).import(zip("wallet.json" to json.toByteArray()).inputStream())
         assertNull(targetRepo.items.value.single().phone)
+    }
+
+    @Test
+    fun `a backup whose kind and details disagree changes nothing`() = runTest {
+        targetRepo.items.value = listOf(loyaltyItem(id = "keep"))
+        val json = """{"version":1,"items":[{"id":"c","kind":"LOYALTY","title":"X","details":{"type":"pass","style":"GENERIC"},"createdAt":0}]}"""
+        assertNull(backupOf(targetRepo, targetFiles).import(zip("wallet.json" to json.toByteArray()).inputStream()))
+        assertEquals(listOf("keep"), targetRepo.items.value.map { it.id })
+    }
+
+    @Test
+    fun `a logo in another item's folder is dropped`() = runTest {
+        val json = """{"version":1,"items":[""" +
+            """{"id":"c","kind":"LOYALTY","title":"C","logoPath":"items/d/logo-1.png","details":{"type":"loyalty","cardNumber":"1"},"createdAt":0},""" +
+            """{"id":"d","kind":"LOYALTY","title":"D","logoPath":"items/d/logo-1.png","details":{"type":"loyalty","cardNumber":"2"},"createdAt":0}]}"""
+        backupOf(targetRepo, targetFiles).import(zip("wallet.json" to json.toByteArray(), "items/d/logo-1.png" to byteArrayOf(1)).inputStream())
+        val restored = targetRepo.items.value.associateBy { it.id }
+        assertNull(restored.getValue("c").logoPath)
+        assertEquals("items/d/logo-1.png", restored.getValue("d").logoPath)
+    }
+
+    @Test
+    fun `if saving fails nothing restored is left behind`() = runTest {
+        val failing = object : WalletRepository by targetRepo {
+            override suspend fun upsertAll(items: List<WalletItem>) = throw SQLiteException("disk full")
+        }
+        val json = """{"version":1,"items":[{"id":"c","kind":"LOYALTY","title":"X","logoPath":"items/c/logo-1.png","details":{"type":"loyalty","cardNumber":"1"},"createdAt":0}]}"""
+        val result = WalletBackup(failing, targetFiles, Dispatchers.Unconfined)
+            .import(zip("wallet.json" to json.toByteArray(), "items/c/logo-1.png" to byteArrayOf(1)).inputStream())
+        assertNull(result)
+        assertFalse(targetFiles.resolve("items/c").exists())
     }
 }

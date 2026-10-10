@@ -8,8 +8,10 @@ import io.github.pxgray.clasp.domain.ItemDetails
 import io.github.pxgray.clasp.domain.ItemKind
 import io.github.pxgray.clasp.domain.WalletItem
 import io.github.pxgray.clasp.pkpass.readCapped
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
@@ -80,15 +82,30 @@ class WalletBackup(
         return items.size
     }
 
-    /** Restores the backup in [input] and returns how many items it held, or null if it isn't a valid backup. */
+    /**
+     * Restores the backup in [input] and returns how many items it held, or null if it isn't a valid
+     * backup or couldn't be saved; then files it wrote are removed again.
+     */
     suspend fun import(input: InputStream): Int? {
         val (items, payload) = withContext(ioDispatcher) { read(input) } ?: return null
         val ids = items.map { it.id }.toSet()
-        withContext(ioDispatcher) {
-            payload.filterKeys { ITEM_FILE.matchEntire(it)?.groupValues?.get(1) in ids }
-                .forEach { (path, bytes) -> files.write(path, bytes) }
+        val toWrite = payload.filterKeys { itemIdOf(it) in ids }
+        val created = withContext(ioDispatcher) {
+            toWrite.keys.filterNot { files.resolve(it).exists() }.also {
+                toWrite.forEach { (path, bytes) -> files.write(path, bytes) }
+            }
         }
-        repository.upsertAll(items)
+        try {
+            repository.upsertAll(items)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (_: Exception) {
+            withContext(NonCancellable + ioDispatcher) {
+                created.forEach { files.resolve(it).delete() }
+                ids.filter { files.listFiles(it).isEmpty() }.forEach(files::deleteAll)
+            }
+            return null
+        }
         withContext(ioDispatcher) { items.forEach { files.pruneLogos(it.id, keep = it.logoPath) } }
         return items.size
     }
@@ -123,18 +140,32 @@ class WalletBackup(
         } catch (_: IllegalArgumentException) {
             return null
         }
-        if (backup.version != VERSION || backup.items.any { !SAFE_ID.matches(it.id) }) return null
+        if (backup.version != VERSION || backup.items.any { !SAFE_ID.matches(it.id) || !it.detailsMatchKind() }) return null
         val items = backup.items.map { stored ->
-            stored.toDomain().let { item -> if (item.logoPath != null && item.logoPath !in payload) item.copy(logoPath = null) else item }
+            // A logo must be one of this item's own files in the backup.
+            stored.toDomain().let { item ->
+                val logo = item.logoPath
+                if (logo != null && (logo !in payload || itemIdOf(logo) != item.id)) item.copy(logoPath = null) else item
+            }
         }
         return items to payload
     }
+
+    /** The item id in an `items/<id>/<file>` path, or null for any other path. */
+    private fun itemIdOf(path: String): String? = ITEM_FILE.matchEntire(path)?.groupValues?.get(1)
 
     private fun isSafeItemFile(name: String): Boolean {
         val match = ITEM_FILE.matchEntire(name) ?: return false
         val fileName = match.groupValues[2]
         return fileName != "." && fileName != ".."
     }
+}
+
+/** The rest of the app relies on each [ItemKind] having its own kind of [ItemDetails]. */
+private fun BackupItem.detailsMatchKind(): Boolean = when (kind) {
+    ItemKind.LOYALTY -> details is ItemDetails.Loyalty
+    ItemKind.BOARDING_PASS -> details is ItemDetails.BoardingPass
+    ItemKind.PASS -> details is ItemDetails.Pass
 }
 
 private fun WalletItem.toBackup() = BackupItem(
