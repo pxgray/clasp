@@ -90,7 +90,7 @@ class ImportViewModel(
 
     fun dismiss() {
         discardPreview()
-        generation++
+        generation++ // a read still in flight must not reopen the sheet once it finishes
         _state.value = ImportState.Idle
     }
 
