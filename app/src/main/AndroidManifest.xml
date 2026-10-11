@@ -28,7 +28,6 @@
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="content" />
-                <data android:scheme="file" />
                 <data android:mimeType="application/vnd.apple.pkpass" />
                 <data android:mimeType="application/vnd-com.apple.pkpass" />
             </intent-filter>
@@ -38,7 +37,6 @@
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="content" />
-                <data android:scheme="file" />
                 <data android:host="*" />
                 <data android:mimeType="application/octet-stream" />
                 <data android:pathPattern=".*\\.pkpass" />
