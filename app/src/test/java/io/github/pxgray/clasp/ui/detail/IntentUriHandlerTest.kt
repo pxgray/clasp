@@ -5,6 +5,7 @@ import androidx.activity.ComponentActivity
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -31,6 +32,36 @@ class IntentUriHandlerTest {
             assertEquals("https://costco.com", it.dataString)
         }
         assertFalse(noApp)
+    }
+
+    @Test
+    fun `web links only go to browsable activities`() {
+        IntentUriHandler(activity) {}.openUri("https://costco.com")
+        assertTrue(shadowOf(activity).nextStartedActivity.hasCategory(Intent.CATEGORY_BROWSABLE))
+    }
+
+    @Test
+    fun `mail and map links are viewed`() {
+        val handler = IntentUriHandler(activity) {}
+        handler.openUri("mailto:help@costco.com")
+        assertEquals("mailto:help@costco.com", shadowOf(activity).nextStartedActivity.dataString)
+        handler.openUri("geo:0,0?q=Costco")
+        assertEquals("geo:0,0?q=Costco", shadowOf(activity).nextStartedActivity.dataString)
+    }
+
+    @Test
+    fun `other schemes are refused`() {
+        var noApp = 0
+        val handler = IntentUriHandler(activity) { noApp++ }
+        listOf(
+            "intent://scan/#Intent;scheme=zxing;package=com.example;end",
+            "content://io.github.pxgray.clasp.files/items/a/logo-1.png",
+            "file:///sdcard/x.pdf",
+            "javascript:alert(1)",
+            "market://details?id=x",
+        ).forEach(handler::openUri)
+        assertNull(shadowOf(activity).nextStartedActivity)
+        assertEquals(5, noApp)
     }
 
     @Test
