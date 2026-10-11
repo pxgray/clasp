@@ -49,10 +49,11 @@ class UrlConnectionHttpFetcherTest {
         fetcher = fetcher()
     }
 
-    /** The mock server is on localhost, which the default host rule refuses; most tests allow it. */
+    /** The mock server is on localhost, which the default host and address rules refuse; most tests allow it. */
     private fun fetcher(
         isAllowed: suspend () -> Boolean = { allowed },
         hostAllowed: (String) -> Boolean = { true },
+        addressAllowed: (InetAddress) -> Boolean = { true },
     ) = UrlConnectionHttpFetcher(
         isAllowed = isAllowed,
         userAgent = "Clasp-test",
@@ -60,6 +61,7 @@ class UrlConnectionHttpFetcherTest {
         readTimeout = 2.seconds,
         deadline = 500.milliseconds,
         hostAllowed = hostAllowed,
+        addressAllowed = addressAllowed,
     )
 
     @After
@@ -133,6 +135,7 @@ class UrlConnectionHttpFetcherTest {
             readTimeout = 5.seconds,
             deadline = 5.seconds,
             hostAllowed = { true },
+            addressAllowed = { true },
         )
         assertThrows(LogoOfflineException::class.java) { runBlocking { patient.fetch("https://nonexistent.invalid/", 100) } }
     }
@@ -191,6 +194,7 @@ class UrlConnectionHttpFetcherTest {
             readTimeout = 5.seconds,
             deadline = 5.seconds,
             hostAllowed = { true },
+            addressAllowed = { true },
         )
         runBlocking {
             val call = async { slow.fetch(url("/a"), 1_000) }
@@ -238,6 +242,28 @@ class UrlConnectionHttpFetcherTest {
     }
 
     @Test
+    fun `by default refuses an allowed name that connects to a private address`() {
+        server.enqueue(MockResponse.Builder().body("secret").build())
+        // As if a public name resolved to 127.0.0.1 (DNS rebinding): the name passes, the address must not.
+        val strict = UrlConnectionHttpFetcher(
+            isAllowed = { true }, userAgent = "Clasp-test", sslSocketFactory = clientSockets, hostAllowed = { true },
+        )
+        assertThrows(LogoRefusedException::class.java) { runBlocking { strict.fetch(url("/a"), 100) } }
+        assertEquals(0, server.requestCount)
+    }
+
+    @Test
+    fun `the address of every redirect hop is checked`() {
+        // Connection: close, so the second hop can't reuse the first hop's checked connection.
+        server.enqueue(MockResponse.Builder().code(302).addHeader("Location", "/b").addHeader("Connection", "close").build())
+        server.enqueue(MockResponse.Builder().body("secret").build())
+        var connects = 0
+        val secondHopRefused = fetcher(addressAllowed = { connects++ == 0 })
+        assertThrows(LogoRefusedException::class.java) { runBlocking { secondHopRefused.fetch(url("/a"), 100) } }
+        assertEquals(1, server.requestCount)
+    }
+
+    @Test
     fun `closes sockets off the caller thread after a successful fetch`() {
         server.enqueue(MockResponse.Builder().body("hello").build())
         val sockets = RecordingSocketFactory(clientSockets)
@@ -278,6 +304,7 @@ class UrlConnectionHttpFetcherTest {
             readTimeout = 2.seconds,
             deadline = 500.milliseconds,
             hostAllowed = { true },
+            addressAllowed = { true },
         )
 
     /** Runs [block] with a dispatcher whose threads are named `logo-io-N`. */
