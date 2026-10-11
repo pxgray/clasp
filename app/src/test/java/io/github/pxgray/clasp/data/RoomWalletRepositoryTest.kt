@@ -49,6 +49,29 @@ class RoomWalletRepositoryTest {
         assertEquals(card, repository.observeItem("c").first())
     }
 
+    /** A row written by a newer version, or damaged: its JSON columns don't decode. */
+    private fun insertUnreadable(id: String, details: String, barcode: String? = null) =
+        db.openHelper.writableDatabase.execSQL(
+            "INSERT INTO wallet_items (id, kind, title, details, barcode, createdAt, isFavorite) VALUES (?, 'LOYALTY', 'Bad', ?, ?, 0, 0)",
+            arrayOf(id, details, barcode),
+        )
+
+    @Test
+    fun `rows that don't decode are skipped and the rest still show`() = runTest {
+        val card = loyaltyItem(id = "c")
+        repository.upsert(card)
+        insertUnreadable("future", details = """{"type":"giftCard","balance":5}""")
+        insertUnreadable("broken", details = "{ nope")
+        insertUnreadable("bad-barcode", details = """{"type":"loyalty","cardNumber":"1"}""", barcode = """{"format":"NOPE"}""")
+        assertEquals(listOf(card), repository.observeItems().first())
+    }
+
+    @Test
+    fun `a single row that doesn't decode reads as missing`() = runTest {
+        insertUnreadable("future", details = """{"type":"giftCard","balance":5}""")
+        assertNull(repository.observeItem("future").first())
+    }
+
     @Test
     fun `upsert replaces an existing item`() = runTest {
         repository.upsert(loyaltyItem(id = "c", title = "Old"))
