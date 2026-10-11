@@ -15,12 +15,14 @@ import java.net.ConnectException
 import java.net.InetAddress
 import java.net.NoRouteToHostException
 import java.net.Socket
+import java.net.SocketException
 import java.net.URI
 import java.net.URL
 import java.net.UnknownHostException
 import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.atomic.AtomicBoolean
 import javax.net.ssl.HttpsURLConnection
+import javax.net.ssl.SSLSocket
 import javax.net.ssl.SSLSocketFactory
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
@@ -106,8 +108,9 @@ interface HttpFetcher {
  * [ioDispatcher] must have at least 2 threads: while one is blocked in a download, the abort needs
  * another free thread to close its sockets ([Dispatchers.IO] is fine).
  *
- * [hostAllowed] checks host names only: it gives no protection against a public name that
- * resolves to a private address (DNS rebinding).
+ * [hostAllowed] checks each URL's host name before connecting. [addressAllowed] then checks the
+ * address each connection actually reached, before the TLS handshake and before any request is
+ * sent, so a public name that resolves to a private address (DNS rebinding) is refused too.
  */
 class UrlConnectionHttpFetcher(
     private val isAllowed: suspend () -> Boolean,
@@ -117,6 +120,7 @@ class UrlConnectionHttpFetcher(
     private val readTimeout: Duration = 10.seconds,
     private val deadline: Duration = 30.seconds,
     private val hostAllowed: (String) -> Boolean = ::isPublicHostName,
+    private val addressAllowed: (InetAddress) -> Boolean = ::isPublicAddress,
 ) : HttpFetcher {
 
     override suspend fun fetch(url: String, maxBytes: Int): HttpResponse {
@@ -130,7 +134,7 @@ class UrlConnectionHttpFetcher(
         if (!allowed) throw LogoNetworkException("Logo search is turned off")
 
         val expiry = TimeSource.Monotonic.markNow() + deadline
-        val abort = Abort(sslSocketFactory ?: HttpsURLConnection.getDefaultSSLSocketFactory())
+        val abort = Abort(sslSocketFactory ?: HttpsURLConnection.getDefaultSSLSocketFactory(), addressAllowed)
         return coroutineScope {
             // The child never fails: a failure that raced with our cancellation would otherwise
             // replace the CancellationException this call must end with.
@@ -239,8 +243,13 @@ class UrlConnectionHttpFetcher(
      *
      * Every close runs on the IO dispatcher: [invoke] is called there by [fetch], and [track] runs on
      * the downloading thread.
+     *
+     * The factory also refuses any socket connected to an address [addressAllowed] rejects. It won't
+     * hand out an unconnected TLS socket, whose address is unknown until after the handshake: the
+     * JDK's `HttpsURLConnection` then connects a plain socket and layers TLS on it, as Android's
+     * always does, so the address is checked before the handshake.
      */
-    private class Abort(delegate: SSLSocketFactory) {
+    private class Abort(delegate: SSLSocketFactory, private val addressAllowed: (InetAddress) -> Boolean) {
         private val aborted = AtomicBoolean(false)
         private val sockets = CopyOnWriteArrayList<Socket>()
 
@@ -249,16 +258,31 @@ class UrlConnectionHttpFetcher(
             override fun getDefaultCipherSuites(): Array<String> = delegate.defaultCipherSuites
             override fun getSupportedCipherSuites(): Array<String> = delegate.supportedCipherSuites
             override fun createSocket(s: Socket, host: String?, port: Int, autoClose: Boolean): Socket {
-                track(s)
+                checkAddress(track(s))
                 return track(delegate.createSocket(s, host, port, autoClose))
             }
-            override fun createSocket(): Socket = track(delegate.createSocket())
-            override fun createSocket(host: String?, port: Int): Socket = track(delegate.createSocket(host, port))
+            override fun createSocket(): Socket {
+                val socket = track(delegate.createSocket())
+                if (socket !is SSLSocket) return socket // TLS gets layered on it through the method above
+                closeQuietly(socket)
+                throw SocketException("Unconnected sockets not implemented").apply { initCause(UnsupportedOperationException()) }
+            }
+            override fun createSocket(host: String?, port: Int): Socket =
+                checkAddress(track(delegate.createSocket(host, port)))
             override fun createSocket(host: String?, port: Int, localHost: InetAddress?, localPort: Int): Socket =
-                track(delegate.createSocket(host, port, localHost, localPort))
-            override fun createSocket(host: InetAddress?, port: Int): Socket = track(delegate.createSocket(host, port))
+                checkAddress(track(delegate.createSocket(host, port, localHost, localPort)))
+            override fun createSocket(host: InetAddress?, port: Int): Socket =
+                checkAddress(track(delegate.createSocket(host, port)))
             override fun createSocket(host: InetAddress?, port: Int, localHost: InetAddress?, localPort: Int): Socket =
-                track(delegate.createSocket(host, port, localHost, localPort))
+                checkAddress(track(delegate.createSocket(host, port, localHost, localPort)))
+        }
+
+        /** Returns [socket] if it is connected to an allowed address; otherwise closes it and refuses. */
+        private fun checkAddress(socket: Socket): Socket {
+            val address = socket.inetAddress
+            if (address != null && addressAllowed(address)) return socket
+            closeQuietly(socket)
+            throw LogoRefusedException("Not a public address: ${address?.hostAddress}")
         }
 
         fun throwIfAborted() {
@@ -277,9 +301,11 @@ class UrlConnectionHttpFetcher(
         }
 
         /** Closes every socket; a failing close never stops the rest or escapes. */
-        private fun closeAll() = sockets.forEach {
+        private fun closeAll() = sockets.forEach(::closeQuietly)
+
+        private fun closeQuietly(socket: Socket) {
             try {
-                it.close()
+                socket.close()
             } catch (_: Exception) {
             }
         }
