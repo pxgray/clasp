@@ -4,14 +4,12 @@ import android.content.Context
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
-import androidx.room.TypeConverters
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 import io.github.pxgray.clasp.domain.ItemDetails
 import io.github.pxgray.clasp.takeout.takeoutWalletId
 
 @Database(entities = [WalletItemEntity::class], version = 5, exportSchema = true)
-@TypeConverters(Converters::class)
 abstract class ClaspDatabase : RoomDatabase() {
     abstract fun walletDao(): WalletDao
 
