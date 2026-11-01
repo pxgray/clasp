@@ -7,7 +7,8 @@ import io.github.pxgray.clasp.domain.Barcode
 import io.github.pxgray.clasp.domain.ItemDetails
 import io.github.pxgray.clasp.domain.ItemKind
 import io.github.pxgray.clasp.domain.WalletItem
-import io.github.pxgray.clasp.pkpass.readCapped
+import io.github.pxgray.clasp.util.ZipLimits
+import io.github.pxgray.clasp.util.readZipEntries
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
@@ -15,19 +16,15 @@ import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
-import java.io.IOException
 import java.io.InputStream
 import java.io.OutputStream
 import java.util.zip.ZipEntry
-import java.util.zip.ZipInputStream
 import java.util.zip.ZipOutputStream
 import kotlin.time.Instant
 
 private const val MANIFEST = "wallet.json"
 private const val VERSION = 1
-private const val MAX_ENTRIES = 10_000
-private const val MAX_ENTRY_BYTES = 10 * 1024 * 1024
-private const val MAX_TOTAL_BYTES = 500L * 1024 * 1024
+private val LIMITS = ZipLimits(maxEntries = 10_000, maxEntryBytes = 10 * 1024 * 1024, maxTotalBytes = 500L * 1024 * 1024)
 
 private val SAFE_ID = Regex("[A-Za-z0-9-]{1,64}")
 private val ITEM_FILE = Regex("items/([A-Za-z0-9-]{1,64})/([A-Za-z0-9._@-]{1,128})")
@@ -111,32 +108,13 @@ class WalletBackup(
     }
 
     private fun read(input: InputStream): Pair<List<WalletItem>, Map<String, ByteArray>>? {
-        var manifest: ByteArray? = null
-        val payload = mutableMapOf<String, ByteArray>()
-        var count = 0
-        var total = 0L
-        try {
-            ZipInputStream(input).let { zip ->
-                while (true) {
-                    val entry = zip.nextEntry ?: break
-                    if (++count > MAX_ENTRIES) return null
-                    if (entry.isDirectory) continue
-                    val name = entry.name
-                    val wanted = name == MANIFEST || isSafeItemFile(name)
-                    if (!wanted) continue
-                    val data = zip.readCapped(MAX_ENTRY_BYTES) ?: return null
-                    total += data.size
-                    if (total > MAX_TOTAL_BYTES) return null
-                    if (name == MANIFEST) manifest = data else payload[name] = data
-                }
-            }
-        } catch (_: IOException) {
-            return null
-        } catch (_: IllegalArgumentException) {
-            return null
-        }
+        val zip = readZipEntries(input, LIMITS) { it == MANIFEST || isSafeItemFile(it) }
+        if (!zip.complete) return null
+        val files = zip.entries.toMap()
+        val manifest = files[MANIFEST] ?: return null
+        val payload = files - MANIFEST
         val backup = try {
-            WalletJson.decodeFromString(BackupFile.serializer(), String(manifest ?: return null, Charsets.UTF_8))
+            WalletJson.decodeFromString(BackupFile.serializer(), String(manifest, Charsets.UTF_8))
         } catch (_: IllegalArgumentException) {
             return null
         }

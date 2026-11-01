@@ -5,11 +5,13 @@ import android.graphics.Bitmap
 import android.net.Uri
 import com.tom_roush.pdfbox.android.PDFBoxResourceLoader
 import io.github.pxgray.clasp.domain.WalletItem
-import io.github.pxgray.clasp.pkpass.readCapped
 import io.github.pxgray.clasp.takeout.PdfImage
 import io.github.pxgray.clasp.takeout.TakeoutParser
 import io.github.pxgray.clasp.takeout.TakeoutPdfReader
 import io.github.pxgray.clasp.takeout.toWalletItem
+import io.github.pxgray.clasp.util.ZipLimits
+import io.github.pxgray.clasp.util.readCapped
+import io.github.pxgray.clasp.util.readZipEntries
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.datetime.TimeZone
@@ -17,7 +19,6 @@ import kotlinx.datetime.toLocalDateTime
 import java.io.ByteArrayInputStream
 import java.io.IOException
 import java.time.ZoneId
-import java.util.zip.ZipInputStream
 import kotlin.time.Clock
 
 enum class TakeoutError { UNREADABLE, TOO_LARGE, NO_PASSES }
@@ -79,28 +80,10 @@ class AndroidTakeoutImporter(
     }
 
     /** PDFs anywhere in the zip; a Takeout export keeps Google Wallet's under "Takeout/Google Wallet/". */
+    /** If the zip is damaged or too large partway through, the PDFs read before that are still used. */
     private fun pdfsInZip(bytes: ByteArray): List<ByteArray> {
-        val pdfs = mutableListOf<ByteArray>()
-        var total = 0L
-        try {
-            ZipInputStream(ByteArrayInputStream(bytes)).use { zip ->
-                var count = 0
-                while (true) {
-                    val entry = zip.nextEntry ?: break
-                    if (++count > MAX_ZIP_ENTRIES) break
-                    if (entry.isDirectory || !entry.name.endsWith(".pdf", ignoreCase = true)) continue
-                    val pdf = zip.readCapped(maxBytes) ?: break
-                    total += pdf.size
-                    if (total > maxBytes) break
-                    pdfs += pdf
-                }
-            }
-        } catch (_: IOException) {
-            // Use whatever was read before the damage.
-        } catch (_: IllegalArgumentException) {
-            // Malformed entry names.
-        }
-        return pdfs
+        val limits = ZipLimits(maxEntries = MAX_ZIP_ENTRIES, maxEntryBytes = maxBytes, maxTotalBytes = maxBytes.toLong())
+        return readZipEntries(ByteArrayInputStream(bytes), limits) { it.endsWith(".pdf", ignoreCase = true) }.entries.map { it.second }
     }
 
     private fun ByteArray.isZip() = size >= 4 && this[0] == 'P'.code.toByte() && this[1] == 'K'.code.toByte() &&

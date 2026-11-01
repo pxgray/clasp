@@ -6,7 +6,7 @@ import android.net.Uri
 import io.github.pxgray.clasp.domain.WalletItem
 import io.github.pxgray.clasp.pkpass.PkPass
 import io.github.pxgray.clasp.pkpass.PkPassParser
-import io.github.pxgray.clasp.pkpass.readCapped
+import io.github.pxgray.clasp.util.readCapped
 import io.github.pxgray.clasp.pkpass.toWalletItem
 import io.github.pxgray.clasp.pkpass.walletId
 import kotlinx.coroutines.Dispatchers

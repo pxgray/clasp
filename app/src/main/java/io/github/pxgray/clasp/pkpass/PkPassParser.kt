@@ -3,6 +3,8 @@ package io.github.pxgray.clasp.pkpass
 import io.github.pxgray.clasp.domain.Barcode
 import io.github.pxgray.clasp.domain.BarcodeFormat
 import io.github.pxgray.clasp.domain.PassField
+import io.github.pxgray.clasp.util.ZipLimits
+import io.github.pxgray.clasp.util.readZipEntries
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
@@ -11,7 +13,6 @@ import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.jsonObject
 import java.io.ByteArrayInputStream
-import java.io.IOException
 import java.text.NumberFormat
 import java.time.OffsetDateTime
 import java.time.ZoneId
@@ -20,11 +21,8 @@ import java.time.format.DateTimeParseException
 import java.time.format.FormatStyle
 import java.util.Currency
 import java.util.Locale
-import java.util.zip.ZipInputStream
 
-private const val MAX_ENTRIES = 512
-private const val MAX_ENTRY_BYTES = 5 * 1024 * 1024
-private const val MAX_TOTAL_BYTES = 20 * 1024 * 1024
+private val LIMITS = ZipLimits(maxEntries = 512, maxEntryBytes = 5 * 1024 * 1024, maxTotalBytes = 20L * 1024 * 1024)
 
 private val STRINGS_PATH = Regex("[^/]+\\.lproj/pass\\.strings")
 private val ICON_NAMES = listOf("icon@3x.png", "icon@2x.png", "icon.png")
@@ -106,38 +104,26 @@ class PkPassParser(private val locale: Locale, private val zone: ZoneId) {
         )
     }
 
+    /** Null if the zip is damaged, breaks [LIMITS] or has no `pass.json`. */
     private fun readZip(bytes: ByteArray): Entries? {
+        val zip = readZipEntries(ByteArrayInputStream(bytes), LIMITS) { isWanted(it.removePrefix("/")) }
+        if (!zip.complete) return null
         var passJson: ByteArray? = null
         val strings = mutableMapOf<String, ByteArray>()
         val images = mutableMapOf<String, ByteArray>()
-        var count = 0
-        var total = 0L
-        try {
-            ZipInputStream(ByteArrayInputStream(bytes)).use { zip ->
-                while (true) {
-                    val entry = zip.nextEntry ?: break
-                    if (++count > MAX_ENTRIES) return null
-                    if (entry.isDirectory) continue
-                    val name = entry.name.removePrefix("/")
-                    val wanted = name == "pass.json" || name in ICON_NAMES || name in LOGO_NAMES || STRINGS_PATH.matches(name)
-                    if (!wanted) continue
-                    val data = zip.readCapped(MAX_ENTRY_BYTES) ?: return null
-                    total += data.size
-                    if (total > MAX_TOTAL_BYTES) return null
-                    when {
-                        name == "pass.json" -> passJson = data
-                        name.endsWith(".png") -> images[name] = data
-                        else -> strings[name.substringBefore('/')] = data
-                    }
-                }
+        zip.entries.forEach { (entryName, data) ->
+            val name = entryName.removePrefix("/")
+            when {
+                name == "pass.json" -> passJson = data
+                name.endsWith(".png") -> images[name] = data
+                else -> strings[name.substringBefore('/')] = data
             }
-        } catch (_: IOException) {
-            return null
-        } catch (_: IllegalArgumentException) {
-            return null // malformed entry names
         }
         return passJson?.let { Entries(it, strings, images) }
     }
+
+    private fun isWanted(name: String) =
+        name == "pass.json" || name in ICON_NAMES || name in LOGO_NAMES || STRINGS_PATH.matches(name)
 
     /** Device language (with and without region), then English, then Base. */
     private fun pickStrings(available: Map<String, ByteArray>): Map<String, String> {

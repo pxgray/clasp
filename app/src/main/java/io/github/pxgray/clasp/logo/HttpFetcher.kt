@@ -7,10 +7,9 @@ import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.withContext
+import io.github.pxgray.clasp.util.readCapped
 import kotlinx.coroutines.withTimeoutOrNull
-import java.io.ByteArrayOutputStream
 import java.io.IOException
-import java.io.InputStream
 import java.net.ConnectException
 import java.net.InetAddress
 import java.net.NoRouteToHostException
@@ -182,7 +181,8 @@ class UrlConnectionHttpFetcher(
                         current = checkedUrl(URL(current, location).toString())
                     }
                     in 200..299 -> return HttpResponse(
-                        body = connection.inputStream.use { it.readCapped(maxBytes, expiry) },
+                        body = connection.inputStream.use { it.readCapped(maxBytes, expiry) }
+                            ?: throw LogoRefusedException("Response larger than $maxBytes bytes"),
                         contentType = connection.contentType,
                         url = current.toString(),
                     )
@@ -218,21 +218,6 @@ class UrlConnectionHttpFetcher(
         } catch (e: Exception) {
             throw LogoNetworkException("Not a URL: $raw", e)
         }
-    }
-
-    private fun InputStream.readCapped(maxBytes: Int, expiry: TimeMark): ByteArray {
-        val out = ByteArrayOutputStream()
-        val buffer = ByteArray(8 * 1024)
-        var total = 0
-        while (true) {
-            if (expiry.hasPassedNow()) throw LogoNetworkException("Timed out reading the response")
-            val read = read(buffer)
-            if (read < 0) break
-            total += read
-            if (total > maxBytes) throw LogoRefusedException("Response larger than $maxBytes bytes")
-            out.write(buffer, 0, read)
-        }
-        return out.toByteArray()
     }
 
     /**
