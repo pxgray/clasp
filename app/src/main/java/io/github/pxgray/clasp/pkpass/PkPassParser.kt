@@ -203,7 +203,7 @@ private fun formatStyle(name: String): FormatStyle? = when (name) {
 private fun JsonObject.string(key: String): String? = (this[key] as? JsonPrimitive)?.takeIf { it.isString }?.content
 
 private val RGB = Regex("""rgba?\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})\s*(?:,\s*[\d.]+\s*)?\)""", RegexOption.IGNORE_CASE)
-private val HEX = Regex("#([0-9a-fA-F]{6})")
+private val HEX = Regex("#([0-9a-fA-F]{6}|[0-9a-fA-F]{3})")
 
 /** `rgb(r, g, b)`, `rgba(…)` or `#rrggbb` → opaque ARGB. */
 internal fun parseCssColor(value: String?): Int? {
@@ -213,11 +213,19 @@ internal fun parseCssColor(value: String?): Int? {
         if (r > 255 || g > 255 || b > 255) return null
         return (0xFF shl 24) or (r shl 16) or (g shl 8) or b
     }
-    HEX.matchEntire(text)?.let { return (0xFF000000L or it.groupValues[1].toLong(16)).toInt() }
+    HEX.matchEntire(text)?.let { match ->
+        // #rgb is shorthand for #rrggbb.
+        val digits = match.groupValues[1].let { if (it.length == 3) it.map { c -> "$c$c" }.joinToString("") else it }
+        return (0xFF000000L or digits.toLong(16)).toInt()
+    }
     return null
 }
 
-private val STRINGS_ENTRY = Regex(""""((?:[^"\\]|\\.)*)"\s*=\s*"((?:[^"\\]|\\.)*)"\s*;""")
+/**
+ * A `"key" = "value";` entry, or a comment. Matching both in one left-to-right pass means an entry
+ * inside a comment is skipped, while comment markers inside a quoted value (a URL's `//`) are kept.
+ */
+private val STRINGS_TOKEN = Regex("""/\*[\s\S]*?\*/|//[^\n]*|"((?:[^"\\]|\\.)*)"\s*=\s*"((?:[^"\\]|\\.)*)"\s*;""")
 private val ESCAPE = Regex("""\\(.)""")
 
 /** Parses an Apple `.strings` file (UTF-16 with BOM, or UTF-8). */
@@ -234,5 +242,7 @@ internal fun decodeStrings(bytes: ByteArray): Map<String, String> {
             else -> c
         }
     }
-    return STRINGS_ENTRY.findAll(text).associate { unescape(it.groupValues[1]) to unescape(it.groupValues[2]) }
+    return STRINGS_TOKEN.findAll(text)
+        .filter { it.value.startsWith('"') }
+        .associate { unescape(it.groupValues[1]) to unescape(it.groupValues[2]) }
 }
