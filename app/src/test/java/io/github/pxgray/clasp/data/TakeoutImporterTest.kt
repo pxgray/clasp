@@ -59,7 +59,7 @@ class TakeoutImporterTest {
     }
 
     /** A Takeout-style PDF: one pass per page, laid out like Google's export. */
-    private fun takeoutPdf(): ByteArray = PDDocument().use { document ->
+    private fun takeoutPdf(cards: List<Card> = this.cards): ByteArray = PDDocument().use { document ->
         for (card in cards) {
             val page = PDPage(PDRectangle.A4)
             document.addPage(page)
@@ -121,6 +121,25 @@ class TakeoutImporterTest {
             "Takeout/Google Wallet/Boarding passes, event tickets and other passes/Boarding passes, event tickets and other passes.pdf" to takeoutPdf(),
         )
         val items = (importer().read(serve("takeout.zip", zip)) as TakeoutResult.Success).items
+        assertEquals(2, items.size)
+    }
+
+    @Test
+    fun `a PDF past the size limit keeps the ones read before it`() = runTest {
+        val first = takeoutPdf()
+        val after = takeoutPdf(listOf(Card("Tesco", "Clubcard", "634004000000000", 0xFF00539F.toInt())))
+        val zip = zipOf("a.pdf" to first, "b.pdf" to ByteArray(4 * (first.size + after.size)), "c.pdf" to after)
+        val maxBytes = maxOf(zip.size, first.size + after.size)
+        val items = (importer(maxBytes = maxBytes).read(serve("takeout.zip", zip)) as TakeoutResult.Success).items
+        assertEquals(listOf("Giant Eagle", "IKEA"), items.map { it.title })
+    }
+
+    @Test
+    fun `a damaged zip keeps the PDFs read before the damage`() = runTest {
+        val noise = ByteArray(256 * 1024).also { java.util.Random(1).nextBytes(it) } // doesn't compress
+        val zip = zipOf("a.pdf" to takeoutPdf(), "b.pdf" to noise)
+        val damaged = zip.copyOf(zip.size - 128 * 1024)
+        val items = (importer().read(serve("takeout.zip", damaged)) as TakeoutResult.Success).items
         assertEquals(2, items.size)
     }
 

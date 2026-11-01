@@ -98,6 +98,18 @@ class WalletBackupTest {
     }
 
     @Test
+    fun `backups past the entry limits change nothing`() = runTest {
+        targetRepo.items.value = listOf(loyaltyItem(id = "keep"))
+        val backup = backupOf(targetRepo, targetFiles)
+        val json = """{"version":1,"items":[]}""".toByteArray()
+        val manyEntries = (1..10_000).map { "junk/$it" to byteArrayOf(1) }.toTypedArray()
+        assertNull(backup.import(zip("wallet.json" to json, *manyEntries).inputStream()))
+        assertNull(backup.import(zip("wallet.json" to json, "items/c/logo-1.png" to ByteArray(10 * 1024 * 1024 + 1)).inputStream()))
+        assertEquals(0, backup.import(zip("wallet.json" to json, "junk/big.bin" to ByteArray(11 * 1024 * 1024)).inputStream()))
+        assertEquals(listOf("keep"), targetRepo.items.value.map { it.id })
+    }
+
+    @Test
     fun `files outside item folders are never written`() = runTest {
         val json = """{"version":1,"items":[{"id":"c","kind":"LOYALTY","title":"X","logoPath":"items/c/logo-1.png","details":{"type":"loyalty","cardNumber":"1"},"createdAt":0}]}"""
         val count = backupOf(targetRepo, targetFiles).import(

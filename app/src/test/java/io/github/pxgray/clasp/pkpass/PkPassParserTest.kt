@@ -12,7 +12,6 @@ import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
-import java.io.ByteArrayInputStream
 import java.time.OffsetDateTime
 import java.time.ZoneId
 import java.util.Locale
@@ -107,8 +106,27 @@ class PkPassParserTest {
     }
 
     @Test
-    fun `readCapped stops at the limit`() {
-        assertArrayEquals(byteArrayOf(1, 2, 3), ByteArrayInputStream(byteArrayOf(1, 2, 3)).readCapped(3))
-        assertNull(ByteArrayInputStream(byteArrayOf(1, 2, 3, 4)).readCapped(3))
+    fun `a pass with too many zip entries is refused`() {
+        assertNull(parse(EVENT_TICKET_JSON, extra = (1..512).associate { "junk/$it.txt" to byteArrayOf(1) }))
+        assertEquals("E-42", parse(EVENT_TICKET_JSON, extra = (1..511).associate { "junk/$it.txt" to byteArrayOf(1) })?.serialNumber)
+    }
+
+    @Test
+    fun `a pass with an oversized image is refused, but oversized unused files are skipped`() {
+        assertNull(parse(EVENT_TICKET_JSON, extra = mapOf("icon.png" to ByteArray(5 * 1024 * 1024 + 1))))
+        assertEquals("E-42", parse(EVENT_TICKET_JSON, extra = mapOf("video.mov" to ByteArray(6 * 1024 * 1024)))?.serialNumber)
+    }
+
+    @Test
+    fun `a pass whose images add up past the total cap is refused`() {
+        val images = listOf("icon.png", "icon@2x.png", "icon@3x.png", "logo.png", "logo@2x.png")
+            .associateWith { ByteArray(4 * 1024 * 1024) }
+        assertNull(parse(EVENT_TICKET_JSON, extra = images))
+    }
+
+    @Test
+    fun `a damaged pass is refused`() {
+        val zip = pkpassZip(EVENT_TICKET_JSON, mapOf("icon.png" to ByteArray(64 * 1024) { it.toByte() }))
+        assertNull(PkPassParser(Locale.US, newYork).parse(zip.copyOf(zip.size / 2)))
     }
 }
