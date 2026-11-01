@@ -2,6 +2,28 @@
 
 A calm, private wallet for loyalty cards and passes on Android. No payments, no accounts. Offline unless you turn on logo search.
 
+<p>
+  <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/1.png" width="200" alt="The wallet: passes and loyalty cards">
+  <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/2.png" width="200" alt="A loyalty card with its barcode">
+  <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/3.png" width="200" alt="A boarding pass">
+</p>
+
+## Features
+
+- **Loyalty cards:** scan a barcode or QR code, or type the number in. Star favorites to keep them on top, and sort by recent use, name or date.
+- **Boarding passes:** scan the barcode on a paper or mobile boarding pass, including multi-leg itineraries.
+- **Apple Wallet passes:** open `.pkpass` files from email, the web or a file manager.
+- **Google Wallet import:** bring in the cards and passes from a [Google Takeout](https://takeout.google.com/) export of Google Wallet.
+- **Quick actions:** open a card's website, find a nearby store, or call customer service.
+- **Backups:** export your whole wallet to a file and restore it on any phone.
+- **Themes:** light and dark, with dynamic color on Android 12 and later.
+
+Clasp needs Android 8.0 or later.
+
+## Install
+
+Clasp is not on F-Droid yet. Until then, build it from source (see [Development](#development)).
+
 ## Privacy
 
 Clasp has no accounts, analytics or ads, and keeps everything on your phone. The only network feature is **logo search**, which is off until you agree to it (the first time you tap *Find logo*, or in Settings → Online). When it's on and you search:
@@ -23,6 +45,10 @@ env JAVA_HOME=/opt/android-studio/jbr ./gradlew installDebug         # install o
 env JAVA_HOME=/opt/android-studio/jbr ./gradlew verifyRoborazziDebug # compare screens with golden images
 env JAVA_HOME=/opt/android-studio/jbr ./gradlew recordRoborazziDebug # re-record goldens after an intended UI change
 ```
+
+## Reporting a security issue
+
+Please report security problems privately. See [SECURITY.md](SECURITY.md).
 
 ## AI usage
 

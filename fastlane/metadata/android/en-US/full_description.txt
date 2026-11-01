@@ -1,0 +1,28 @@
+<p>Clasp keeps your loyalty cards, boarding passes and tickets in one calm, private place. No payments, no accounts, no ads, and no tracking. Everything stays on your phone.</p>
+
+<p><b>Add cards your way</b></p>
+<ul>
+<li>Scan a card's barcode or QR code, or type the number in.</li>
+<li>Scan a boarding pass barcode to see your flight, date and seat at a glance.</li>
+<li>Open Apple Wallet passes (<i>.pkpass</i> files) from email or the web.</li>
+<li>Import the cards and passes from a Google Wallet export (Google Takeout).</li>
+</ul>
+
+<p><b>Find them fast</b></p>
+<ul>
+<li>Star your favorites to keep them at the top.</li>
+<li>Sort by recent use, name or date.</li>
+<li>Open a card to show a large, crisp barcode at the checkout.</li>
+<li>Jump to a card's website, find a nearby store, or call customer service.</li>
+</ul>
+
+<p><b>Yours to keep</b></p>
+<ul>
+<li>Back up your whole wallet to a file and restore it on any phone.</li>
+<li>Light and dark themes, with your phone's colors on Android 12 and later.</li>
+</ul>
+
+<p><b>Private by design</b></p>
+<p>Clasp works offline. The only network feature is the optional logo search, which stays off until you turn it on. It looks up logos on Wikidata and Wikimedia Commons, and on the card's own website if you have entered one. Only the logo you pick is saved.</p>
+
+<p>Clasp is free software, licensed under the GNU GPL version 3 or later.</p>
