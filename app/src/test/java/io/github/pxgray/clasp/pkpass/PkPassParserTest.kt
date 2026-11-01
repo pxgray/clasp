@@ -100,9 +100,34 @@ class PkPassParserTest {
     }
 
     @Test
+    fun `short hex colors expand each digit`() {
+        assertEquals(0xFFFF8800.toInt(), parseCssColor("#f80"))
+        assertEquals(0xFFAABBCC.toInt(), parseCssColor("#ABC"))
+        assertNull(parseCssColor("#ab"))
+        assertNull(parseCssColor("#abcd"))
+    }
+
+    @Test
     fun `strings files unescape and skip comments`() {
         val parsed = decodeStrings("/* note */\n\"a\" = \"say \\\"hi\\\"\";\n\"b\"=\"line\\nbreak\";".toByteArray())
         assertEquals(mapOf("a" to "say \"hi\"", "b" to "line\nbreak"), parsed)
+    }
+
+    @Test
+    fun `commented-out strings entries are ignored`() {
+        val text = """
+            /* "a" = "old"; */
+            "a" = "new";
+            // "b" = "old";
+            /* a block
+               "c" = "old"; spanning lines */
+            "url" = "https://example.com/x"; // a trailing comment
+            "slashes" = "/* not a comment */";
+        """.trimIndent()
+        assertEquals(
+            mapOf("a" to "new", "url" to "https://example.com/x", "slashes" to "/* not a comment */"),
+            decodeStrings(text.toByteArray()),
+        )
     }
 
     @Test
