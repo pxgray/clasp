@@ -1,0 +1,1 @@
+First release on F-Droid. Clasp is now signed with its own release key, so updates from F-Droid and from GitHub releases install over each other.

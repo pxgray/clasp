@@ -15,11 +15,19 @@ android {
         applicationId = "io.github.pxgray.clasp"
         minSdk = 26
         targetSdk = 37
-        versionCode = 1
-        versionName = "0.1.0"
+        versionCode = 2
+        versionName = "0.1.1"
+    }
+
+    // Google's encrypted dependency report has no place in an F-Droid app (F-Droid asks for it off).
+    dependenciesInfo {
+        includeInApk = false
+        includeInBundle = false
     }
 
     buildTypes {
+        // No signingConfig on purpose: a signed variant makes R8 rename differently, so the APK would
+        // no longer match F-Droid's unsigned rebuild. scripts/sign-release.sh signs it afterwards.
         release {
             isMinifyEnabled = true
             isShrinkResources = true
