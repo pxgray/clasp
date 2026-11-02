@@ -12,3 +12,7 @@ docs/superpowers/
 .remember/
 .claude/
 CLAUDE.local.md
+RELEASING.local.md
+*.jks
+*.keystore
+*.p12

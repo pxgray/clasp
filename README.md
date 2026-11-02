@@ -22,7 +22,7 @@ Clasp needs Android 8.0 or later.
 
 ## Install
 
-Clasp is not on F-Droid yet. Until then, build it from source (see [Development](#development)).
+Download the signed APK from [GitHub Releases](https://github.com/pxgray/clasp/releases), or build it from source (see [Development](#development)). Clasp is on its way to F-Droid; both builds are signed with the same key, so either can update the other.
 
 ## Privacy
 
