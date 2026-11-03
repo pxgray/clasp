@@ -28,12 +28,22 @@ SDK="${ANDROID_HOME:-$(sed -n 's/^sdk\.dir=//p' local.properties 2>/dev/null)}"
 BUILD_TOOLS="$(ls -d "$SDK"/build-tools/* | sort -V | tail -1)"
 APKSIGNER="$BUILD_TOOLS/apksigner"
 
-./gradlew --no-build-cache clean assembleRelease
-
 UNSIGNED=app/build/outputs/apk/release/app-release-unsigned.apk
 OUT="build/release/clasp-${TAG#v}.apk"
+FIRST="build/release/first-build-unsigned.apk"
 mkdir -p build/release
-rm -f "$OUT" "$OUT.idsig"
+rm -f "$OUT" "$OUT.idsig" "$FIRST"
+
+# Build twice and sign only if both builds match: a nondeterministic build would also differ from
+# F-Droid's, and F-Droid would refuse to publish the signed APK.
+./gradlew --no-build-cache clean assembleRelease
+cp "$UNSIGNED" "$FIRST"
+./gradlew --no-build-cache clean assembleRelease
+if ! cmp -s "$FIRST" "$UNSIGNED"; then
+    echo "Two builds of $TAG differ, so F-Droid can't reproduce it; not signing." >&2
+    exit 1
+fi
+rm -f "$FIRST"
 
 # v2 + v3 only: minSdk 26 doesn't need v1, and v1 would add files F-Droid's build doesn't have.
 "$APKSIGNER" sign \

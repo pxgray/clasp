@@ -1,5 +1,8 @@
 [versions]
 agp = "9.5.0"
+# R8 newer than AGP 9.5's bundled 9.5.28: 9.6.0-alpha08 fixed a race in argument propagation that made
+# release builds randomly differ, which breaks F-Droid's reproducible-build check. Drop once AGP ships it.
+r8 = "9.6.0-alpha09"
 kotlin = "2.4.21"
 ksp = "2.3.12"
 composeBom = "2026.09.00"
@@ -26,6 +29,7 @@ androidxTestCore = "1.7.0"
 androidxTestExt = "1.3.0"
 
 [libraries]
+r8 = { module = "com.android.tools:r8", version.ref = "r8" }
 androidx-core-ktx = { module = "androidx.core:core-ktx", version.ref = "coreKtx" }
 androidx-activity-compose = { module = "androidx.activity:activity-compose", version.ref = "activityCompose" }
 androidx-lifecycle-runtime-compose = { module = "androidx.lifecycle:lifecycle-runtime-compose", version.ref = "lifecycle" }
