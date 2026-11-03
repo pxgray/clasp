@@ -1,0 +1,1 @@
+First release on F-Droid. Release builds are now reproducible, so F-Droid publishes the same APK as GitHub, signed with Clasp's own key; updates from either source install over each other.
