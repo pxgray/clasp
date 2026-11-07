@@ -26,11 +26,13 @@ import io.github.pxgray.clasp.domain.ItemDetails
 import io.github.pxgray.clasp.domain.ItemKind
 import io.github.pxgray.clasp.domain.PassField
 import io.github.pxgray.clasp.domain.PkPassStyle
+import io.github.pxgray.clasp.domain.travelStatus
 import io.github.pxgray.clasp.domain.WalletItem
 import io.github.pxgray.clasp.logo.LogoCandidate
 import io.github.pxgray.clasp.logo.LogoSource
 import io.github.pxgray.clasp.testing.boardingItem
 import io.github.pxgray.clasp.testing.loyaltyItem
+import io.github.pxgray.clasp.testing.withBoarding
 import io.github.pxgray.clasp.ui.detail.DetailScreen
 import io.github.pxgray.clasp.ui.edit.EditFormState
 import io.github.pxgray.clasp.ui.edit.EditScreen
@@ -50,6 +52,11 @@ import io.github.pxgray.clasp.ui.takeout.TakeoutRow
 import io.github.pxgray.clasp.ui.takeout.TakeoutRowStatus
 import io.github.pxgray.clasp.ui.theme.ClaspTheme
 import kotlin.time.Instant
+import kotlinx.datetime.LocalDateTime
+import kotlinx.datetime.LocalTime
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.UtcOffset
+import kotlinx.datetime.toInstant
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -123,6 +130,32 @@ class ScreenshotTest {
     }
     @Test fun detailPass() = snap("detail_pass") { DetailContent(concert) }
 
+    /** A pkpass-style boarding pass: 07:05 at UTC-07:00 on 2026-10-14 is 14:05 UTC. */
+    private val tripPass = boardingItem().copy(brandColor = 0xFF1565C0.toInt()).withBoarding {
+        copy(gate = "B12", terminal = "3", seat = "23A", boardingTime = LocalTime(6, 35), departureOffset = UtcOffset(hours = -7))
+    }
+    private fun utc(hour: Int, minute: Int) = LocalDateTime(2026, 10, 14, hour, minute).toInstant(TimeZone.UTC)
+
+    @Test fun detailTravelLeavingSoon() = snap("detail_travel_leaving_soon") { DetailContent(tripPass, now = utc(11, 55)) }
+    @Test fun detailTravelBoarding() = snap("detail_travel_boarding") { DetailContent(tripPass, now = utc(13, 40)) }
+    @Test fun detailTravelBoardingDark() = snap("detail_travel_boarding_dark", dark = true) { DetailContent(tripPass, now = utc(13, 40)) }
+    @Test fun detailTravelDeparted() = snap("detail_travel_departed") { DetailContent(tripPass, now = utc(15, 0)) }
+    @Test fun detailTravelTodayAddTime() = snap("detail_travel_today_add_time") {
+        DetailContent(boardingItem().withBoarding { copy(departureTime = null) }, now = utc(8, 0))
+    }
+    @Test fun detailTravelLargeFont() = snap("detail_travel_large_font") {
+        val density = LocalDensity.current
+        CompositionLocalProvider(LocalDensity provides Density(density.density, fontScale = 1.5f)) {
+            DetailContent(tripPass, now = utc(11, 55))
+        }
+    }
+
+    @Test fun homeTravel() = snap("home_travel") {
+        val now = utc(11, 55)
+        val status = (tripPass.details as ItemDetails.BoardingPass).travelStatus(now, TimeZone.UTC)!!
+        HomeContent(wallet.copy(travel = listOf(tripPass), travelStatus = mapOf(tripPass.id to status), passes = listOf(concert), now = now))
+    }
+
     @Test fun editLoyalty() = snap("edit_loyalty") { EditContent(EditFormState.from(wallet.cards.first())) }
     @Test fun editBoardingPass() = snap("edit_boarding_pass") { EditContent(EditFormState.from(boardingItem())) }
 
@@ -175,7 +208,8 @@ class ScreenshotTest {
     )
 
     @Composable
-    private fun DetailContent(item: WalletItem) = DetailScreen(item, onBack = {}, onEdit = {}, onDelete = {})
+    private fun DetailContent(item: WalletItem, now: Instant? = null) =
+        DetailScreen(item, onBack = {}, onEdit = {}, onDelete = {}, now = now, zone = TimeZone.UTC)
 
     @Composable
     private fun EditContent(state: EditFormState) =
