@@ -1,17 +1,45 @@
 package io.github.pxgray.clasp.domain
 
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.atStartOfDayIn
 import java.text.Collator
+import kotlin.time.Instant
 
-data class HomeSections(val favorites: List<WalletItem>, val passes: List<WalletItem>, val cards: List<WalletItem>)
+data class HomeSections(
+    val favorites: List<WalletItem>,
+    val passes: List<WalletItem>,
+    val cards: List<WalletItem>,
+    /** Boarding passes from the day before departure until shortly after, soonest first. */
+    val travel: List<WalletItem> = emptyList(),
+    val travelStatus: Map<String, TravelStatus> = emptyMap(),
+)
 
-/** How the home list is ordered. Each section is sorted the same way. */
+/** How the home list is ordered. Each section is sorted the same way, except Travel. */
 enum class SortOrder { RECENTLY_USED, NAME_A_TO_Z, NAME_Z_TO_A, DATE_ADDED }
 
-/** Favorites of any kind first, then passes (boarding passes and pkpass items), then loyalty cards, each in [order]. */
-fun List<WalletItem>.toHomeSections(order: SortOrder = SortOrder.RECENTLY_USED): HomeSections {
-    val (favorites, rest) = sortedWith(order.comparator()).partition { it.isFavorite }
+/**
+ * Travel first (with [now]: boarding passes in their day-of-travel window, by departure), then favorites of
+ * any kind, then passes, then loyalty cards, each in [order]. A pass in Travel isn't repeated elsewhere.
+ */
+fun List<WalletItem>.toHomeSections(
+    order: SortOrder = SortOrder.RECENTLY_USED,
+    now: Instant? = null,
+    zone: TimeZone = TimeZone.UTC,
+): HomeSections {
+    val statuses = if (now == null) emptyMap() else mapNotNull { item ->
+        (item.details as? ItemDetails.BoardingPass)?.travelStatus(now, zone)?.takeIf { it.isActive }?.let { item.id to it }
+    }.toMap()
+    val (travelItems, others) = partition { it.id in statuses }
+    val travel = travelItems.sortedWith(compareBy<WalletItem> { departureKey(it, zone) }.thenBy { it.title })
+    val (favorites, rest) = others.sortedWith(order.comparator()).partition { it.isFavorite }
     val (cards, passes) = rest.partition { it.kind == ItemKind.LOYALTY }
-    return HomeSections(favorites = favorites, passes = passes, cards = cards)
+    return HomeSections(favorites = favorites, passes = passes, cards = cards, travel = travel, travelStatus = statuses)
+}
+
+/** Only called for items in Travel, which always have a departure date. */
+private fun departureKey(item: WalletItem, zone: TimeZone): Instant {
+    val pass = item.details as ItemDetails.BoardingPass
+    return pass.departureInstant(zone) ?: pass.departureDate!!.atStartOfDayIn(zone)
 }
 
 private fun SortOrder.comparator(): Comparator<WalletItem> = when (this) {

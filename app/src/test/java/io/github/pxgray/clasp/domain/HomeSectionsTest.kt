@@ -4,6 +4,11 @@ import io.github.pxgray.clasp.testing.boardingItem
 import io.github.pxgray.clasp.testing.loyaltyItem
 import org.junit.Assert.assertEquals
 import org.junit.Test
+import io.github.pxgray.clasp.testing.withBoarding
+import kotlinx.datetime.LocalDateTime
+import kotlinx.datetime.LocalTime
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toInstant
 import kotlin.time.Instant
 
 class HomeSectionsTest {
@@ -99,5 +104,43 @@ class HomeSectionsTest {
     fun `without favorites the favorites section is empty`() {
         val sections = listOf(loyaltyItem(id = "c"), boardingItem(id = "b")).toHomeSections()
         assertEquals(emptyList<WalletItem>(), sections.favorites)
+    }
+
+    private val zone = TimeZone.UTC
+    private fun oct(day: Int, hour: Int) = LocalDateTime(2026, 10, day, hour, 0).toInstant(zone)
+
+    @Test
+    fun `boarding passes in their window go to Travel`() {
+        val items = listOf(boardingItem(id = "b"), loyaltyItem(id = "c"))
+        val sections = items.toHomeSections(now = oct(13, 12), zone = zone)
+        assertEquals(listOf("b"), sections.travel.map { it.id })
+        assertEquals(emptyList<String>(), sections.passes.map { it.id })
+        assertEquals(setOf("b"), sections.travelStatus.keys)
+    }
+
+    @Test
+    fun `before and after the window they stay in Passes`() {
+        val items = listOf(boardingItem(id = "b"))
+        assertEquals(listOf("b"), items.toHomeSections(now = oct(12, 23), zone = zone).passes.map { it.id })
+        assertEquals(listOf("b"), items.toHomeSections(now = oct(14, 14), zone = zone).passes.map { it.id })
+        assertEquals(emptyList<WalletItem>(), items.toHomeSections().travel)
+    }
+
+    @Test
+    fun `a starred pass moves from Favorites to Travel and back`() {
+        val items = listOf(boardingItem(id = "b", isFavorite = true))
+        val during = items.toHomeSections(now = oct(14, 6), zone = zone)
+        assertEquals(listOf("b"), during.travel.map { it.id })
+        assertEquals(emptyList<WalletItem>(), during.favorites)
+        assertEquals(listOf("b"), items.toHomeSections(now = oct(20, 0), zone = zone).favorites.map { it.id })
+    }
+
+    @Test
+    fun `travel is ordered by departure whatever the sort order`() {
+        val later = boardingItem(id = "later").withBoarding { copy(departureTime = LocalTime(18, 0)) }
+        val dateOnly = boardingItem(id = "date").withBoarding { copy(departureTime = null) }
+        val early = boardingItem(id = "early")
+        val sections = listOf(later, dateOnly, early).toHomeSections(SortOrder.NAME_Z_TO_A, now = oct(14, 1), zone = zone)
+        assertEquals(listOf("date", "early", "later"), sections.travel.map { it.id })
     }
 }

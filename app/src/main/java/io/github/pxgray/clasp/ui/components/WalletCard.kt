@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
@@ -41,6 +42,7 @@ fun WalletCard(
     modifier: Modifier = Modifier,
     sharedKey: String? = item.id,
     onFavoriteChange: ((Boolean) -> Unit)? = null,
+    travelBadge: TravelBadge? = null,
 ) {
     val cardModifier = modifier
         .fillMaxWidth()
@@ -49,17 +51,22 @@ fun WalletCard(
     val color = MaterialTheme.colorScheme.surfaceContainerHigh
     if (onClick != null) {
         Surface(onClick = onClick, modifier = cardModifier, shape = CardShape, color = color) {
-            WalletCardContent(item, sharedKey, onFavoriteChange)
+            WalletCardContent(item, sharedKey, onFavoriteChange, travelBadge)
         }
     } else {
         Surface(modifier = cardModifier, shape = CardShape, color = color) {
-            WalletCardContent(item, sharedKey, onFavoriteChange)
+            WalletCardContent(item, sharedKey, onFavoriteChange, travelBadge)
         }
     }
 }
 
 @Composable
-private fun WalletCardContent(item: WalletItem, sharedKey: String?, onFavoriteChange: ((Boolean) -> Unit)?) {
+private fun WalletCardContent(
+    item: WalletItem,
+    sharedKey: String?,
+    onFavoriteChange: ((Boolean) -> Unit)?,
+    travelBadge: TravelBadge?,
+) {
     Row(
         // The star button brings its own 12dp of touch padding, so the row's end padding shrinks to match the start.
         modifier = Modifier.padding(start = 20.dp, end = if (onFavoriteChange != null) 8.dp else 20.dp, top = 24.dp, bottom = 24.dp),
@@ -88,6 +95,10 @@ private fun WalletCardContent(item: WalletItem, sharedKey: String?, onFavoriteCh
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
+            }
+            travelBadge?.let {
+                Spacer(Modifier.height(8.dp))
+                TravelChip(it)
             }
         }
         if (onFavoriteChange != null) FavoriteToggle(item.title, item.isFavorite, onFavoriteChange)
