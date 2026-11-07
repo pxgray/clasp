@@ -2,6 +2,7 @@ package io.github.pxgray.clasp.domain
 
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
+import kotlinx.datetime.UtcOffset
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
@@ -33,6 +34,13 @@ sealed interface ItemDetails {
         /** Later legs of a multi-leg pass that shares this barcode. */
         val connections: List<Connection> = emptyList(),
         val extraFields: List<PassField> = emptyList(),
+        /** Gate and terminal as printed on a pkpass; shown large on the day of travel. */
+        val gate: String? = null,
+        val terminal: String? = null,
+        /** Boarding time on the same clock as [departureTime] (the departure airport's local time). */
+        val boardingTime: LocalTime? = null,
+        /** The departure airport's UTC offset when a pkpass gives it; null means the phone's time zone. */
+        val departureOffset: UtcOffset? = null,
     ) : ItemDetails
 
     @Serializable

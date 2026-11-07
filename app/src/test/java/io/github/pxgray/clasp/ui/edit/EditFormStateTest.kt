@@ -8,6 +8,9 @@ import io.github.pxgray.clasp.domain.BarcodeFormat
 import io.github.pxgray.clasp.domain.ItemDetails
 import io.github.pxgray.clasp.domain.ItemKind
 import io.github.pxgray.clasp.testing.loyaltyItem
+import io.github.pxgray.clasp.testing.withBoarding
+import kotlinx.datetime.LocalTime
+import kotlinx.datetime.UtcOffset
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -128,5 +131,13 @@ class EditFormStateTest {
         assertEquals(card, EditFormState.from(card).toWalletItem())
         val pass = boardingItem().copy(phone = "1-800-864-8331")
         assertEquals(pass, EditFormState.from(pass).toWalletItem())
+    }
+
+    @Test
+    fun `editing a boarding pass keeps its travel fields`() {
+        val item = boardingItem().withBoarding {
+            copy(gate = "B12", terminal = "3", boardingTime = LocalTime(6, 35), departureOffset = UtcOffset(hours = -5))
+        }
+        assertEquals(item.details, EditFormState.from(item).boarding!!.toDetails())
     }
 }
