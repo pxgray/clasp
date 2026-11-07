@@ -138,10 +138,21 @@ class ScreenshotTest {
 
     @Test fun detailTravelLeavingSoon() = snap("detail_travel_leaving_soon") { DetailContent(tripPass, now = utc(11, 55)) }
     @Test fun detailTravelBoarding() = snap("detail_travel_boarding") { DetailContent(tripPass, now = utc(13, 40)) }
-    @Test fun detailTravelBoardingDark() = snap("detail_travel_boarding_dark", dark = true) { DetailContent(tripPass, now = utc(13, 40)) }
+    @Test fun detailTravelBoardingDark() = snap("detail_travel_boarding_dark", dark = true) { DetailContent(tripPass.copy(brandColor = null), now = utc(13, 40)) }
     @Test fun detailTravelDeparted() = snap("detail_travel_departed") { DetailContent(tripPass, now = utc(15, 0)) }
     @Test fun detailTravelTodayAddTime() = snap("detail_travel_today_add_time") {
         DetailContent(boardingItem().withBoarding { copy(departureTime = null) }, now = utc(8, 0))
+    }
+    @Test fun detailTravelTodayAddTimeLargeFont() = snap("detail_travel_today_add_time_large_font") {
+        val density = LocalDensity.current
+        CompositionLocalProvider(LocalDensity provides Density(density.density, fontScale = 1.5f)) {
+            DetailContent(boardingItem().withBoarding { copy(departureTime = null) }, now = utc(8, 0))
+        }
+    }
+    /** A "Gate closes" time is not the gate, so the strip shows no Gate. */
+    @Test fun detailTravelGateCloses() = snap("detail_travel_gate_closes") {
+        val pass = tripPass.withBoarding { copy(gate = null, extraFields = listOf(PassField("gateClose", "Gate closes", "06:50"))) }
+        DetailContent(pass, now = utc(11, 55))
     }
     @Test fun detailTravelLargeFont() = snap("detail_travel_large_font") {
         val density = LocalDensity.current
