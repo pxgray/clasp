@@ -177,4 +177,16 @@ class HomeViewModelTest {
             assertEquals(listOf("p"), after.passes.map { it.id })
         }
     }
+
+    @Test
+    fun `a wallet with no active trip does not emit a new state every minute`() = runTest {
+        val zone = TimeZone.of("America/Los_Angeles")
+        val ticks = MutableStateFlow(LocalDateTime(2026, 10, 1, 5, 0).toInstant(zone))
+        HomeViewModel(repository, settings(), ticks, zone = { zone }).state.test {
+            val first = awaitLoaded()
+            assertNull(first.now)
+            ticks.value = LocalDateTime(2026, 10, 1, 5, 1).toInstant(zone)
+            expectNoEvents()
+        }
+    }
 }

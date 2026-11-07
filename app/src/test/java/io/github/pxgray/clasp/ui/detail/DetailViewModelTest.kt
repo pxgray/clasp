@@ -51,11 +51,23 @@ class DetailViewModelTest {
     }
 
     @Test
-    fun `state carries the current minute`() = runTest {
+    fun `a boarding pass state carries the current minute`() = runTest {
+        val now = Instant.fromEpochMilliseconds(5_000_000)
+        val repository = FakeWalletRepository(listOf(boardingItem(id = "b")))
+        DetailViewModel("b", repository, clock, ticks = MutableStateFlow(now)).state.test {
+            assertEquals(now, expectMostRecentItem().now)
+        }
+    }
+
+    @Test
+    fun `a loyalty card state has no minute`() = runTest {
         val now = Instant.fromEpochMilliseconds(5_000_000)
         val repository = FakeWalletRepository(listOf(loyaltyItem(id = "c")))
-        DetailViewModel("c", repository, clock, ticks = MutableStateFlow(now)).state.test {
-            assertEquals(now, expectMostRecentItem().now)
+        val ticks = MutableStateFlow(now)
+        DetailViewModel("c", repository, clock, ticks = ticks).state.test {
+            assertNull(expectMostRecentItem().now)
+            ticks.value = Instant.fromEpochMilliseconds(5_060_000)
+            expectNoEvents()
         }
     }
 

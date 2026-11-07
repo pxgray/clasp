@@ -57,16 +57,18 @@ class HomeViewModel(
     ) { items, appSettings, pending, now ->
         val order = appSettings.sortOrder
         val sections = items.filterNot { it.id == pending }.toHomeSections(order, now, zone())
+        // The minute only matters while a trip is showing; otherwise every tick would be a new, equal-looking state.
+        val tracking = sections.travel.isNotEmpty()
         HomeUiState(
             loading = false,
             travel = sections.travel,
-            travelStatus = sections.travelStatus,
+            travelStatus = if (tracking) sections.travelStatus else emptyMap(),
             favorites = sections.favorites,
             passes = sections.passes,
             cards = sections.cards,
             pendingDeleteId = pending,
             sortOrder = order,
-            now = now,
+            now = now.takeIf { tracking },
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), HomeUiState())
 

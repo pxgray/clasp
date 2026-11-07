@@ -30,17 +30,15 @@ fun List<WalletItem>.toHomeSections(
         (item.details as? ItemDetails.BoardingPass)?.travelStatus(now, zone)?.takeIf { it.isActive }?.let { item.id to it }
     }.toMap()
     val (travelItems, others) = partition { it.id in statuses }
-    val travel = travelItems.sortedWith(compareBy<WalletItem> { departureKey(it, zone) }.thenBy { it.title })
+    val travel = travelItems.sortedWith(compareBy<WalletItem> { statuses.getValue(it.id).departsAt ?: departureDay(it, zone) }.thenBy { it.title })
     val (favorites, rest) = others.sortedWith(order.comparator()).partition { it.isFavorite }
     val (cards, passes) = rest.partition { it.kind == ItemKind.LOYALTY }
     return HomeSections(favorites = favorites, passes = passes, cards = cards, travel = travel, travelStatus = statuses)
 }
 
-/** Only called for items in Travel, which always have a departure date. */
-private fun departureKey(item: WalletItem, zone: TimeZone): Instant {
-    val pass = item.details as ItemDetails.BoardingPass
-    return pass.departureInstant(zone) ?: pass.departureDate!!.atStartOfDayIn(zone)
-}
+/** The start of the departure day, for a travel pass without a departure time. */
+private fun departureDay(item: WalletItem, zone: TimeZone): Instant =
+    (item.details as ItemDetails.BoardingPass).departureDate?.atStartOfDayIn(zone) ?: Instant.DISTANT_FUTURE
 
 private fun SortOrder.comparator(): Comparator<WalletItem> = when (this) {
     SortOrder.RECENTLY_USED -> compareByDescending { it.lastUsedAt ?: it.createdAt }

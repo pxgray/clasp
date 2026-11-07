@@ -13,10 +13,13 @@ import io.github.pxgray.clasp.domain.ItemDetails
 import io.github.pxgray.clasp.domain.WalletItem
 import io.github.pxgray.clasp.util.minuteTicks
 import io.github.pxgray.clasp.ui.navigation.Destination
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
@@ -33,6 +36,7 @@ data class DetailUiState(
     val now: Instant? = null,
 )
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class DetailViewModel(
     itemId: String,
     private val repository: WalletRepository,
@@ -41,7 +45,14 @@ class DetailViewModel(
     ticks: Flow<Instant> = minuteTicks(clock),
 ) : ViewModel() {
 
-    val state: StateFlow<DetailUiState> = combine(repository.observeItem(itemId), maxBrightness, ticks) { item, brighten, now ->
+    // Only boarding passes show a countdown, so other items don't get a new state every minute.
+    private val item = repository.observeItem(itemId)
+    private val minutes: Flow<Instant?> = item
+        .map { it?.details is ItemDetails.BoardingPass }
+        .distinctUntilChanged()
+        .flatMapLatest { isBoardingPass -> if (isBoardingPass) ticks else flowOf(null) }
+
+    val state: StateFlow<DetailUiState> = combine(item, maxBrightness, minutes) { item, brighten, now ->
         DetailUiState(loading = false, item = item, maxBrightness = brighten, now = now)
     }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), DetailUiState())
