@@ -6,6 +6,7 @@ import io.github.pxgray.clasp.domain.ItemDetails
 import io.github.pxgray.clasp.domain.ItemKind
 import io.github.pxgray.clasp.domain.PassField
 import io.github.pxgray.clasp.domain.PkPassStyle
+import io.github.pxgray.clasp.testing.BOARDING_PASS_DATES_JSON
 import io.github.pxgray.clasp.testing.BOARDING_PASS_JSON
 import io.github.pxgray.clasp.testing.EVENT_TICKET_JSON
 import io.github.pxgray.clasp.testing.HEURISTIC_BOARDING_JSON
@@ -13,6 +14,7 @@ import io.github.pxgray.clasp.testing.TRAIN_PASS_JSON
 import io.github.pxgray.clasp.testing.pkpassZip
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
+import kotlinx.datetime.UtcOffset
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
 import org.junit.Test
@@ -52,8 +54,49 @@ class PkPassMappingTest {
         assertEquals(LocalDate(2026, 11, 22), details.departureDate)
         assertEquals(LocalTime(7, 5), details.departureTime)
         assertEquals("1A", details.seat)
-        // Passenger and seat are already shown; gate, boarding time and group are kept.
-        assertEquals(listOf("GATE", "BOARDING", "GROUP"), details.extraFields.map { it.label })
+        // Passenger and seat are shown elsewhere, and gate and boarding time get their own fields.
+        assertEquals(listOf("GROUP"), details.extraFields.map { it.label })
+        assertEquals("B12", details.gate)
+        assertEquals(LocalTime(6, 35), details.boardingTime)
+        assertEquals(UtcOffset(hours = -5), details.departureOffset)
+    }
+
+    @Test
+    fun `boarding time from a date field is read in the departure offset`() {
+        val details = pass(BOARDING_PASS_DATES_JSON).toWalletItem("id", now, today).details as ItemDetails.BoardingPass
+        assertEquals(LocalTime(6, 35), details.boardingTime)
+        assertEquals("A7", details.gate)
+    }
+
+    @Test
+    fun `terminal is taken from the back when the front has none`() {
+        val details = pass(BOARDING_PASS_DATES_JSON).toWalletItem("id", now, today).details as ItemDetails.BoardingPass
+        assertEquals("1", details.terminal)
+    }
+
+    @Test
+    fun `a boarding field that is not a time stays an extra field`() {
+        val details = pass(BOARDING_PASS_DATES_JSON).toWalletItem("id", now, today).details as ItemDetails.BoardingPass
+        assertEquals(listOf("BOARDING GROUP"), details.extraFields.map { it.label })
+    }
+
+    @Test
+    fun `passes read from their fields also get a gate`() {
+        val details = pass(HEURISTIC_BOARDING_JSON).toWalletItem("id", now, today).details as ItemDetails.BoardingPass
+        assertEquals("C3", details.gate)
+        assertEquals(null, details.boardingTime)
+    }
+
+    @Test
+    fun `plain boarding times in common formats`() {
+        assertEquals(LocalTime(6, 35), plainTime("6:35 AM"))
+        assertEquals(LocalTime(18, 40), plainTime("6:40 pm"))
+        assertEquals(LocalTime(0, 15), plainTime("12:15 a.m."))
+        assertEquals(LocalTime(18, 40), plainTime("18.40"))
+        assertEquals(LocalTime(6, 5), plainTime("06:05"))
+        assertEquals(null, plainTime("13:00 PM"))
+        assertEquals(null, plainTime("24:00"))
+        assertEquals(null, plainTime("2"))
     }
 
     @Test
@@ -69,7 +112,8 @@ class PkPassMappingTest {
         assertEquals("JFK", details.to)
         assertEquals("12A", details.seat)
         assertEquals("QWERTY", details.pnr)
-        assertEquals(listOf("GATE"), details.extraFields.map { it.label })
+        assertEquals(emptyList<String>(), details.extraFields.map { it.label })
+        assertEquals("C3", details.gate)
     }
 
     @Test

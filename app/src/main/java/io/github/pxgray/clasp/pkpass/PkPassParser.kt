@@ -36,6 +36,8 @@ private val STYLE_KEYS = listOf(
     "generic" to PkPassKind.GENERIC,
 )
 
+private val FIELD_GROUPS = listOf("headerFields", "primaryFields", "secondaryFields", "auxiliaryFields", "backFields")
+
 private val BARCODE_FORMATS = mapOf(
     "PKBarcodeFormatQR" to BarcodeFormat.QR,
     "PKBarcodeFormatPDF417" to BarcodeFormat.PDF417,
@@ -83,6 +85,14 @@ class PkPassParser(private val locale: Locale, private val zone: ZoneId) {
             Barcode(message, format, b.string("altText")?.let(::localize))
         }
 
+        val fieldDates = FIELD_GROUPS.flatMap { (style[it] as? JsonArray).orEmpty() }
+            .mapNotNull { it as? JsonObject }
+            .mapNotNull { field ->
+                val key = field.string("key") ?: return@mapNotNull null
+                field.string("value")?.let(::parseDate)?.let { key to it }
+            }
+            .toMap()
+
         return PkPass(
             kind = kind,
             passTypeIdentifier = passTypeIdentifier,
@@ -101,6 +111,7 @@ class PkPassParser(private val locale: Locale, private val zone: ZoneId) {
             backFields = fields("backFields"),
             icon = ICON_NAMES.firstNotNullOfOrNull { entries.images[it] },
             logo = LOGO_NAMES.firstNotNullOfOrNull { entries.images[it] },
+            fieldDates = fieldDates,
         )
     }
 

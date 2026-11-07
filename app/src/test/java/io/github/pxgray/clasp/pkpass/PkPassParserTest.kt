@@ -4,6 +4,7 @@ import io.github.pxgray.clasp.domain.Barcode
 import io.github.pxgray.clasp.domain.BarcodeFormat
 import io.github.pxgray.clasp.domain.PassField
 import io.github.pxgray.clasp.testing.BCBP_SAMPLE
+import io.github.pxgray.clasp.testing.BOARDING_PASS_DATES_JSON
 import io.github.pxgray.clasp.testing.BOARDING_PASS_JSON
 import io.github.pxgray.clasp.testing.EVENT_TICKET_JSON
 import io.github.pxgray.clasp.testing.pkpassZip
@@ -25,6 +26,13 @@ class PkPassParserTest {
 
     private fun parse(json: String, locale: Locale = Locale.US, extra: Map<String, ByteArray> = strings) =
         PkPassParser(locale, newYork).parse(pkpassZip(json, extra))
+
+    @Test
+    fun `date fields keep their parsed moment`() {
+        val pass = PkPassParser(Locale.US, ZoneId.of("America/New_York")).parse(pkpassZip(BOARDING_PASS_DATES_JSON))!!
+        assertEquals(OffsetDateTime.parse("2026-11-22T11:35Z"), pass.fieldDates["boardingTime"])
+        assertEquals(null, pass.fieldDates["group"])
+    }
 
     @Test
     fun `reads an event ticket`() {

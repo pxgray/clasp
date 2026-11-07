@@ -28,4 +28,6 @@ class PkPass(
     val icon: ByteArray?,
     /** Best available (usually wide) logo, PNG bytes. */
     val logo: ByteArray?,
+    /** The moment behind each field whose value is an ISO date, by field key (keys are unique in a pass). */
+    val fieldDates: Map<String, OffsetDateTime> = emptyMap(),
 )
