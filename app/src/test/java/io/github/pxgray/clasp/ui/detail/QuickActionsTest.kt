@@ -5,6 +5,7 @@ import io.github.pxgray.clasp.domain.ItemKind
 import io.github.pxgray.clasp.domain.PkPassStyle
 import io.github.pxgray.clasp.testing.boardingItem
 import io.github.pxgray.clasp.testing.loyaltyItem
+import kotlinx.datetime.LocalDate
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
@@ -87,5 +88,19 @@ class QuickActionsTest {
     fun `a phone value with no digit gives no Call`() {
         assertNull(telUri("call us"))
         assertEquals(listOf("Nearby"), loyaltyItem(phone = "call us").quickActions().map { it::class.simpleName })
+    }
+
+    @Test
+    fun `boarding passes get Calendar from today until the travel date`() {
+        assertEquals(listOf(QuickAction.AddToCalendar), boardingItem().quickActions(today = LocalDate(2026, 10, 14)))
+        assertEquals(listOf(QuickAction.AddToCalendar), boardingItem().quickActions(today = LocalDate(2026, 10, 1)))
+        assertEquals(emptyList<QuickAction>(), boardingItem().quickActions(today = LocalDate(2026, 10, 15)))
+        assertEquals(emptyList<QuickAction>(), boardingItem().quickActions())
+    }
+
+    @Test
+    fun `loyalty cards never get Calendar`() {
+        val actions = loyaltyItem(title = "Costco").quickActions(today = LocalDate(2026, 1, 1))
+        assertEquals(listOf("Nearby"), actions.map { it::class.simpleName })
     }
 }

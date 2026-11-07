@@ -1,28 +1,41 @@
 package io.github.pxgray.clasp.ui.detail
 
+import io.github.pxgray.clasp.domain.ItemDetails
 import io.github.pxgray.clasp.domain.ItemKind
 import io.github.pxgray.clasp.domain.WalletItem
 import io.github.pxgray.clasp.logo.websiteHost
+import kotlinx.datetime.LocalDate
 import java.net.URLEncoder
 
-/** A button under the detail header. Each opens [uri] in another app; Clasp itself stays offline. */
+/** A button under the detail header. Links open in another app; Clasp itself stays offline. */
 sealed interface QuickAction {
-    val uri: String
+    /** Opens [uri] in another app. */
+    sealed interface Link : QuickAction {
+        val uri: String
+    }
 
-    data class Website(override val uri: String) : QuickAction
-    data class Nearby(val query: String, override val uri: String) : QuickAction
-    data class Call(val number: String, override val uri: String) : QuickAction
+    data class Website(override val uri: String) : Link
+    data class Nearby(val query: String, override val uri: String) : Link
+    data class Call(val number: String, override val uri: String) : Link
+
+    /** Opens the calendar app's new-event screen for a boarding pass. */
+    data object AddToCalendar : QuickAction
 }
 
-/** Website, Nearby (loyalty cards only), Call, for whichever the item has data for. Passes get none. */
-fun WalletItem.quickActions(): List<QuickAction> {
+/**
+ * Website, Nearby (loyalty cards only), Call, and Calendar (boarding passes departing [today] or later),
+ * for whichever the item has data for. Passes get none. Without [today], no Calendar.
+ */
+fun WalletItem.quickActions(today: LocalDate? = null): List<QuickAction> {
     if (kind == ItemKind.PASS) return emptyList()
     // Only the title goes into a maps search, never the card number or member name.
     val query = title.trim().takeIf { kind == ItemKind.LOYALTY && it.isNotEmpty() }
+    val departure = (details as? ItemDetails.BoardingPass)?.departureDate
     return listOfNotNull(
         website?.let(::websiteUri)?.let(QuickAction::Website),
         query?.let { QuickAction.Nearby(it, "geo:0,0?q=${encode(it)}") },
         phone?.trim()?.let { number -> telUri(number)?.let { QuickAction.Call(number, it) } },
+        QuickAction.AddToCalendar.takeIf { today != null && departure != null && departure >= today },
     )
 }
 
