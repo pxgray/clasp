@@ -64,6 +64,10 @@ fun boardingItem(
     isFavorite = isFavorite,
 )
 
+/** [boardingItem] (or any boarding pass item) with its details changed. */
+fun WalletItem.withBoarding(transform: ItemDetails.BoardingPass.() -> ItemDetails.BoardingPass): WalletItem =
+    copy(details = (details as ItemDetails.BoardingPass).transform())
+
 /**
  * A boarding pass with every [WalletItem] field set to a non-default value, for round-trip tests.
  * `WalletItemFieldsTest` fails when a new field is added without updating this.
@@ -89,6 +93,10 @@ fun fullItem(id: String = "full-1") = WalletItem(
         sequence = "0042",
         connections = listOf(Connection("B6", "42", "JFK", "BOS", LocalDate(2026, 10, 14), "12C")),
         extraFields = listOf(PassField("gate", "Gate", "B12")),
+        gate = "B12",
+        terminal = "3",
+        boardingTime = LocalTime(6, 35),
+        departureOffset = kotlinx.datetime.UtcOffset(hours = -7),
     ),
     createdAt = Instant.fromEpochMilliseconds(1_000),
     lastUsedAt = Instant.fromEpochMilliseconds(2_000),

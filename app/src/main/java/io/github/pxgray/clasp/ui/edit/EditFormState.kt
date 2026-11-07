@@ -12,6 +12,7 @@ import io.github.pxgray.clasp.domain.PassField
 import io.github.pxgray.clasp.domain.WalletItem
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
+import kotlinx.datetime.UtcOffset
 import kotlin.time.Instant
 
 enum class CardNumberError { MISSING, NOT_ENCODABLE }
@@ -35,6 +36,10 @@ data class BoardingFields(
     val sequence: String = "",
     val connections: List<Connection> = emptyList(),
     val extraFields: List<PassField> = emptyList(),
+    val gate: String? = null,
+    val terminal: String? = null,
+    val boardingTime: LocalTime? = null,
+    val departureOffset: UtcOffset? = null,
 ) {
     val errors: Set<BoardingField>
         get() = buildSet {
@@ -58,6 +63,10 @@ data class BoardingFields(
         sequence = sequence.trim().ifEmpty { null },
         connections = connections,
         extraFields = extraFields,
+        gate = gate,
+        terminal = terminal,
+        boardingTime = boardingTime,
+        departureOffset = departureOffset,
     )
 
     companion object {
@@ -75,6 +84,10 @@ data class BoardingFields(
             sequence = details.sequence.orEmpty(),
             connections = details.connections,
             extraFields = details.extraFields,
+            gate = details.gate,
+            terminal = details.terminal,
+            boardingTime = details.boardingTime,
+            departureOffset = details.departureOffset,
         )
     }
 }
