@@ -17,6 +17,9 @@ import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.semantics.onLongClick
 import androidx.compose.ui.semantics.semantics
 import kotlinx.coroutines.launch
+import kotlinx.datetime.LocalTime
+import kotlinx.datetime.TimeZone
+import kotlin.time.Instant
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -65,6 +68,7 @@ import io.github.pxgray.clasp.domain.ItemKind
 import io.github.pxgray.clasp.domain.WalletItem
 import io.github.pxgray.clasp.domain.monogram
 import io.github.pxgray.clasp.domain.secondaryLine
+import io.github.pxgray.clasp.domain.travelStatus
 import io.github.pxgray.clasp.ui.components.LogoTile
 import io.github.pxgray.clasp.ui.components.SystemBarIconsEffect
 import io.github.pxgray.clasp.ui.components.contentColorOn
@@ -90,7 +94,13 @@ fun DetailRoute(
     val item = state.item
     if (item != null) {
         CompositionLocalProvider(LocalUriHandler provides uriHandler) {
-            DetailScreen(item, onBack, onEdit, onDelete, maxBrightness = state.maxBrightness, snackbarHostState = snackbarHostState)
+            DetailScreen(
+                item, onBack, onEdit, onDelete,
+                maxBrightness = state.maxBrightness,
+                snackbarHostState = snackbarHostState,
+                now = state.now,
+                onSetDepartureTime = viewModel::setDepartureTime,
+            )
         }
     } else if (!state.loading) {
         LaunchedEffect(Unit) { onBack() }
@@ -105,6 +115,10 @@ fun DetailScreen(
     onDelete: (String) -> Unit,
     maxBrightness: Boolean = false,
     snackbarHostState: SnackbarHostState = remember { SnackbarHostState() },
+    /** The current minute; null (previews, older tests) shows no countdown. */
+    now: Instant? = null,
+    zone: TimeZone = TimeZone.currentSystemDefault(),
+    onSetDepartureTime: (LocalTime) -> Unit = {},
 ) {
     if (maxBrightness) MaxBrightnessEffect()
     val brand = item.brandColor?.let(::Color) ?: MaterialTheme.colorScheme.primaryContainer
@@ -149,6 +163,28 @@ fun DetailScreen(
 
                 if (actions.size >= 2) {
                     QuickActionRow(actions, onBrand, Modifier.fillMaxWidth().padding(top = 24.dp))
+                }
+
+                (item.details as? ItemDetails.BoardingPass)?.let { pass ->
+                    var pickingTime by remember { mutableStateOf(false) }
+                    TravelPanel(
+                        pass = pass,
+                        status = now?.let { pass.travelStatus(it, zone) },
+                        now = now,
+                        pageColor = brand,
+                        onAddTime = { pickingTime = true },
+                        modifier = Modifier.fillMaxWidth().padding(start = 24.dp, end = 24.dp, top = 24.dp),
+                    )
+                    if (pickingTime) {
+                        DepartureTimeDialog(
+                            initial = pass.departureTime,
+                            onConfirm = {
+                                pickingTime = false
+                                onSetDepartureTime(it)
+                            },
+                            onDismiss = { pickingTime = false },
+                        )
+                    }
                 }
 
                 item.barcode?.let { barcode ->

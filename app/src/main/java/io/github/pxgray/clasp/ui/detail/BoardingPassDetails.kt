@@ -23,7 +23,6 @@ import io.github.pxgray.clasp.domain.Connection
 import io.github.pxgray.clasp.domain.ItemDetails
 import io.github.pxgray.clasp.domain.PassField
 import io.github.pxgray.clasp.ui.format.formatMedium
-import io.github.pxgray.clasp.ui.format.formatShort
 
 @Composable
 fun BoardingPassDetails(pass: ItemDetails.BoardingPass, modifier: Modifier = Modifier) {
@@ -48,8 +47,6 @@ fun BoardingPassDetails(pass: ItemDetails.BoardingPass, modifier: Modifier = Mod
             verticalArrangement = Arrangement.spacedBy(20.dp),
         ) {
             pass.departureDate?.let { LabeledValue(stringResource(R.string.detail_date), it.formatMedium()) }
-            pass.departureTime?.let { LabeledValue(stringResource(R.string.detail_departs), it.formatShort()) }
-            pass.seat?.let { LabeledValue(stringResource(R.string.detail_seat), it) }
             pass.sequence?.let { LabeledValue(stringResource(R.string.detail_sequence), it) }
             pass.extraFields.forEach { LabeledValue(it.displayLabel(), it.value, linkify = true) }
         }
