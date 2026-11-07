@@ -51,4 +51,27 @@ class TravelLabelsTest {
         assertEquals("6 h", label(status(TravelStage.UPCOMING), 6.hours + 30.minutes, short = true))
         assertEquals("Today", label(status(TravelStage.UPCOMING, timed = false), Duration.ZERO))
     }
+
+    private fun spoken(s: TravelStatus, before: Duration, short: Boolean = false) = s.spokenLabel(res, departs - before, short)
+
+    @Test
+    fun `spoken labels write the units out`() {
+        val s = status(TravelStage.LEAVING_SOON)
+        assertEquals("Departs in 2 hours 10 minutes", spoken(s, 2.hours + 10.minutes))
+        assertEquals("Departs in 45 minutes", spoken(s, 45.minutes))
+        assertEquals("Departs in 1 minute", spoken(s, 1.seconds))
+        assertEquals("Departs in 1 hour", spoken(s, 1.hours))
+        assertEquals("Departs in 6 hours", spoken(status(TravelStage.UPCOMING), 6.hours + 30.minutes))
+        assertEquals("2 hours 10 minutes", spoken(s, 2.hours + 10.minutes, short = true))
+        assertEquals("6 hours", spoken(status(TravelStage.UPCOMING), 6.hours + 30.minutes, short = true))
+    }
+
+    @Test
+    fun `spoken labels without units match the written ones`() {
+        assertEquals("Departed", spoken(status(TravelStage.DEPARTED), (-5).minutes))
+        assertEquals("Boarding · Gate B12", spoken(status(TravelStage.BOARDING, gate = "B12"), 10.minutes))
+        assertEquals("In 12 days", spoken(status(TravelStage.UPCOMING, daysAway = 12), 300.hours))
+        assertEquals("Tomorrow", spoken(status(TravelStage.UPCOMING, daysAway = 1), 20.hours))
+        assertEquals("Today", spoken(status(TravelStage.UPCOMING, timed = false), Duration.ZERO))
+    }
 }

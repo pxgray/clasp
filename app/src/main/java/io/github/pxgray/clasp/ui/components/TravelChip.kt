@@ -10,6 +10,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import io.github.pxgray.clasp.domain.TravelStage
 import io.github.pxgray.clasp.domain.TravelStatus
@@ -28,11 +30,15 @@ fun TravelChip(badge: TravelBadge, modifier: Modifier = Modifier) {
         TravelStage.DEPARTED -> colors.surfaceVariant to colors.onSurfaceVariant
     }
     val short = LocalDensity.current.fontScale >= 1.3f
+    val resources = LocalResources.current
+    val spoken = badge.status.spokenLabel(resources, badge.now, short)
     Surface(color = container, contentColor = content, shape = RoundedCornerShape(8.dp), modifier = modifier.testTag("travel_chip")) {
         Text(
-            badge.status.label(LocalResources.current, badge.now, short),
+            badge.status.label(resources, badge.now, short),
             style = MaterialTheme.typography.labelLarge,
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+            modifier = Modifier
+                .padding(horizontal = 8.dp, vertical = 4.dp)
+                .semantics { contentDescription = spoken },
         )
     }
 }

@@ -2,6 +2,7 @@ package io.github.pxgray.clasp.ui.detail
 
 import android.text.format.DateFormat
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
@@ -27,11 +28,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
@@ -40,6 +43,7 @@ import io.github.pxgray.clasp.R
 import io.github.pxgray.clasp.domain.ItemDetails
 import io.github.pxgray.clasp.domain.TravelStage
 import io.github.pxgray.clasp.domain.TravelStatus
+import io.github.pxgray.clasp.ui.components.spokenLabel
 import io.github.pxgray.clasp.ui.components.label
 import io.github.pxgray.clasp.ui.format.formatShort
 import kotlinx.datetime.LocalTime
@@ -108,18 +112,34 @@ private fun StatusBanner(status: TravelStatus, now: Instant, pageColor: Color, s
                 Icon(painterResource(icon), contentDescription = null, modifier = Modifier.size(24.dp))
                 Spacer(Modifier.width(12.dp))
             }
-            Text(
-                status.label(LocalResources.current, now),
-                style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier
-                    .weight(1f)
-                    .padding(vertical = 4.dp)
-                    .then(if (announce) Modifier.semantics { liveRegion = LiveRegionMode.Polite } else Modifier),
-            )
-            if (showAddTime) {
+            val addTimeButton: @Composable () -> Unit = {
                 TextButton(onClick = onAddTime, colors = ButtonDefaults.textButtonColors(contentColor = text)) {
                     Text(stringResource(R.string.travel_add_time))
                 }
+            }
+            // At large font sizes the label would be squeezed beside the button, so the button drops below it.
+            val stacked = showAddTime && LocalDensity.current.fontScale >= 1.3f
+            val spoken = status.spokenLabel(LocalResources.current, now)
+            val label: @Composable (Modifier) -> Unit = { modifier ->
+                Text(
+                    status.label(LocalResources.current, now),
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = modifier
+                        .padding(vertical = 4.dp)
+                        .semantics {
+                            contentDescription = spoken
+                            if (announce) liveRegion = LiveRegionMode.Polite
+                        },
+                )
+            }
+            if (stacked) {
+                Column(Modifier.weight(1f)) {
+                    label(Modifier)
+                    Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.CenterEnd) { addTimeButton() }
+                }
+            } else {
+                label(Modifier.weight(1f))
+                if (showAddTime) addTimeButton()
             }
         }
     }
@@ -133,7 +153,7 @@ private fun TravelStrip(values: List<Pair<String, String>>) {
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         values.forEach { (label, value) ->
-            Column {
+            Column(Modifier.semantics(mergeDescendants = true) {}) {
                 Text(label, style = MaterialTheme.typography.labelLarge, color = LocalContentColor.current.copy(alpha = 0.72f))
                 Text(value, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.SemiBold)
             }
