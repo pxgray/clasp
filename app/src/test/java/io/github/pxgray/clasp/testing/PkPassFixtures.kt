@@ -123,3 +123,28 @@ val TRAIN_PASS_JSON = """
   }
 }
 """.trimIndent()
+
+/** Boarding time as an ISO date field, terminal only on the back, and a boarding group that isn't a time. */
+val BOARDING_PASS_DATES_JSON = """
+{
+  "formatVersion": 1,
+  "passTypeIdentifier": "pass.com.example.air3",
+  "serialNumber": "AC834-2",
+  "organizationName": "Air Example",
+  "relevantDate": "2026-11-22T07:05-05:00",
+  "barcode": { "message": "$BCBP_SAMPLE", "format": "PKBarcodeFormatPDF417", "messageEncoding": "iso-8859-1" },
+  "boardingPass": {
+    "transitType": "PKTransitTypeAir",
+    "primaryFields": [
+      { "key": "origin", "label": "Montreal", "value": "YUL" },
+      { "key": "destination", "label": "Frankfurt", "value": "FRA" }
+    ],
+    "auxiliaryFields": [
+      { "key": "boardingTime", "label": "BOARDS", "value": "2026-11-22T11:35Z", "timeStyle": "PKDateStyleShort" },
+      { "key": "group", "label": "BOARDING GROUP", "value": "2" },
+      { "key": "gate", "label": "GATE", "value": " A7 " }
+    ],
+    "backFields": [ { "key": "term", "label": "Terminal", "value": "1" } ]
+  }
+}
+""".trimIndent()

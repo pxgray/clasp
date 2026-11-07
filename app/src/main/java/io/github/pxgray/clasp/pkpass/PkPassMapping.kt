@@ -8,8 +8,11 @@ import io.github.pxgray.clasp.domain.PassField
 import io.github.pxgray.clasp.domain.PkPassStyle
 import io.github.pxgray.clasp.domain.WalletItem
 import kotlinx.datetime.LocalDate
+import kotlinx.datetime.LocalTime
+import kotlinx.datetime.toKotlinUtcOffset
 import kotlinx.datetime.toKotlinLocalDate
 import kotlinx.datetime.toKotlinLocalTime
+import java.time.ZoneOffset
 import java.util.UUID
 import kotlin.time.Instant
 
@@ -62,18 +65,55 @@ private val FLIGHT = Regex("(?i)flight")
 private val PASSENGER = Regex("(?i)passenger|name")
 private val SEAT = Regex("(?i)seat")
 private val CONFIRMATION = Regex("(?i)confirmation|pnr|record|booking")
+private val GATE = Regex("(?i)\\bgate\\b")
+private val TERMINAL = Regex("(?i)terminal|\\bterm\\b")
+private val BOARDING = Regex("(?i)boarding|boards")
+private val PLAIN_TIME = Regex("""^(\d{1,2})[:.](\d{2})(?:\s*([AaPp])\.?\s*[Mm]\.?)?$""")
 /** Front fields already shown by the boarding pass layout. */
 private val SHOWN_ELSEWHERE = Regex("(?i)passenger|name|seat|flight|confirmation|pnr|record|booking")
 
 private fun PkPass.toBoardingPass(today: LocalDate): ItemDetails.BoardingPass? {
     val base = barcode?.let { BcbpParser.parse(it.value) }?.toBoardingPass(today) ?: boardingPassFromFields() ?: return null
     val front = headerFields + secondaryFields + auxiliaryFields
+    val searched = front + backFields
+    // relevantDate is in the departure airport's offset, so its local time is the local departure time.
+    val offset = relevantDate?.offset?.takeIf { base.departureTime == null }
+    val gateField = searched.firstOrNull { it.matches(GATE) && it.value.isNotBlank() }
+    val terminalField = searched.firstOrNull { it.matches(TERMINAL) && it.value.isNotBlank() }
+    val boarding = searched.firstNotNullOfOrNull { field ->
+        if (field.matches(BOARDING)) boardingTimeOf(field, offset)?.let { field to it } else null
+    }
+    val matched = setOfNotNull(gateField, terminalField, boarding?.first)
     return base.copy(
         departureDate = base.departureDate ?: relevantDate?.toLocalDate()?.toKotlinLocalDate(),
-        // relevantDate is in the departure airport's offset, so its local time is the local departure time.
         departureTime = base.departureTime ?: relevantDate?.toLocalTime()?.toKotlinLocalTime(),
-        extraFields = front.filterNot { it.matches(SHOWN_ELSEWHERE) },
+        departureOffset = offset?.toKotlinUtcOffset(),
+        gate = gateField?.value?.trim(),
+        terminal = terminalField?.value?.trim(),
+        boardingTime = boarding?.second,
+        extraFields = front.filterNot { it.matches(SHOWN_ELSEWHERE) || it in matched },
     )
+}
+
+/** A date field read in the departure [offset], or plain text such as "6:35 AM", "06:35" or "18.40". */
+private fun PkPass.boardingTimeOf(field: PassField, offset: ZoneOffset?): LocalTime? {
+    fieldDates[field.key]?.let { date ->
+        return (offset?.let(date::withOffsetSameInstant) ?: date).toLocalTime().toKotlinLocalTime()
+    }
+    return plainTime(field.value)
+}
+
+internal fun plainTime(text: String): LocalTime? {
+    val match = PLAIN_TIME.matchEntire(text.trim()) ?: return null
+    var hour = match.groupValues[1].toInt()
+    val minute = match.groupValues[2].toInt()
+    val meridiem = match.groupValues[3].lowercase()
+    if (meridiem.isNotEmpty()) {
+        if (hour !in 1..12) return null
+        hour = hour % 12 + if (meridiem == "p") 12 else 0
+    }
+    if (hour !in 0..23 || minute !in 0..59) return null
+    return LocalTime(hour, minute)
 }
 
 private fun PkPass.boardingPassFromFields(): ItemDetails.BoardingPass? {
