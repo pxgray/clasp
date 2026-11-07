@@ -107,37 +107,44 @@ private fun StatusBanner(status: TravelStatus, now: Instant, pageColor: Color, s
         shape = RoundedCornerShape(20.dp),
         modifier = Modifier.fillMaxWidth().testTag("travel_status"),
     ) {
-        Row(Modifier.padding(start = 16.dp, end = 8.dp, top = 12.dp, bottom = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+        val iconSlot: @Composable () -> Unit = {
             if (icon != null) {
                 Icon(painterResource(icon), contentDescription = null, modifier = Modifier.size(24.dp))
                 Spacer(Modifier.width(12.dp))
             }
-            val addTimeButton: @Composable () -> Unit = {
-                TextButton(onClick = onAddTime, colors = ButtonDefaults.textButtonColors(contentColor = text)) {
-                    Text(stringResource(R.string.travel_add_time))
-                }
+        }
+        val addTimeButton: @Composable () -> Unit = {
+            TextButton(onClick = onAddTime, colors = ButtonDefaults.textButtonColors(contentColor = text)) {
+                Text(stringResource(R.string.travel_add_time))
             }
-            // At large font sizes the label would be squeezed beside the button, so the button drops below it.
-            val stacked = showAddTime && LocalDensity.current.fontScale >= 1.3f
-            val spoken = status.spokenLabel(LocalResources.current, now)
-            val label: @Composable (Modifier) -> Unit = { modifier ->
-                Text(
-                    status.label(LocalResources.current, now),
-                    style = MaterialTheme.typography.titleMedium,
-                    modifier = modifier
-                        .padding(vertical = 4.dp)
-                        .semantics {
-                            contentDescription = spoken
-                            if (announce) liveRegion = LiveRegionMode.Polite
-                        },
-                )
-            }
-            if (stacked) {
-                Column(Modifier.weight(1f)) {
-                    label(Modifier)
-                    Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.CenterEnd) { addTimeButton() }
+        }
+        val spoken = status.spokenLabel(LocalResources.current, now)
+        val label: @Composable (Modifier) -> Unit = { modifier ->
+            Text(
+                status.label(LocalResources.current, now),
+                style = MaterialTheme.typography.titleMedium,
+                modifier = modifier
+                    .padding(vertical = 4.dp)
+                    .semantics {
+                        contentDescription = spoken
+                        if (announce) liveRegion = LiveRegionMode.Polite
+                    },
+            )
+        }
+        val padding = Modifier.padding(start = 16.dp, end = 8.dp, top = 12.dp, bottom = 12.dp)
+        // At large font sizes the label would be squeezed beside the button, so the button drops below it,
+        // and the icon stays beside the label.
+        if (showAddTime && LocalDensity.current.fontScale >= 1.3f) {
+            Column(padding) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    iconSlot()
+                    label(Modifier.weight(1f))
                 }
-            } else {
+                Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.CenterEnd) { addTimeButton() }
+            }
+        } else {
+            Row(padding, verticalAlignment = Alignment.CenterVertically) {
+                iconSlot()
                 label(Modifier.weight(1f))
                 if (showAddTime) addTimeButton()
             }
