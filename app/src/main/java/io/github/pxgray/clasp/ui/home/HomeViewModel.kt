@@ -9,30 +9,42 @@ import io.github.pxgray.clasp.ClaspApplication
 import io.github.pxgray.clasp.data.SettingsRepository
 import io.github.pxgray.clasp.data.WalletRepository
 import io.github.pxgray.clasp.domain.SortOrder
+import io.github.pxgray.clasp.domain.TravelStatus
 import io.github.pxgray.clasp.domain.WalletItem
 import io.github.pxgray.clasp.domain.toHomeSections
+import io.github.pxgray.clasp.util.minuteTicks
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.datetime.TimeZone
+import kotlin.time.Clock
+import kotlin.time.Instant
 
 data class HomeUiState(
     val loading: Boolean = true,
+    val travel: List<WalletItem> = emptyList(),
+    val travelStatus: Map<String, TravelStatus> = emptyMap(),
     val favorites: List<WalletItem> = emptyList(),
     val passes: List<WalletItem> = emptyList(),
     val cards: List<WalletItem> = emptyList(),
     /** An item the user deleted that is hidden while the undo snackbar shows. */
     val pendingDeleteId: String? = null,
     val sortOrder: SortOrder = SortOrder.RECENTLY_USED,
+    /** The minute the travel statuses were computed for. */
+    val now: Instant? = null,
 ) {
-    val isEmpty: Boolean get() = !loading && favorites.isEmpty() && passes.isEmpty() && cards.isEmpty()
+    val isEmpty: Boolean get() = !loading && travel.isEmpty() && favorites.isEmpty() && passes.isEmpty() && cards.isEmpty()
 }
 
 class HomeViewModel(
     private val repository: WalletRepository,
     private val settings: SettingsRepository,
+    ticks: Flow<Instant> = minuteTicks(Clock.System),
+    private val zone: () -> TimeZone = { TimeZone.currentSystemDefault() },
 ) : ViewModel() {
 
     private val pendingDelete = MutableStateFlow<String?>(null)
@@ -41,16 +53,20 @@ class HomeViewModel(
         repository.observeItems(),
         settings.settings,
         pendingDelete,
-    ) { items, appSettings, pending ->
+        ticks,
+    ) { items, appSettings, pending, now ->
         val order = appSettings.sortOrder
-        val sections = items.filterNot { it.id == pending }.toHomeSections(order)
+        val sections = items.filterNot { it.id == pending }.toHomeSections(order, now, zone())
         HomeUiState(
             loading = false,
+            travel = sections.travel,
+            travelStatus = sections.travelStatus,
             favorites = sections.favorites,
             passes = sections.passes,
             cards = sections.cards,
             pendingDeleteId = pending,
             sortOrder = order,
+            now = now,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), HomeUiState())
 
@@ -85,7 +101,7 @@ class HomeViewModel(
         val Factory = viewModelFactory {
             initializer {
                 val container = (this[APPLICATION_KEY] as ClaspApplication).container
-                HomeViewModel(container.repository, container.settings)
+                HomeViewModel(container.repository, container.settings, minuteTicks(container.clock))
             }
         }
     }

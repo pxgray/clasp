@@ -64,6 +64,7 @@ import io.github.pxgray.clasp.R
 import io.github.pxgray.clasp.domain.SortOrder
 import io.github.pxgray.clasp.domain.WalletItem
 import io.github.pxgray.clasp.ui.components.ClaspMark
+import io.github.pxgray.clasp.ui.components.TravelBadge
 import io.github.pxgray.clasp.ui.components.WalletCard
 import io.github.pxgray.clasp.ui.importpass.ImportSheet
 import io.github.pxgray.clasp.ui.importpass.ImportViewModel
@@ -160,12 +161,12 @@ fun HomeScreen(
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
     val listState = rememberLazyListState()
     // Keyed items keep the old first card in view after a reorder, so jump to the top when the order changes.
-    // Likewise when the favorites change while the list is at the top: the new section is inserted above the
-    // anchored first item and would land off-screen. This runs in composition, before the new items are laid
-    // out, so the list state still describes the previous layout.
+    // Likewise when the Travel or Favorites sections change while the list is at the top: the new section is
+    // inserted above the anchored first item and would land off-screen. This runs in composition, before the
+    // new items are laid out, so the list state still describes the previous layout.
     val shownSortOrder = remember { arrayOf(state.sortOrder) }
-    val shownFavoriteIds = remember { arrayOf(state.favorites.map { it.id }) }
-    val favoriteIds = state.favorites.map { it.id }
+    val shownFavoriteIds = remember { arrayOf(state.travel.map { it.id } + state.favorites.map { it.id }) }
+    val favoriteIds = state.travel.map { it.id } + state.favorites.map { it.id }
     val favoritesChanged = shownFavoriteIds[0] != favoriteIds
     // Read without observation so scrolling does not recompose the whole screen. Lint can't see through
     // withoutReadObservation, so it still flags the read.
@@ -225,13 +226,17 @@ fun HomeScreen(
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 val sections = listOf(
+                    R.string.home_section_travel to state.travel,
                     R.string.home_section_favorites to state.favorites,
                     R.string.home_section_passes to state.passes,
                     R.string.home_section_cards to state.cards,
                 )
                 val labelled = sections.count { (_, items) -> items.isNotEmpty() } >= 2
+                val badge: (WalletItem) -> TravelBadge? = { item ->
+                    state.travelStatus[item.id]?.let { status -> state.now?.let { TravelBadge(status, it) } }
+                }
                 sections.forEach { (label, items) ->
-                    section(label.takeIf { labelled }, items, onOpenItem, onFavoriteChange)
+                    section(label.takeIf { labelled }, items, onOpenItem, onFavoriteChange, badge)
                 }
             }
         }
@@ -300,6 +305,7 @@ private fun LazyListScope.section(
     items: List<WalletItem>,
     onOpenItem: (String) -> Unit,
     onFavoriteChange: (String, Boolean) -> Unit,
+    badge: (WalletItem) -> TravelBadge?,
 ) {
     if (items.isEmpty()) return
     if (labelRes != null) {
@@ -318,6 +324,7 @@ private fun LazyListScope.section(
             onClick = { onOpenItem(item.id) },
             modifier = Modifier.animateItem(),
             onFavoriteChange = { onFavoriteChange(item.id, it) },
+            travelBadge = badge(item),
         )
     }
 }

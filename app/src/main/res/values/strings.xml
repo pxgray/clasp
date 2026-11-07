@@ -49,6 +49,7 @@
     <string name="edit_color_brightness">Brightness</string>
     <string name="action_undo">Undo</string>
     <string name="home_add">Add</string>
+    <string name="home_section_travel">Travel</string>
     <string name="home_section_passes">Passes</string>
     <string name="home_section_cards">Loyalty cards</string>
     <string name="home_section_favorites">Favorites</string>

@@ -10,6 +10,10 @@ import io.github.pxgray.clasp.testing.MainDispatcherRule
 import io.github.pxgray.clasp.testing.boardingItem
 import io.github.pxgray.clasp.testing.loyaltyItem
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.datetime.LocalDateTime
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toInstant
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -154,6 +158,23 @@ class HomeViewModelTest {
     fun `a wallet of only favorites is not empty`() = runTest {
         viewModel(FakeWalletRepository(listOf(loyaltyItem(id = "a", isFavorite = true)))).state.test {
             assertFalse(awaitLoaded().isEmpty)
+        }
+    }
+
+    @Test
+    fun `boarding passes move into Travel and out again as time passes`() = runTest {
+        val zone = TimeZone.of("America/Los_Angeles")
+        val ticks = MutableStateFlow(LocalDateTime(2026, 10, 14, 5, 0).toInstant(zone))
+        HomeViewModel(repository, settings(), ticks, zone = { zone }).state.test {
+            val during = awaitLoaded()
+            assertEquals(listOf("p"), during.travel.map { it.id })
+            assertEquals(emptyList<String>(), during.passes.map { it.id })
+            assertEquals(ticks.value, during.now)
+
+            ticks.value = LocalDateTime(2026, 10, 14, 14, 0).toInstant(zone)
+            val after = expectMostRecentItem()
+            assertEquals(emptyList<String>(), after.travel.map { it.id })
+            assertEquals(listOf("p"), after.passes.map { it.id })
         }
     }
 }

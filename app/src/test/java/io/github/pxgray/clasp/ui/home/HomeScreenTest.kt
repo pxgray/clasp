@@ -11,6 +11,9 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import io.github.pxgray.clasp.domain.SortOrder
+import io.github.pxgray.clasp.domain.TravelStage
+import io.github.pxgray.clasp.domain.TravelStatus
+import kotlin.time.Instant
 import io.github.pxgray.clasp.testing.boardingItem
 import io.github.pxgray.clasp.testing.loyaltyItem
 import io.github.pxgray.clasp.ui.theme.ClaspTheme
@@ -164,5 +167,21 @@ class HomeScreenTest {
         show(HomeUiState(loading = false, cards = listOf(loyaltyItem(id = "c"))), onFavoriteChange = { id, fav -> starred = id to fav })
         compose.onNodeWithContentDescription("Favorite Costco").assertIsOff().performClick()
         assertEquals("c" to true, starred)
+    }
+
+    @Test
+    fun `travel section shows the status chip`() {
+        val now = Instant.fromEpochMilliseconds(1_000_000)
+        val status = TravelStatus(TravelStage.BOARDING, departsAt = now, daysAway = 0, isActive = true, gate = "B12")
+        val state = HomeUiState(
+            loading = false,
+            travel = listOf(boardingItem(id = "b")),
+            travelStatus = mapOf("b" to status),
+            cards = listOf(loyaltyItem(id = "c")),
+            now = now,
+        )
+        show(state)
+        compose.onNodeWithText("Travel").assertIsDisplayed()
+        compose.onNodeWithText("Boarding · Gate B12").assertIsDisplayed()
     }
 }
