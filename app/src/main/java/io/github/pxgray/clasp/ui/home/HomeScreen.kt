@@ -165,9 +165,9 @@ fun HomeScreen(
     // inserted above the anchored first item and would land off-screen. This runs in composition, before the
     // new items are laid out, so the list state still describes the previous layout.
     val shownSortOrder = remember { arrayOf(state.sortOrder) }
-    val shownFavoriteIds = remember { arrayOf(state.travel.map { it.id } + state.favorites.map { it.id }) }
-    val favoriteIds = state.travel.map { it.id } + state.favorites.map { it.id }
-    val favoritesChanged = shownFavoriteIds[0] != favoriteIds
+    val shownTopIds = remember { arrayOf(state.travel.map { it.id } + state.favorites.map { it.id }) }
+    val topIds = state.travel.map { it.id } + state.favorites.map { it.id }
+    val favoritesChanged = shownTopIds[0] != topIds
     // Read without observation so scrolling does not recompose the whole screen. Lint can't see through
     // withoutReadObservation, so it still flags the read.
     @SuppressLint("FrequentlyChangingValue")
@@ -178,7 +178,7 @@ fun HomeScreen(
         listState.requestScrollToItem(0)
     }
     shownSortOrder[0] = state.sortOrder
-    shownFavoriteIds[0] = favoriteIds
+    shownTopIds[0] = topIds
     val fabExpanded by remember { derivedStateOf { listState.firstVisibleItemIndex == 0 } }
     var showAddSheet by rememberSaveable { mutableStateOf(false) }
 

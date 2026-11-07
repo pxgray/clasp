@@ -9,6 +9,7 @@ import io.github.pxgray.clasp.domain.PassField
 import io.github.pxgray.clasp.domain.WalletItem
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
+import kotlinx.datetime.UtcOffset
 import kotlin.time.Instant
 
 fun loyaltyItem(
@@ -96,7 +97,7 @@ fun fullItem(id: String = "full-1") = WalletItem(
         gate = "B12",
         terminal = "3",
         boardingTime = LocalTime(6, 35),
-        departureOffset = kotlinx.datetime.UtcOffset(hours = -7),
+        departureOffset = UtcOffset(hours = -7),
     ),
     createdAt = Instant.fromEpochMilliseconds(1_000),
     lastUsedAt = Instant.fromEpochMilliseconds(2_000),

@@ -143,4 +143,12 @@ class HomeSectionsTest {
         val sections = listOf(later, dateOnly, early).toHomeSections(SortOrder.NAME_Z_TO_A, now = oct(14, 1), zone = zone)
         assertEquals(listOf("date", "early", "later"), sections.travel.map { it.id })
     }
+
+    @Test
+    fun `passes departing together are ordered by title`() {
+        val b = boardingItem(id = "1").copy(title = "UA 200")
+        val a = boardingItem(id = "2").copy(title = "UA 100")
+        val sections = listOf(b, a).toHomeSections(now = oct(14, 1), zone = zone)
+        assertEquals(listOf("2", "1"), sections.travel.map { it.id })
+    }
 }

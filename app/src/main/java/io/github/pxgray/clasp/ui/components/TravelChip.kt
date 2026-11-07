@@ -9,7 +9,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalResources
-import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
@@ -32,7 +31,7 @@ fun TravelChip(badge: TravelBadge, modifier: Modifier = Modifier) {
     val short = LocalDensity.current.fontScale >= 1.3f
     val resources = LocalResources.current
     val spoken = badge.status.spokenLabel(resources, badge.now, short)
-    Surface(color = container, contentColor = content, shape = RoundedCornerShape(8.dp), modifier = modifier.testTag("travel_chip")) {
+    Surface(color = container, contentColor = content, shape = RoundedCornerShape(8.dp), modifier = modifier) {
         Text(
             badge.status.label(resources, badge.now, short),
             style = MaterialTheme.typography.labelLarge,
