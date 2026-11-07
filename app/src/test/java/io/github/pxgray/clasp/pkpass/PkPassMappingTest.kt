@@ -88,6 +88,40 @@ class PkPassMappingTest {
     }
 
     @Test
+    fun `a gate closes field is not the gate`() {
+        val json = BOARDING_PASS_JSON.replace(
+            """{ "key": "gate", "label": "GATE", "value": "B12" }""",
+            """{ "key": "gateClose", "label": "GATE CLOSES", "value": "06:50" }""",
+        )
+        val details = pass(json).toWalletItem("id", now, today).details as ItemDetails.BoardingPass
+        assertEquals(null, details.gate)
+        assertEquals(listOf("GATE CLOSES"), details.extraFields.filter { it.label == "GATE CLOSES" }.map { it.label })
+    }
+
+    @Test
+    fun `a boarding closes field does not win over the real boarding time`() {
+        val json = BOARDING_PASS_JSON.replace(
+            """{ "key": "boarding", "label": "BOARDING", "value": "6:35 AM" }""",
+            """{ "key": "bclose", "label": "BOARDING CLOSES", "value": "6:55 AM" },
+      { "key": "boarding", "label": "BOARDING", "value": "6:35 AM" }""",
+        )
+        val details = pass(json).toWalletItem("id", now, today).details as ItemDetails.BoardingPass
+        assertEquals(LocalTime(6, 35), details.boardingTime)
+    }
+
+    @Test
+    fun `gate and terminal are capped at 16 characters`() {
+        val json = BOARDING_PASS_JSON.replace(
+            """"value": "B12" }""",
+            """"value": "  ${"G".repeat(40)}  " },
+      { "key": "terminal", "label": "TERMINAL", "value": "${"T".repeat(40)}" }""",
+        )
+        val details = pass(json).toWalletItem("id", now, today).details as ItemDetails.BoardingPass
+        assertEquals("G".repeat(16), details.gate)
+        assertEquals("T".repeat(16), details.terminal)
+    }
+
+    @Test
     fun `plain boarding times in common formats`() {
         assertEquals(LocalTime(6, 35), plainTime("6:35 AM"))
         assertEquals(LocalTime(18, 40), plainTime("6:40 pm"))
