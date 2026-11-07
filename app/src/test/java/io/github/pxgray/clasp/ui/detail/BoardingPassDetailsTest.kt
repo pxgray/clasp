@@ -19,7 +19,7 @@ class BoardingPassDetailsTest {
     @get:Rule val compose = createComposeRule()
 
     @Test
-    fun `shows route, seat, passenger, confirmation and connections`() {
+    fun `shows route, passenger, confirmation and connections`() {
         val raw = bcbpString(
             "DESMARAIS/LUC",
             bcbpLeg(),
@@ -30,7 +30,6 @@ class BoardingPassDetailsTest {
 
         compose.onNodeWithText("YUL").assertExists()
         compose.onNodeWithText("FRA").assertExists()
-        compose.onNodeWithText("1A").assertExists()
         compose.onNodeWithText("Luc Desmarais").assertExists()
         compose.onNodeWithText("ABC123").assertExists()
         compose.onNodeWithText("LH 3664 · FRA → GVA", substring = true).assertExists()

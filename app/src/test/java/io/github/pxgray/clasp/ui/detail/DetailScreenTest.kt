@@ -23,6 +23,11 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import io.github.pxgray.clasp.domain.Barcode
 import io.github.pxgray.clasp.domain.BarcodeFormat
 import io.github.pxgray.clasp.testing.boardingItem
+import io.github.pxgray.clasp.testing.withBoarding
+import kotlinx.datetime.LocalDateTime
+import kotlinx.datetime.LocalTime
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toInstant
 import io.github.pxgray.clasp.testing.loyaltyItem
 import io.github.pxgray.clasp.ui.theme.ClaspTheme
 import androidx.compose.runtime.getValue
@@ -43,6 +48,41 @@ class DetailScreenTest {
     private fun lightStatusBarIcons(): Boolean {
         val window = compose.activity.window
         return WindowCompat.getInsetsController(window, window.decorView).isAppearanceLightStatusBars
+    }
+
+    private val utc = TimeZone.UTC
+    private fun oct14(hour: Int, minute: Int) = LocalDateTime(2026, 10, 14, hour, minute).toInstant(utc)
+
+    @Test
+    fun `boarding pass shows the countdown and the travel strip`() {
+        val item = boardingItem().withBoarding { copy(gate = "B12", seat = "23A") }
+        compose.setContent {
+            ClaspTheme { DetailScreen(item, onBack = {}, onEdit = {}, onDelete = {}, now = oct14(4, 55), zone = utc) }
+        }
+        compose.onNodeWithText("Departs in 2 h 10 m").assertIsDisplayed()
+        compose.onNodeWithText("B12").assertIsDisplayed()
+        compose.onNodeWithText("23A").assertIsDisplayed()
+    }
+
+    @Test
+    fun `no countdown without the current time`() {
+        compose.setContent { ClaspTheme { DetailScreen(boardingItem(), onBack = {}, onEdit = {}, onDelete = {}) } }
+        compose.onNodeWithTag("travel_status").assertDoesNotExist()
+    }
+
+    @Test
+    fun `add departure time saves the picked time`() {
+        val item = boardingItem().withBoarding { copy(departureTime = null) }
+        var saved: LocalTime? = null
+        compose.setContent {
+            ClaspTheme {
+                DetailScreen(item, onBack = {}, onEdit = {}, onDelete = {}, now = oct14(8, 0), zone = utc, onSetDepartureTime = { saved = it })
+            }
+        }
+        compose.onNodeWithText("Today").assertIsDisplayed()
+        compose.onNodeWithText("Add departure time").performClick()
+        compose.onNodeWithText("OK").performClick()
+        assertEquals(LocalTime(12, 0), saved)
     }
 
     @Test

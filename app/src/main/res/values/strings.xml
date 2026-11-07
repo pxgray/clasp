@@ -96,6 +96,10 @@
     <string name="edit_airport_error">3-letter code</string>
     <string name="edit_boarding_barcode">Uses the %1$s barcode from your scan</string>
     <string name="detail_date">Date</string>
+    <string name="detail_boards">Boards</string>
+    <string name="detail_gate">Gate</string>
+    <string name="detail_terminal">Terminal</string>
+    <string name="travel_add_time">Add departure time</string>
     <string name="detail_departs">Departs</string>
     <string name="detail_seat">Seat</string>
     <string name="detail_sequence">Boarding no.</string>

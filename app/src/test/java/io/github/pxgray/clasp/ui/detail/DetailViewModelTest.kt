@@ -3,6 +3,11 @@ package io.github.pxgray.clasp.ui.detail
 import kotlinx.coroutines.flow.flowOf
 import app.cash.turbine.test
 import io.github.pxgray.clasp.testing.FakeWalletRepository
+import io.github.pxgray.clasp.testing.boardingItem
+import io.github.pxgray.clasp.testing.withBoarding
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.datetime.LocalTime
+import kotlin.time.Instant
 import io.github.pxgray.clasp.testing.FixedClock
 import io.github.pxgray.clasp.testing.MainDispatcherRule
 import io.github.pxgray.clasp.testing.loyaltyItem
@@ -42,6 +47,29 @@ class DetailViewModelTest {
         val repository = FakeWalletRepository(listOf(loyaltyItem(id = "c")))
         DetailViewModel("c", repository, clock, maxBrightness = flowOf(true)).state.test {
             assertEquals(true, expectMostRecentItem().maxBrightness)
+        }
+    }
+
+    @Test
+    fun `state carries the current minute`() = runTest {
+        val now = Instant.fromEpochMilliseconds(5_000_000)
+        val repository = FakeWalletRepository(listOf(loyaltyItem(id = "c")))
+        DetailViewModel("c", repository, clock, ticks = MutableStateFlow(now)).state.test {
+            assertEquals(now, expectMostRecentItem().now)
+        }
+    }
+
+    @Test
+    fun `setDepartureTime changes only the departure time`() = runTest {
+        val item = boardingItem(id = "b").withBoarding { copy(departureTime = null, gate = "B12") }
+        val repository = FakeWalletRepository(listOf(item))
+        val vm = DetailViewModel("b", repository, clock, ticks = MutableStateFlow(clock.now))
+        vm.state.test {
+            expectMostRecentItem()
+            vm.setDepartureTime(LocalTime(18, 40))
+            val saved = expectMostRecentItem().item!!
+            // Compared by details: opening the pass also stamps lastUsedAt.
+            assertEquals(item.withBoarding { copy(departureTime = LocalTime(18, 40)) }.details, saved.details)
         }
     }
 }
