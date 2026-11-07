@@ -68,6 +68,9 @@ private val CONFIRMATION = Regex("(?i)confirmation|pnr|record|booking")
 private val GATE = Regex("(?i)\\bgate\\b")
 private val TERMINAL = Regex("(?i)terminal|\\bterm\\b")
 private val BOARDING = Regex("(?i)boarding|boards")
+private val NOT_A_PLACE = Regex("(?i)clos|open|time")
+private val NOT_BOARDING_START = Regex("(?i)clos|end")
+private const val MAX_PLACE_LENGTH = 16
 private val PLAIN_TIME = Regex("""^(\d{1,2})[:.](\d{2})(?:\s*([AaPp])\.?\s*[Mm]\.?)?$""")
 /** Front fields already shown by the boarding pass layout. */
 private val SHOWN_ELSEWHERE = Regex("(?i)passenger|name|seat|flight|confirmation|pnr|record|booking")
@@ -78,18 +81,22 @@ private fun PkPass.toBoardingPass(today: LocalDate): ItemDetails.BoardingPass? {
     val searched = front + backFields
     // relevantDate is in the departure airport's offset, so its local time is the local departure time.
     val offset = relevantDate?.offset?.takeIf { base.departureTime == null }
-    val gateField = searched.firstOrNull { it.matches(GATE) && it.value.isNotBlank() }
-    val terminalField = searched.firstOrNull { it.matches(TERMINAL) && it.value.isNotBlank() }
+    fun placeField(pattern: Regex) = searched.firstOrNull {
+        it.matches(pattern) && it.value.isNotBlank() && !it.matches(NOT_A_PLACE) &&
+            plainTime(it.value) == null && it.key !in fieldDates
+    }
+    val gateField = placeField(GATE)
+    val terminalField = placeField(TERMINAL)
     val boarding = searched.firstNotNullOfOrNull { field ->
-        if (field.matches(BOARDING)) boardingTimeOf(field, offset)?.let { field to it } else null
+        if (field.matches(BOARDING) && !field.matches(NOT_BOARDING_START)) boardingTimeOf(field, offset)?.let { field to it } else null
     }
     val matched = setOfNotNull(gateField, terminalField, boarding?.first)
     return base.copy(
         departureDate = base.departureDate ?: relevantDate?.toLocalDate()?.toKotlinLocalDate(),
         departureTime = base.departureTime ?: relevantDate?.toLocalTime()?.toKotlinLocalTime(),
         departureOffset = offset?.toKotlinUtcOffset(),
-        gate = gateField?.value?.trim(),
-        terminal = terminalField?.value?.trim(),
+        gate = gateField?.value?.trim()?.take(MAX_PLACE_LENGTH),
+        terminal = terminalField?.value?.trim()?.take(MAX_PLACE_LENGTH),
         boardingTime = boarding?.second,
         extraFields = front.filterNot { it.matches(SHOWN_ELSEWHERE) || it in matched },
     )
