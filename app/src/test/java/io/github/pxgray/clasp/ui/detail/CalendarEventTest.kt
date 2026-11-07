@@ -6,6 +6,7 @@ import android.provider.CalendarContract
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import io.github.pxgray.clasp.domain.ItemDetails
+import io.github.pxgray.clasp.ui.format.formatShort
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.LocalTime
@@ -26,6 +27,7 @@ class CalendarEventTest {
     private val pass = ItemDetails.BoardingPass(
         passenger = "DOE/JANE", pnr = "ABC123", airline = "AC", flightNumber = "834", from = "YUL", to = "LHR",
         departureDate = LocalDate(2026, 11, 22), departureTime = LocalTime(19, 15), seat = "23A", gate = "B12",
+        terminal = "2", boardingTime = LocalTime(18, 30),
         departureOffset = UtcOffset(hours = -5),
     )
 
@@ -36,7 +38,11 @@ class CalendarEventTest {
         assertEquals(LocalDateTime(2026, 11, 23, 0, 15).toInstant(TimeZone.UTC).toEpochMilliseconds(), event.beginMillis)
         assertFalse(event.allDay)
         assertEquals("YUL airport", event.location)
-        assertEquals("Confirmation: ABC123\nSeat: 23A\nGate: B12", event.description)
+        assertEquals(
+            "Confirmation: ABC123\nSeat: 23A\nGate: B12\nTerminal: 2\nBoards: ${LocalTime(18, 30).formatShort()}",
+            event.description,
+        )
+        assertFalse(event.toIntent().hasExtra(CalendarContract.EXTRA_EVENT_END_TIME))
     }
 
     @Test

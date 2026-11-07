@@ -5,6 +5,7 @@ import io.github.pxgray.clasp.domain.ItemKind
 import io.github.pxgray.clasp.domain.PkPassStyle
 import io.github.pxgray.clasp.testing.boardingItem
 import io.github.pxgray.clasp.testing.loyaltyItem
+import io.github.pxgray.clasp.testing.withBoarding
 import kotlinx.datetime.LocalDate
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -96,6 +97,12 @@ class QuickActionsTest {
         assertEquals(listOf(QuickAction.AddToCalendar), boardingItem().quickActions(today = LocalDate(2026, 10, 1)))
         assertEquals(emptyList<QuickAction>(), boardingItem().quickActions(today = LocalDate(2026, 10, 15)))
         assertEquals(emptyList<QuickAction>(), boardingItem().quickActions())
+    }
+
+    @Test
+    fun `a boarding pass without a departure date gets no Calendar`() {
+        val item = boardingItem().withBoarding { copy(departureDate = null) }
+        assertEquals(emptyList<QuickAction>(), item.quickActions(today = LocalDate(2026, 10, 14)))
     }
 
     @Test
