@@ -97,6 +97,11 @@
     <string name="edit_boarding_barcode">Uses the %1$s barcode from your scan</string>
     <string name="detail_date">Date</string>
     <string name="detail_boards">Boards</string>
+    <string name="detail_action_calendar">Calendar</string>
+    <string name="detail_action_calendar_desc">Add flight to calendar</string>
+    <string name="calendar_title">%1$s %2$s · %3$s → %4$s</string>
+    <string name="calendar_location">%1$s airport</string>
+    <string name="calendar_line">%1$s: %2$s</string>
     <string name="detail_gate">Gate</string>
     <string name="detail_terminal">Terminal</string>
     <string name="travel_add_time">Add departure time</string>

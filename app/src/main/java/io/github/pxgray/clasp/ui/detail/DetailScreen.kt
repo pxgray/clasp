@@ -1,5 +1,6 @@
 package io.github.pxgray.clasp.ui.detail
 
+import android.content.ActivityNotFoundException
 import android.content.ClipData
 import android.os.Build
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -13,12 +14,14 @@ import androidx.compose.ui.platform.ClipEntry
 import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.semantics.onLongClick
 import androidx.compose.ui.semantics.semantics
 import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalTime
 import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
 import kotlin.time.Instant
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -91,6 +94,16 @@ fun DetailRoute(
     val uriHandler = remember(context, noApp) {
         IntentUriHandler(context) { scope.launch { snackbarHostState.showSnackbar(noApp) } }
     }
+    val resources = LocalResources.current
+    val onAddToCalendar: (ItemDetails.BoardingPass) -> Unit = { pass ->
+        pass.calendarEvent(resources, TimeZone.currentSystemDefault())?.let { event ->
+            try {
+                context.startActivity(event.toIntent())
+            } catch (_: ActivityNotFoundException) {
+                scope.launch { snackbarHostState.showSnackbar(noApp) }
+            }
+        }
+    }
     val item = state.item
     if (item != null) {
         CompositionLocalProvider(LocalUriHandler provides uriHandler) {
@@ -100,6 +113,7 @@ fun DetailRoute(
                 snackbarHostState = snackbarHostState,
                 now = state.now,
                 onSetDepartureTime = viewModel::setDepartureTime,
+                onAddToCalendar = onAddToCalendar,
             )
         }
     } else if (!state.loading) {
@@ -119,6 +133,7 @@ fun DetailScreen(
     now: Instant? = null,
     zone: TimeZone = TimeZone.currentSystemDefault(),
     onSetDepartureTime: (LocalTime) -> Unit = {},
+    onAddToCalendar: (ItemDetails.BoardingPass) -> Unit = {},
 ) {
     if (maxBrightness) MaxBrightnessEffect()
     val brand = item.brandColor?.let(::Color) ?: MaterialTheme.colorScheme.primaryContainer
@@ -138,10 +153,18 @@ fun DetailScreen(
                     .statusBarsPadding()
                     .navigationBarsPadding(),
             ) {
-                val actions = item.quickActions()
+                val today = now?.toLocalDateTime(zone)?.date
+                val actions = item.quickActions(today)
+                val uriHandler = LocalUriHandler.current
+                val runAction: (QuickAction) -> Unit = { action ->
+                    when (action) {
+                        is QuickAction.Link -> uriHandler.openUri(action.uri)
+                        QuickAction.AddToCalendar -> (item.details as? ItemDetails.BoardingPass)?.let(onAddToCalendar)
+                    }
+                }
                 // A lone button isn't worth pushing the barcode down for; it goes in the menu instead.
                 val menuAction = actions.singleOrNull()
-                DetailTopBar(item, onBrand, menuAction, onBack, onEdit, onDelete)
+                DetailTopBar(item, onBrand, menuAction, runAction, onBack, onEdit, onDelete)
                 Row(Modifier.padding(horizontal = 24.dp), verticalAlignment = Alignment.CenterVertically) {
                     LogoTile(
                         monogram = item.monogram(),
@@ -162,7 +185,7 @@ fun DetailScreen(
                 }
 
                 if (actions.size >= 2) {
-                    QuickActionRow(actions, onBrand, Modifier.fillMaxWidth().padding(top = 24.dp))
+                    QuickActionRow(actions, onBrand, runAction, Modifier.fillMaxWidth().padding(top = 24.dp))
                 }
 
                 (item.details as? ItemDetails.BoardingPass)?.let { pass ->
@@ -243,12 +266,12 @@ private fun DetailTopBar(
     item: WalletItem,
     onBrand: Color,
     menuAction: QuickAction?,
+    onAction: (QuickAction) -> Unit,
     onBack: () -> Unit,
     onEdit: (String) -> Unit,
     onDelete: (String) -> Unit,
 ) {
     var menuOpen by remember { mutableStateOf(false) }
-    val uriHandler = LocalUriHandler.current
     TopAppBar(
         title = {},
         windowInsets = WindowInsets(0),
@@ -273,7 +296,7 @@ private fun DetailTopBar(
                             text = { Text(quickActionDescription(menuAction)) },
                             onClick = {
                                 menuOpen = false
-                                uriHandler.openUri(menuAction.uri)
+                                onAction(menuAction)
                             },
                         )
                     }

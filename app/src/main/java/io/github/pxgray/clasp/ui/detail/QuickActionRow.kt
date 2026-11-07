@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.DateRange
 import androidx.compose.material.icons.outlined.Phone
 import androidx.compose.material.icons.outlined.Place
 import androidx.compose.material3.FilledTonalIconButton
@@ -21,7 +22,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
-import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -32,14 +32,13 @@ import io.github.pxgray.clasp.R
 
 /** Round tonal buttons with labels, centered, tinted to sit on the card's own color. */
 @Composable
-internal fun QuickActionRow(actions: List<QuickAction>, contentColor: Color, modifier: Modifier = Modifier) {
-    val uriHandler = LocalUriHandler.current
+internal fun QuickActionRow(actions: List<QuickAction>, contentColor: Color, onAction: (QuickAction) -> Unit, modifier: Modifier = Modifier) {
     Row(
         modifier.testTag("quick_actions"),
         horizontalArrangement = Arrangement.spacedBy(24.dp, Alignment.CenterHorizontally),
     ) {
         actions.forEach { action ->
-            QuickActionButton(action, contentColor, onClick = { uriHandler.openUri(action.uri) })
+            QuickActionButton(action, contentColor, onClick = { onAction(action) })
         }
     }
 }
@@ -50,6 +49,7 @@ internal fun quickActionDescription(action: QuickAction): String = when (action)
     is QuickAction.Website -> stringResource(R.string.detail_action_website_desc)
     is QuickAction.Nearby -> stringResource(R.string.detail_action_nearby_desc, action.query)
     is QuickAction.Call -> stringResource(R.string.detail_action_call_desc, action.number)
+    QuickAction.AddToCalendar -> stringResource(R.string.detail_action_calendar_desc)
 }
 
 @Composable
@@ -68,6 +68,10 @@ private fun QuickActionButton(action: QuickAction, contentColor: Color, onClick:
         is QuickAction.Call -> {
             label = stringResource(R.string.detail_action_call)
             icon = rememberVectorPainter(Icons.Outlined.Phone)
+        }
+        QuickAction.AddToCalendar -> {
+            label = stringResource(R.string.detail_action_calendar)
+            icon = rememberVectorPainter(Icons.Outlined.DateRange)
         }
     }
     Column(Modifier.width(72.dp), horizontalAlignment = Alignment.CenterHorizontally) {

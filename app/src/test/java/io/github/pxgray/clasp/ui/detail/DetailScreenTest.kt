@@ -20,8 +20,10 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import io.github.pxgray.clasp.R
 import io.github.pxgray.clasp.domain.Barcode
 import io.github.pxgray.clasp.domain.BarcodeFormat
+import io.github.pxgray.clasp.domain.ItemDetails
 import io.github.pxgray.clasp.testing.boardingItem
 import io.github.pxgray.clasp.testing.withBoarding
 import kotlinx.datetime.LocalDateTime
@@ -263,5 +265,18 @@ class DetailScreenTest {
         assertEquals("123456789", clipboard.primaryClip?.getItemAt(0)?.text?.toString())
         // Android 13+ confirms copies itself; Robolectric runs SDK 36.
         compose.onNodeWithText("Card number copied").assertDoesNotExist()
+    }
+
+    @Test
+    fun `calendar in the menu hands the pass to the callback`() {
+        var added: ItemDetails.BoardingPass? = null
+        compose.setContent {
+            ClaspTheme {
+                DetailScreen(boardingItem(), onBack = {}, onEdit = {}, onDelete = {}, now = oct14(1, 0), zone = utc, onAddToCalendar = { added = it })
+            }
+        }
+        compose.onNodeWithContentDescription(compose.activity.getString(R.string.action_more)).performClick()
+        compose.onNodeWithText("Add flight to calendar").performClick()
+        assertEquals(boardingItem().details, added)
     }
 }
