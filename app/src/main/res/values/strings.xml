@@ -122,6 +122,16 @@
     <string name="travel_hours_minutes_short">%1$d h %2$d m</string>
     <string name="travel_hours_short">%1$d h</string>
     <string name="travel_minutes_short">%1$d m</string>
+    <string name="travel_spoken_departs_in">Departs in %1$s</string>
+    <string name="travel_spoken_join">%1$s %2$s</string>
+    <plurals name="travel_spoken_hours">
+        <item quantity="one">%d hour</item>
+        <item quantity="other">%d hours</item>
+    </plurals>
+    <plurals name="travel_spoken_minutes">
+        <item quantity="one">%d minute</item>
+        <item quantity="other">%d minutes</item>
+    </plurals>
     <string name="travel_tomorrow">Tomorrow</string>
     <string name="travel_today">Today</string>
     <plurals name="travel_in_days">

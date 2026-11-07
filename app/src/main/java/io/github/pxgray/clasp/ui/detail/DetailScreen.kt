@@ -55,6 +55,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -100,6 +101,8 @@ fun DetailRoute(
             try {
                 context.startActivity(event.toIntent())
             } catch (_: ActivityNotFoundException) {
+                scope.launch { snackbarHostState.showSnackbar(noApp) }
+            } catch (_: SecurityException) {
                 scope.launch { snackbarHostState.showSnackbar(noApp) }
             }
         }
@@ -189,7 +192,7 @@ fun DetailScreen(
                 }
 
                 (item.details as? ItemDetails.BoardingPass)?.let { pass ->
-                    var pickingTime by remember { mutableStateOf(false) }
+                    var pickingTime by rememberSaveable { mutableStateOf(false) }
                     TravelPanel(
                         pass = pass,
                         status = now?.let { pass.travelStatus(it, zone) },
