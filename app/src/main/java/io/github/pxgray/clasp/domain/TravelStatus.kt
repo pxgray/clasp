@@ -20,7 +20,11 @@ data class TravelStatus(
     val stage: TravelStage,
     /** Exact departure moment, when a time is known. */
     val departsAt: Instant?,
-    /** Whole calendar days from today (phone zone) to the departure date; 0 = today. */
+    /**
+     * Whole calendar days from today to the day of departure, both on the phone's calendar; 0 = today. A timed
+     * departure is placed on the phone's calendar by its exact moment, so a pass in another time zone still
+     * says "today" when it leaves today where the phone is.
+     */
     val daysAway: Int,
     /** From the start of the day before departure until the status ends: the home "Travel" window. */
     val isActive: Boolean,
@@ -40,9 +44,9 @@ fun ItemDetails.BoardingPass.departureInstant(zone: TimeZone): Instant? {
 
 /** Where this flight is on its day of travel, or null when there is no date or the flight is over. */
 fun ItemDetails.BoardingPass.travelStatus(now: Instant, zone: TimeZone): TravelStatus? {
-    val date = departureDate ?: return null
-    val daysAway = now.toLocalDateTime(zone).date.daysUntil(date)
     val departsAt = departureInstant(zone)
+    val date = departsAt?.toLocalDateTime(zone)?.date ?: departureDate ?: return null
+    val daysAway = now.toLocalDateTime(zone).date.daysUntil(date)
     if (departsAt == null) {
         if (daysAway < 0) return null
         return TravelStatus(TravelStage.UPCOMING, null, daysAway, isActive = daysAway <= 1, gate = gate)

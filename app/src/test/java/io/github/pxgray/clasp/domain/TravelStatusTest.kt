@@ -111,4 +111,16 @@ class TravelStatusTest {
         assertEquals(TravelStage.UPCOMING, stage(p, 22, 19, 14))
         assertEquals(TravelStage.LEAVING_SOON, stage(p, 22, 19, 15))
     }
+
+    @Test
+    fun `days away and the travel window follow the departure moment on the phone's calendar`() {
+        // 08:00 on the 23rd in Tokyo (+09:00) is 18:00 on the 22nd in Toronto.
+        val p = pass(date = LocalDate(2026, 11, 23), time = LocalTime(8, 0), offset = UtcOffset(hours = 9))
+        val sameDay = p.travelStatus(at(22, 12, 0), zone)!!
+        assertEquals(0, sameDay.daysAway)
+        val dayBefore = p.travelStatus(at(21, 0, 0), zone)!!
+        assertEquals(1, dayBefore.daysAway)
+        assertTrue(dayBefore.isActive)
+        assertFalse(p.travelStatus(at(20, 23, 59), zone)!!.isActive)
+    }
 }
