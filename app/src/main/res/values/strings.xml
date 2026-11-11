@@ -108,7 +108,7 @@
     <string name="travel_add_time">Add departure time</string>
     <string name="detail_departs">Departs</string>
     <string name="detail_seat">Seat</string>
-    <string name="detail_sequence">Boarding no.</string>
+    <string name="detail_sequence">Sequence</string>
     <string name="detail_passenger">Passenger</string>
     <string name="detail_confirmation">Confirmation</string>
     <string name="detail_connections">Connecting flights</string>
